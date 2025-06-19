@@ -43,6 +43,12 @@ const formatTime = (hour: number, minute: number) => {
   return `${displayHour}:${minute.toString().padStart(2, "0")} ${period}`;
 };
 
+// Helper function to extract duration from variant title
+const extractDurationFromTitle = (title: string): number => {
+  const match = title.match(/(\d+)\s*min/i);
+  return match ? parseInt(match[1]) : 15; // Default to 15 minutes if no duration found
+};
+
 // Generate time slots from 8 AM to 6 PM in 30-minute intervals
 const generateTimeSlots = () => {
   const slots = [];
@@ -99,7 +105,12 @@ export default function SchedulePage() {
     duration: "60",
     totalPrice: "0",
     notes: "",
+    variantId: "", // Track selected variant
   });
+
+  // State for variant management
+  const [availableVariants, setAvailableVariants] = useState<any[]>([]);
+  const [showVariantDropdown, setShowVariantDropdown] = useState(false);
 
   // Generate week dates
   const weekDates = useMemo(() => {
@@ -172,6 +183,7 @@ export default function SchedulePage() {
           node: {
             id: true,
             price: true,
+            title: true,
           },
         },
       },
@@ -335,7 +347,10 @@ export default function SchedulePage() {
         duration: "60",
         totalPrice: "0",
         notes: "",
+        variantId: "",
       });
+      setAvailableVariants([]);
+      setShowVariantDropdown(false);
     } catch (error) {
       console.error("Failed to create booking:", error);
     }
@@ -365,59 +380,11 @@ export default function SchedulePage() {
       duration: "60",
       totalPrice: "0",
       notes: "",
+      variantId: "",
     });
+    setAvailableVariants([]);
+    setShowVariantDropdown(false);
   }, []);
-
-  // Filter customers based on search
-  // const filteredCustomers = useMemo(() => {
-  //   console.log("=== FILTERING CUSTOMERS ===");
-  //   console.log("customerSearch:", customerSearch);
-  //   console.log("customers:", customers);
-  //   console.log("customers length:", customers?.length || 0);
-
-  //   if (!customers) {
-  //     console.log("No customers data available");
-  //     return [];
-  //   }
-
-  //   if (!customerSearch.trim()) {
-  //     console.log("No search term, returning all customers");
-  //     return customers;
-  //   }
-
-  //   const searchLower = customerSearch.toLowerCase();
-  //   console.log("searchLower:", searchLower);
-
-  //   const filtered = customers.filter(customer => {
-  //     const firstName = customer.firstName?.toLowerCase() || "";
-  //     const lastName = customer.lastName?.toLowerCase() || "";
-  //     const displayName = customer.displayName?.toLowerCase() || "";
-  //     const email = customer.email?.toLowerCase() || "";
-
-  //     console.log("Checking customer:", {
-  //       id: customer.id,
-  //       firstName,
-  //       lastName,
-  //       displayName,
-  //       email,
-  //       searchTerm: searchLower
-  //     });
-
-  //     const matches = firstName.includes(searchLower) ||
-  //                    lastName.includes(searchLower) ||
-  //                    displayName.includes(searchLower) ||
-  //                    email.includes(searchLower);
-
-  //     console.log("Customer matches:", matches);
-  //     return matches;
-  //   });
-
-  //   console.log("Filtered customers:", filtered);
-  //   console.log("Filtered count:", filtered.length);
-  //   console.log("=== END FILTERING ===");
-
-  //   return filtered;
-  // }, [customers, customerSearch]);
 
   // Handle customer search
   const handleCustomerSearchChange = useCallback((value: string) => {
@@ -533,14 +500,91 @@ export default function SchedulePage() {
   ];
 
   // Helper function to get service price
-  const getServicePrice = useCallback((serviceId: string) => {
+  const getServicePrice = useCallback((serviceId: string, variantId?: string) => {
     if (!services || !serviceId) return 0;
     const service = services.find(s => s.id === serviceId);
-    const firstVariant = service?.variants?.edges?.[0]?.node;
-    return firstVariant?.price ? parseFloat(firstVariant.price) : 0;
+    if (!service?.variants?.edges) return 0;
+    
+    const variant = variantId 
+      ? service.variants.edges.find(edge => edge.node.id === variantId)?.node
+      : service.variants.edges[0]?.node;
+    
+    return variant?.price ? parseFloat(variant.price) : 0;
   }, [services]);
 
+  // Helper function to get variant duration
+  const getVariantDuration = useCallback((serviceId: string, variantId: string) => {
+    if (!services || !serviceId || !variantId) return 15;
+    const service = services.find(s => s.id === serviceId);
+    const variant = service?.variants?.edges?.find(edge => edge.node.id === variantId)?.node;
+    return variant?.title ? extractDurationFromTitle(variant.title) : 15;
+  }, [services]);
 
+  // Handle service selection and variant management
+  const handleServiceChange = useCallback((serviceId: string) => {
+    handleFormChange("productId", serviceId);
+    
+    if (!services || !serviceId) {
+      setAvailableVariants([]);
+      setShowVariantDropdown(false);
+      handleFormChange("variantId", "");
+      handleFormChange("duration", "15");
+      handleFormChange("totalPrice", "0");
+      return;
+    }
+
+    const service = services.find(s => s.id === serviceId);
+    const variants = service?.variants?.edges?.map(edge => edge.node) || [];
+    
+    setAvailableVariants(variants);
+    
+    if (variants.length === 0) {
+      // No variants found, use defaults
+      setShowVariantDropdown(false);
+      handleFormChange("variantId", "");
+      handleFormChange("duration", "15");
+      handleFormChange("totalPrice", "0");
+    } else if (variants.length === 1) {
+      // Single variant, auto-select it
+      const variant = variants[0];
+      setShowVariantDropdown(false);
+      handleFormChange("variantId", variant.id);
+      handleFormChange("duration", extractDurationFromTitle(variant.title || "").toString());
+      const price = getServicePrice(serviceId, variant.id);
+      handleFormChange("totalPrice", price.toString());
+    } else {
+      // Multiple variants, show dropdown
+      setShowVariantDropdown(true);
+      handleFormChange("variantId", "");
+      handleFormChange("duration", "15");
+      handleFormChange("totalPrice", "0");
+    }
+  }, [services, handleFormChange, getServicePrice]);
+
+  // Handle variant selection
+  const handleVariantChange = useCallback((variantId: string) => {
+    handleFormChange("variantId", variantId);
+    
+    if (!variantId || !formData.productId) {
+      handleFormChange("duration", "15");
+      handleFormChange("totalPrice", "0");
+      return;
+    }
+
+    const duration = getVariantDuration(formData.productId, variantId);
+    const price = getServicePrice(formData.productId, variantId);
+    
+    handleFormChange("duration", duration.toString());
+    handleFormChange("totalPrice", price.toString());
+  }, [formData.productId, getVariantDuration, getServicePrice, handleFormChange]);
+
+  // Auto-select first service when services are loaded
+  useEffect(() => {
+    if (services && services.length > 0 && !formData.productId) {
+      const firstService = services[0];
+      handleServiceChange(firstService.id);
+    }
+  }, [services, formData.productId, handleServiceChange]);
 
   return (
     <Page
@@ -898,12 +942,7 @@ export default function SchedulePage() {
                 <Select
                   label="Service"
                   value={formData.productId}
-                  onChange={(value) => {
-                    handleFormChange("productId", value);
-                    // Auto-calculate price based on selected service
-                    const price = getServicePrice(value);
-                    handleFormChange("totalPrice", price.toString());
-                  }}
+                  onChange={handleServiceChange}
                   options={[
                     { label: "Select service", value: "" },
                     ...(services?.map((s) => {
@@ -925,26 +964,58 @@ export default function SchedulePage() {
               requiredIndicator
             />
 
-            <InlineStack gap="200">
-              <Box width="50%">
-                <TextField
-                  label="Duration (minutes)"
-                  value={formData.duration}
-                  onChange={(value) => handleFormChange("duration", value)}
-                  type="number"
-                  autoComplete="off"
-                />
-              </Box>
-              <Box width="50%">
-                <TextField
-                  label="Total Price"
-                  value={`$${formData.totalPrice}`}
-                  readOnly
-                  disabled
-                  helpText="Price is automatically calculated based on selected service"
-                />
-              </Box>
-            </InlineStack>
+            {/* Variant Selection or Duration Display */}
+            {showVariantDropdown ? (
+              <Select
+                label="Service Duration"
+                value={formData.variantId}
+                onChange={handleVariantChange}
+                options={[
+                  { label: "Select duration", value: "" },
+                  ...availableVariants.map((variant) => {
+                    const duration = extractDurationFromTitle(variant.title || "");
+                    return { 
+                      label: variant.title || `${duration} min`, 
+                      value: variant.id 
+                    };
+                  })
+                ]}
+                requiredIndicator
+                helpText="Select the duration variant for this service"
+              />
+            ) : (
+              <InlineStack gap="200">
+                <Box width="50%">
+                  <TextField
+                    label="Duration (minutes)"
+                    value={formData.duration}
+                    readOnly
+                    disabled
+                    helpText="Duration is set based on selected service variant"
+                  />
+                </Box>
+                <Box width="50%">
+                  <TextField
+                    label="Total Price"
+                    value={`$${formData.totalPrice}`}
+                    readOnly
+                    disabled
+                    helpText="Price is automatically calculated based on selected service"
+                  />
+                </Box>
+              </InlineStack>
+            )}
+
+            {/* Show price separately if variant dropdown is shown */}
+            {showVariantDropdown && (
+              <TextField
+                label="Total Price"
+                value={`$${formData.totalPrice}`}
+                readOnly
+                disabled
+                helpText="Price will be set when you select a duration variant"
+              />
+            )}
 
             <TextField
               label="Notes"
