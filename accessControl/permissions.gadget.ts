@@ -87,6 +87,8 @@ export const permissions: GadgetPermissions = {
               "accessControl/filters/shopify/shopifyProduct.gelly",
           },
           actions: {
+            create: true,
+            delete: true,
             update: {
               filter:
                 "accessControl/filters/shopify/shopifyProduct.gelly",
