@@ -11,7 +11,7 @@ export const schema: GadgetModel = {
   fields: {
     dayOfWeek: {
       type: "enum",
-      acceptMultipleSelections: false,
+      acceptMultipleSelections: true,
       acceptUnlistedOptions: false,
       options: [
         "monday",

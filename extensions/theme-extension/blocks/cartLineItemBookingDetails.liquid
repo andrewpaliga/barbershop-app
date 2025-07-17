@@ -1,0 +1,445 @@
+{%- comment -%}
+Cart Line Item Booking Details Section
+Dynamically injects booking information into cart line items that have booking properties
+{%- endcomment -%}
+
+<style>
+  .cart-line-item-booking-details {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: #666;
+  }
+  
+  .booking-details-content {
+    {%- if section.settings.compact_style -%}
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    {%- else -%}
+      display: block;
+    {%- endif -%}
+  }
+  
+  .booking-detail {
+    {%- unless section.settings.compact_style -%}
+      margin-bottom: 0.25rem;
+    {%- endunless -%}
+  }
+  
+  .booking-label {
+    font-weight: 500;
+    margin-right: 0.25rem;
+  }
+  
+  .booking-value {
+    color: #333;
+  }
+  
+  .booking-details-loading {
+    opacity: 0.7;
+    font-style: italic;
+  }
+  
+  .booking-details-error {
+    color: #999;
+    font-size: 0.8rem;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const settings = {
+      showDate: {{ section.settings.show_booking_date | json }},
+      showTime: {{ section.settings.show_booking_time | json }},
+      showStaff: {{ section.settings.show_staff_name | json }},
+      showLocation: {{ section.settings.show_location_name | json }},
+      compactStyle: {{ section.settings.compact_style | json }},
+      dateLabel: {{ section.settings.date_label | json }},
+      timeLabel: {{ section.settings.time_label | json }},
+      staffLabel: {{ section.settings.staff_label | json }},
+      locationLabel: {{ section.settings.location_label | json }},
+      dateFormat: {{ section.settings.date_format | json }},
+      loadingText: {{ section.settings.loading_text | json }},
+      unknownStaff: {{ section.settings.unknown_staff | json }},
+      unknownLocation: {{ section.settings.unknown_location | json }}
+    };
+
+    async function fetchCartData() {
+      try {
+        const response = await fetch('/cart.js');
+        if (!response.ok) throw new Error('Failed to fetch cart');
+        return await response.json();
+      } catch (error) {
+        console.warn('Failed to fetch cart data:', error);
+        return null;
+      }
+    }
+
+    async function fetchBookingData(staffId, locationId) {
+      try {
+        const params = new URLSearchParams();
+        if (staffId) params.append('staffId', staffId);
+        if (locationId) params.append('locationId', locationId);
+        
+        if (params.toString() === '') return {};
+        
+        const url = `https://{{ shop.permanent_domain }}/api/booking-data?${params.toString()}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+      } catch (error) {
+        console.warn('Failed to fetch booking data:', error);
+        return {};
+      }
+    }
+
+    function formatDate(dateString, format) {
+      if (!dateString) return '';
+      
+      try {
+        const date = new Date(dateString);
+        
+        // Basic format conversion (extend as needed)
+        if (format === '%B %d, %Y') {
+          return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          });
+        } else if (format === '%m/%d/%Y') {
+          return date.toLocaleDateString('en-US');
+        } else {
+          return date.toLocaleDateString();
+        }
+      } catch (error) {
+        return dateString;
+      }
+    }
+
+    function createBookingDetailsHTML(item, bookingData = {}) {
+      const bookingProps = {};
+      
+      // Extract booking properties
+      if (item.properties) {
+        Object.keys(item.properties).forEach(key => {
+          const value = item.properties[key];
+          switch (key) {
+            case '_booking_date':
+              bookingProps.date = value;
+              break;
+            case '_booking_time':
+              bookingProps.time = value;
+              break;
+            case '_staff_id':
+              bookingProps.staffId = value;
+              break;
+            case '_location_id':
+              bookingProps.locationId = value;
+              break;
+          }
+        });
+      }
+
+      // Check if we have any booking properties
+      const hasBookingInfo = bookingProps.date || bookingProps.time || bookingProps.staffId || bookingProps.locationId;
+      if (!hasBookingInfo) return '';
+
+      let detailsHTML = '';
+
+      if (settings.showDate && bookingProps.date) {
+        const formattedDate = formatDate(bookingProps.date, settings.dateFormat);
+        detailsHTML += `
+          <div class="booking-detail booking-date">
+            <span class="booking-label">${settings.dateLabel}:</span>
+            <span class="booking-value">${formattedDate}</span>
+          </div>
+        `;
+      }
+
+      if (settings.showTime && bookingProps.time) {
+        detailsHTML += `
+          <div class="booking-detail booking-time">
+            <span class="booking-label">${settings.timeLabel}:</span>
+            <span class="booking-value">${bookingProps.time}</span>
+          </div>
+        `;
+      }
+
+      if (settings.showStaff && bookingProps.staffId) {
+        const staffName = bookingData.staff?.name || settings.unknownStaff;
+        const errorClass = bookingData.staff ? '' : 'booking-details-error';
+        detailsHTML += `
+          <div class="booking-detail booking-staff">
+            <span class="booking-label">${settings.staffLabel}:</span>
+            <span class="booking-value ${errorClass}">${staffName}</span>
+          </div>
+        `;
+      }
+
+      if (settings.showLocation && bookingProps.locationId) {
+        const locationName = bookingData.location?.name || settings.unknownLocation;
+        const errorClass = bookingData.location ? '' : 'booking-details-error';
+        detailsHTML += `
+          <div class="booking-detail booking-location">
+            <span class="booking-label">${settings.locationLabel}:</span>
+            <span class="booking-value ${errorClass}">${locationName}</span>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="cart-line-item-booking-details" data-booking-details>
+          <div class="booking-details-content">
+            ${detailsHTML}
+          </div>
+        </div>
+      `;
+    }
+
+    function findCartLineItems() {
+      // Try multiple selectors to find cart line items across different themes
+      const selectors = [
+        '[data-cart-item]',
+        '.cart-item',
+        '.cart__item',
+        '.line-item',
+        '.cart-line-item',
+        '[data-line-item-key]',
+        '.js-contents .js-contents__item'
+      ];
+
+      for (const selector of selectors) {
+        const elements = document.querySelectorAll(selector);
+        if (elements.length > 0) {
+          return elements;
+        }
+      }
+
+      return [];
+    }
+
+    function getItemKeyFromElement(element) {
+      // Try to extract variant ID or line item key from the element
+      const key = element.dataset.cartItem || 
+                  element.dataset.lineItemKey || 
+                  element.dataset.variantId;
+      
+      if (key) return key;
+
+      // Try to find it in child elements
+      const keyElement = element.querySelector('[data-cart-item], [data-line-item-key], [data-variant-id]');
+      if (keyElement) {
+        return keyElement.dataset.cartItem || 
+               keyElement.dataset.lineItemKey || 
+               keyElement.dataset.variantId;
+      }
+
+      return null;
+    }
+
+    async function injectBookingDetails() {
+      const cartData = await fetchCartData();
+      if (!cartData || !cartData.items) return;
+
+      const cartLineItems = findCartLineItems();
+      if (cartLineItems.length === 0) {
+        console.warn('No cart line items found in DOM');
+        return;
+      }
+
+      // Process each cart line item
+      for (const lineItemElement of cartLineItems) {
+        // Skip if already has booking details
+        if (lineItemElement.querySelector('.cart-line-item-booking-details')) {
+          continue;
+        }
+
+        const itemKey = getItemKeyFromElement(lineItemElement);
+        if (!itemKey) continue;
+
+        // Find matching cart item by variant ID or key
+        const cartItem = cartData.items.find(item => 
+          item.variant_id.toString() === itemKey.toString() ||
+          item.key === itemKey ||
+          item.id.toString() === itemKey.toString()
+        );
+
+        if (!cartItem) continue;
+
+        // Check if this item has booking properties
+        const hasBookingProps = cartItem.properties && Object.keys(cartItem.properties).some(key => 
+          key.startsWith('_booking_')
+        );
+
+        if (!hasBookingProps) continue;
+
+        // Extract staff and location IDs for API call
+        const staffId = cartItem.properties?._staff_id;
+        const locationId = cartItem.properties?._location_id;
+
+        // Fetch additional booking data if needed
+        let bookingData = {};
+        if (staffId || locationId) {
+          bookingData = await fetchBookingData(staffId, locationId);
+        }
+
+        // Create and inject booking details HTML
+        const bookingHTML = createBookingDetailsHTML(cartItem, bookingData);
+        if (bookingHTML) {
+          // Try to find the best place to insert the booking details
+          let insertTarget = lineItemElement.querySelector('.cart-item__details, .line-item__details, .cart__item-details');
+          
+          if (!insertTarget) {
+            // If no specific details container, append to the line item
+            insertTarget = lineItemElement;
+          }
+
+          insertTarget.insertAdjacentHTML('beforeend', bookingHTML);
+        }
+      }
+    }
+
+    // Initialize booking details injection
+    injectBookingDetails();
+
+    // Re-inject on cart updates (for AJAX carts)
+    document.addEventListener('cart:updated', injectBookingDetails);
+    
+    // Also listen for other common cart update events
+    document.addEventListener('cart:refresh', injectBookingDetails);
+    
+    // Mutation observer as fallback for dynamic cart updates
+    const observer = new MutationObserver((mutations) => {
+      let shouldReinject = false;
+      mutations.forEach(mutation => {
+        if (mutation.type === 'childList') {
+          // Check if cart items were added/removed
+          const addedNodes = Array.from(mutation.addedNodes);
+          const removedNodes = Array.from(mutation.removedNodes);
+          
+          if (addedNodes.some(node => node.nodeType === Node.ELEMENT_NODE && 
+              (node.matches && node.matches('[data-cart-item], .cart-item, .cart__item') ||
+               node.querySelector && node.querySelector('[data-cart-item], .cart-item, .cart__item')))) {
+            shouldReinject = true;
+          }
+        }
+      });
+      
+      if (shouldReinject) {
+        setTimeout(injectBookingDetails, 100); // Small delay to ensure DOM is ready
+      }
+    });
+
+    // Observe cart container for changes
+    const cartContainer = document.querySelector('[data-cart], .cart, #cart, .drawer__contents');
+    if (cartContainer) {
+      observer.observe(cartContainer, { childList: true, subtree: true });
+    }
+  });
+</script>
+
+{% schema %}
+{
+  "name": "Line Item Booking",
+  "target": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Display Settings"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_booking_date",
+      "label": "Show booking date",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_booking_time",
+      "label": "Show booking time",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_staff_name",
+      "label": "Show staff name",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_location_name",
+      "label": "Show location name",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "compact_style",
+      "label": "Use compact layout",
+      "default": true,
+      "info": "Display booking details in a single line when possible"
+    },
+    {
+      "type": "header",
+      "content": "Labels"
+    },
+    {
+      "type": "text",
+      "id": "date_label",
+      "label": "Date label",
+      "default": "Date"
+    },
+    {
+      "type": "text",
+      "id": "time_label",
+      "label": "Time label",
+      "default": "Time"
+    },
+    {
+      "type": "text",
+      "id": "staff_label",
+      "label": "Staff label",
+      "default": "Staff"
+    },
+    {
+      "type": "text",
+      "id": "location_label",
+      "label": "Location label",
+      "default": "Location"
+    },
+    {
+      "type": "header",
+      "content": "Date Format"
+    },
+    {
+      "type": "text",
+      "id": "date_format",
+      "label": "Date format",
+      "default": "%B %d, %Y",
+      "info": "Use Liquid date format codes"
+    },
+    {
+      "type": "header",
+      "content": "Messages"
+    },
+    {
+      "type": "text",
+      "id": "loading_text",
+      "label": "Loading text",
+      "default": "Loading..."
+    },
+    {
+      "type": "text",
+      "id": "unknown_staff",
+      "label": "Unknown staff text",
+      "default": "Unknown"
+    },
+    {
+      "type": "text",
+      "id": "unknown_location",
+      "label": "Unknown location text",
+      "default": "Unknown"
+    }
+  ]
+}
+{% endschema %}

@@ -11,8 +11,8 @@ export const schema: GadgetModel = {
       type: "boolean",
       shopifyMetafield: {
         privateMetafield: false,
-        namespace: "",
-        key: "",
+        namespace: "barbershop",
+        key: "is_barber_service",
         metafieldType: "boolean",
         allowMultipleEntries: false,
       },

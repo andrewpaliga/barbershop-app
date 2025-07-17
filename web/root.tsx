@@ -6,6 +6,7 @@ import {
   AppType,
   Provider as GadgetProvider,
 } from "@gadgetinc/react-shopify-app-bridge";
+import { Provider as GadgetReactProvider } from "@gadgetinc/react";
 import "./app.css";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import { Suspense } from "react";
@@ -73,20 +74,18 @@ export default function App() {
   return (
     <GadgetProvider
       type={AppType.Embedded}
-      shopifyApiKey={gadgetConfig.apiKeys.shopify ?? ""}
+      shopifyApiKey={gadgetConfig?.apiKeys?.shopify ?? ""}
       api={api}
       location={location}
-      shopifyInstallState={gadgetConfig.shopifyInstallState}
+      shopifyInstallState={gadgetConfig?.shopifyInstallState}
     >
-      <AppProvider i18n={enTranslations} linkComponent={AdaptorLink}>
-        <Outlet />
-      </AppProvider>
+      <GadgetReactProvider api={api}>
+        <AppProvider i18n={enTranslations} linkComponent={AdaptorLink}>
+          <Outlet />
+        </AppProvider>
+      </GadgetReactProvider>
     </GadgetProvider>
   );
-}
-
-export function HydrateFallback() {
-  return <FullPageSpinner />;
 }
 
 // Custom error boundary that doesn't rely on Remix hooks

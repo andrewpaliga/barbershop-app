@@ -1,4 +1,4 @@
-filter ($session: Session) on ShopifyLocation [
+filter ($session: Session) on LocationHours [
   where shopId == $session.shopId
 ]
 # structured filters: [{"type":"tenancy_read_filter","field":"shop"}]

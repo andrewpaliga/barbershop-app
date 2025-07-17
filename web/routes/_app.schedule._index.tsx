@@ -62,22 +62,93 @@ const generateTimeSlots = () => {
 // Get booking status color
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "confirmed":
+    case "paid":
       return "success";
-    case "pending":
+    case "not_paid":
       return "warning";
-    case "completed":
+    case "pending":
       return "info";
-    case "cancelled":
-      return "critical";
-    case "no_show":
-      return "critical";
     default:
-      return "info";
+      return "subdued";
   }
 };
 
+// Helper function to convert location time to UTC
+const convertLocationTimeToUTC = (localTime: Date, locationTimezone: string): Date => {
+  if (!locationTimezone) {
+    return localTime; // Fallback to local time if no timezone
+  }
+  
+  // Create a date in the location timezone
+  const year = localTime.getFullYear();
+  const month = localTime.getMonth();
+  const date = localTime.getDate();
+  const hours = localTime.getHours();
+  const minutes = localTime.getMinutes();
+  
+  // Create an Intl.DateTimeFormat for the location timezone
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: locationTimezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  
+  // Create a reference date in UTC
+  const referenceUTC = new Date(year, month, date, hours, minutes);
+  
+  // Get the formatted date parts in the target timezone
+  const parts = formatter.formatToParts(referenceUTC);
+  const locationDate = new Date(
+    parseInt(parts.find(p => p.type === 'year')?.value || '0'),
+    parseInt(parts.find(p => p.type === 'month')?.value || '1') - 1,
+    parseInt(parts.find(p => p.type === 'day')?.value || '1'),
+    parseInt(parts.find(p => p.type === 'hour')?.value || '0'),
+    parseInt(parts.find(p => p.type === 'minute')?.value || '0')
+  );
+  
+  // Calculate the offset between what we want and what we got
+  const offset = referenceUTC.getTime() - locationDate.getTime();
+  
+  // Apply the offset to get UTC time
+  return new Date(localTime.getTime() - offset);
+};
+
+// Helper function to convert UTC time to location time
+const convertUTCToLocationTime = (utcTime: Date, locationTimezone: string): Date => {
+  if (!locationTimezone) {
+    return utcTime; // Fallback if no timezone
+  }
+  
+  // Use toLocaleString to get the time in the target timezone
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: locationTimezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  
+  const parts = formatter.formatToParts(utcTime);
+  return new Date(
+    parseInt(parts.find(p => p.type === 'year')?.value || '0'),
+    parseInt(parts.find(p => p.type === 'month')?.value || '1') - 1,
+    parseInt(parts.find(p => p.type === 'day')?.value || '1'),
+    parseInt(parts.find(p => p.type === 'hour')?.value || '0'),
+    parseInt(parts.find(p => p.type === 'minute')?.value || '0'),
+    parseInt(parts.find(p => p.type === 'second')?.value || '0')
+  );
+};
+
 export default function SchedulePage() {
+  const [mounted, setMounted] = useState(false);
   const [currentWeek, setCurrentWeek] = useState(() => getWeekStart(new Date()));
   const [selectedStaffId, setSelectedStaffId] = useState("");
   const [selectedServiceId, setSelectedServiceId] = useState("");
@@ -93,6 +164,11 @@ export default function SchedulePage() {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+
+  // Set mounted flag after component mounts on client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Form state for booking modal
   const [formData, setFormData] = useState({
@@ -130,7 +206,7 @@ export default function SchedulePage() {
   weekEnd.setDate(weekEnd.getDate() + 7);
   weekEnd.setHours(23, 59, 59, 999);
 
-  const [{ data: bookings, fetching: fetchingBookings }] = useFindMany(api.booking, {
+  const [{ data: bookings, fetching: fetchingBookings, error: bookingsError }, refetchBookings] = useFindMany(api.booking, {
     filter: {
       scheduledAt: {
         greaterThanOrEqual: weekStart.toISOString(),
@@ -146,6 +222,13 @@ export default function SchedulePage() {
       status: true,
       customerName: true,
       customerEmail: true,
+      customer: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        displayName: true,
+        email: true,
+      },
       notes: true,
       staff: {
         id: true,
@@ -165,10 +248,6 @@ export default function SchedulePage() {
     select: {
       id: true,
       name: true,
-      location: {
-        id: true,
-        name: true,
-      },
     },
   });
 
@@ -198,6 +277,7 @@ export default function SchedulePage() {
       name: true,
       address1: true,
       city: true,
+      timeZone: true,
     },
   });
 
@@ -213,25 +293,7 @@ export default function SchedulePage() {
     search: customerSearch
   });
 
-  // Debug logging for customers data
-  useEffect(() => {
-    console.log("=== CUSTOMER DEBUG INFO ===");
-    console.log("Customers data:", customers);
-    console.log("Customers count:", customers?.length || 0);
-    console.log("Customers error:", customersError);
-    console.log("Fetching customers:", fetchingCustomers);
-    if (customers && customers.length > 0) {
-      console.log("Sample customer structure:", customers[0]);
-      console.log("All customers detailed:", customers.map(c => ({
-        id: c.id,
-        firstName: c.firstName,
-        lastName: c.lastName,
-        displayName: c.displayName,
-        email: c.email
-      })));
-    }
-    console.log("=== END CUSTOMER DEBUG ===");
-  }, [customers, customersError, fetchingCustomers]);
+
 
   // Create booking action
   const [{ fetching: creatingBooking }, createBooking] = useAction(api.booking.create);
@@ -262,20 +324,38 @@ export default function SchedulePage() {
   // Get bookings for a specific day and time slot
   const getBookingsForSlot = useCallback(
     (date: Date, hour: number, minute: number) => {
-      if (!bookings) return [];
+      if (!bookings || !locations?.length) {
+        return [];
+      }
 
-      return bookings.filter((booking) => {
-        const bookingDate = new Date(booking.scheduledAt);
+      const slotBookings = bookings.filter((booking) => {
+        // Get the location for this booking to determine timezone
+        const bookingLocation = locations.find(loc => loc.id === booking.locationId);
+        const locationTimezone = bookingLocation?.timeZone;
+        
+        // Convert UTC booking time to location timezone for comparison
+        const bookingUTCDate = new Date(booking.scheduledAt);
+        const bookingLocationDate = locationTimezone 
+          ? convertUTCToLocationTime(bookingUTCDate, locationTimezone)
+          : bookingUTCDate;
+        
+        // Create the slot time in the same date context
+        const slotDate = new Date(date);
+        slotDate.setHours(hour, minute, 0, 0);
+        
+        // Compare the booking time in location timezone with the slot time
         return (
-          bookingDate.getDate() === date.getDate() &&
-          bookingDate.getMonth() === date.getMonth() &&
-          bookingDate.getFullYear() === date.getFullYear() &&
-          bookingDate.getHours() === hour &&
-          bookingDate.getMinutes() === minute
+          bookingLocationDate.getDate() === slotDate.getDate() &&
+          bookingLocationDate.getMonth() === slotDate.getMonth() &&
+          bookingLocationDate.getFullYear() === slotDate.getFullYear() &&
+          bookingLocationDate.getHours() === slotDate.getHours() &&
+          bookingLocationDate.getMinutes() === slotDate.getMinutes()
         );
       });
+
+      return slotBookings;
     },
-    [bookings]
+    [bookings, locations]
   );
 
   // Handle time slot click
@@ -290,6 +370,36 @@ export default function SchedulePage() {
   // Handle booking creation
   const handleCreateBooking = useCallback(async () => {
     if (!selectedTimeSlot) return;
+
+    // Get the selected location's timezone
+    const selectedLocation = locations?.find(loc => loc.id === formData.locationId);
+    const locationTimezone = selectedLocation?.timeZone;
+
+    // Create the scheduled time in location timezone, then convert to UTC
+    const scheduledAtLocal = new Date(selectedTimeSlot.date);
+    scheduledAtLocal.setHours(selectedTimeSlot.hour, selectedTimeSlot.minute, 0, 0);
+    
+    const scheduledAtUTC = locationTimezone 
+      ? convertLocationTimeToUTC(scheduledAtLocal, locationTimezone)
+      : scheduledAtLocal;
+
+    // Check if scheduling in the past (convert UTC back to location time for display)
+    const now = new Date();
+    const nowInLocation = locationTimezone 
+      ? convertUTCToLocationTime(now, locationTimezone)
+      : now;
+      
+    if (scheduledAtLocal < nowInLocation) {
+      const confirmed = confirm(
+        `You are scheduling a service in the past (${scheduledAtLocal.toLocaleDateString()} at ${scheduledAtLocal.toLocaleTimeString([], {
+          hour: "numeric",
+          minute: "2-digit",
+        })}). Are you sure you want to proceed?`
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
 
     // Form validation
     if (!formData.customerId && !formData.customerName.trim()) {
@@ -309,12 +419,11 @@ export default function SchedulePage() {
       return;
     }
 
-    const scheduledAt = new Date(selectedTimeSlot.date);
-    scheduledAt.setHours(selectedTimeSlot.hour, selectedTimeSlot.minute, 0, 0);
+
 
     try {
       const bookingData: any = {
-        scheduledAt: scheduledAt.toISOString(),
+        scheduledAt: scheduledAtUTC.toISOString(),
         duration: parseInt(formData.duration) || 60,
         staff: { _link: formData.staffId },
         product: { _link: formData.productId },
@@ -332,7 +441,13 @@ export default function SchedulePage() {
         bookingData.customerEmail = formData.customerEmail;
       }
 
+
+
       await createBooking(bookingData);
+      
+      // Force refetch bookings after creation
+      await refetchBookings();
+      
       setShowBookingModal(false);
       setSelectedTimeSlot(null);
       setShowNewCustomerForm(false);
@@ -352,9 +467,9 @@ export default function SchedulePage() {
       setAvailableVariants([]);
       setShowVariantDropdown(false);
     } catch (error) {
-      console.error("Failed to create booking:", error);
+      // Handle error silently or show user-friendly message
     }
-  }, [selectedTimeSlot, createBooking, formData]);
+  }, [selectedTimeSlot, createBooking, formData, locations]);
 
   // Handle form field changes
   const handleFormChange = useCallback((field: string, value: string) => {
@@ -388,23 +503,13 @@ export default function SchedulePage() {
 
   // Handle customer search
   const handleCustomerSearchChange = useCallback((value: string) => {
-    console.log("=== CUSTOMER SEARCH CHANGE ===");
-    console.log("Search value:", value);
-    console.log("Current customers:", customers);
-
-    try {
-      setCustomerSearch(value);
-      setShowCustomerSuggestions(value.length > 0);
-      if (value.length === 0) {
-        setSelectedCustomer(null);
-        setFormData(prev => ({ ...prev, customerId: "", customerName: "", customerEmail: "" }));
-      }
-      console.log("Search change completed successfully");
-    } catch (error) {
-      console.error("Error in handleCustomerSearchChange:", error);
+    setCustomerSearch(value);
+    setShowCustomerSuggestions(value.length > 0);
+    if (value.length === 0) {
+      setSelectedCustomer(null);
+      setFormData(prev => ({ ...prev, customerId: "", customerName: "", customerEmail: "" }));
     }
-    console.log("=== END SEARCH CHANGE ===");
-  }, [customers]);
+  }, []);
 
   // Handle customer selection from suggestions
   const handleCustomerSelect = useCallback((customer: any) => {
@@ -446,10 +551,14 @@ export default function SchedulePage() {
         id: selectedBooking.id,
         ...updatedData,
       });
+      
+      // Force refetch bookings after update
+      await refetchBookings();
+      
       setShowEditModal(false);
       setSelectedBooking(null);
     } catch (error) {
-      console.error("Failed to update booking:", error);
+      // Handle error silently or show user-friendly message
     }
   }, [selectedBooking, updateBooking]);
 
@@ -460,10 +569,14 @@ export default function SchedulePage() {
     if (confirm("Are you sure you want to delete this booking?")) {
       try {
         await deleteBooking({ id: selectedBooking.id });
+        
+        // Force refetch bookings after deletion
+        await refetchBookings();
+        
         setShowEditModal(false);
         setSelectedBooking(null);
       } catch (error) {
-        console.error("Failed to delete booking:", error);
+        // Handle error silently or show user-friendly message
       }
     }
   }, [selectedBooking, deleteBooking]);
@@ -608,7 +721,7 @@ export default function SchedulePage() {
                     <Button icon={ChevronRightIcon} onClick={goToNextWeek} />
                   </ButtonGroup>
                   <Text as="h2" variant="headingMd">
-                    {weekDates[0].toLocaleDateString()} - {weekDates[6].toLocaleDateString()}
+                    {mounted ? `${weekDates[0].toLocaleDateString()} - ${weekDates[6].toLocaleDateString()}` : 'Loading...'}
                   </Text>
                 </InlineStack>
                 <InlineStack gap="200">
@@ -633,40 +746,7 @@ export default function SchedulePage() {
                 </InlineStack>
               </InlineStack>
 
-              {/* Debug Info - Temporary */}
-              <Card>
-                <BlockStack gap="200">
-                  <Text as="h3" variant="headingSm">Debug Info (Temporary)</Text>
-                  <InlineStack gap="400">
-                    <Text as="p" variant="bodyMd">
-                      Customers Loaded: {customers?.length || 0}
-                    </Text>
-                    <Text as="p" variant="bodyMd">
-                      Fetching: {fetchingCustomers ? "Yes" : "No"}
-                    </Text>
-                    <Text as="p" variant="bodyMd">
-                      Error: {customersError ? "Yes" : "No"}
-                    </Text>
-                  </InlineStack>
-                  {customersError && (
-                    <Text as="p" variant="bodyMd" tone="critical">
-                      Error: {customersError.toString()}
-                    </Text>
-                  )}
-                  {customers && customers.length > 0 && (
-                    <Box>
-                      <Text as="p" variant="bodyMd" fontWeight="bold">
-                        Sample Customer Data:
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        {JSON.stringify(customers[0], null, 2)}
-                      </Text>
-                    </Box>
-                  )}
-                </BlockStack>
-              </Card>
 
-              <Divider />
 
               {/* Calendar Grid */}
               <Box padding="200">
@@ -683,8 +763,8 @@ export default function SchedulePage() {
                         fontWeight: "bold",
                       }}
                     >
-                      <div>{date.toLocaleDateString("en-US", { weekday: "short" })}</div>
-                      <div style={{ fontSize: "0.9em", color: "#666" }}>{date.getDate()}</div>
+                      <div>{mounted ? date.toLocaleDateString("en-US", { weekday: "short" }) : 'Loading...'}</div>
+                      <div style={{ fontSize: "0.9em", color: "#666" }}>{mounted ? date.getDate().toString() : '...'}</div>
                     </div>
                   ))}
 
@@ -721,6 +801,7 @@ export default function SchedulePage() {
                               position: "relative",
                             }}
                             onClick={() => !hasBooking && handleTimeSlotClick(date, hour, minute)}
+                            title={`${date.toDateString()} ${formatTime(hour, minute)} - ${slotBookings.length} bookings`}
                           >
                             {slotBookings.map((booking) => (
                               <Box 
@@ -740,7 +821,10 @@ export default function SchedulePage() {
                                     {booking.product?.title}
                                   </Text>
                                   <Text as="p" variant="bodyXs">
-                                    {booking.customerName}
+                                    {booking.customer?.displayName || 
+                                     (booking.customer?.firstName && booking.customer?.lastName ? 
+                                      `${booking.customer.firstName} ${booking.customer.lastName}` : '') || 
+                                     booking.customerName || 'No customer'}
                                   </Text>
                                   <Text as="p" variant="bodyXs" tone="subdued">
                                     {booking.staff?.name}
@@ -748,6 +832,7 @@ export default function SchedulePage() {
                                 </BlockStack>
                               </Box>
                             ))}
+
                           </div>
                         );
                       })}
@@ -782,7 +867,7 @@ export default function SchedulePage() {
             {selectedTimeSlot && (
               <Card>
                 <Text as="p" variant="bodyMd" fontWeight="bold">
-                  {selectedTimeSlot.date.toLocaleDateString()} at{" "}
+                  {mounted ? selectedTimeSlot.date.toLocaleDateString() : 'Loading...'} at{" "}
                   {formatTime(selectedTimeSlot.hour, selectedTimeSlot.minute)}
                 </Text>
               </Card>
@@ -925,11 +1010,6 @@ export default function SchedulePage() {
                   value={formData.staffId}
                   onChange={(value) => {
                     handleFormChange("staffId", value);
-                    // Auto-select staff member's location if available
-                    const selectedStaff = staff?.find(s => s.id === value);
-                    if (selectedStaff?.location?.id && !formData.locationId) {
-                      handleFormChange("locationId", selectedStaff.location.id);
-                    }
                   }}
                   options={[
                     { label: "Select staff member", value: "" },
@@ -1071,11 +1151,18 @@ export default function SchedulePage() {
                     <BlockStack gap="100">
                       <Text as="p" variant="bodyMd" fontWeight="bold">Date & Time</Text>
                       <Text as="p" variant="bodyMd">
-                        {new Date(selectedBooking.scheduledAt).toLocaleDateString()} at{" "}
-                        {new Date(selectedBooking.scheduledAt).toLocaleTimeString([], {
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
+                        {mounted ? (() => {
+                          const utcDate = new Date(selectedBooking.scheduledAt);
+                          const bookingLocation = locations?.find(loc => loc.id === selectedBooking.location?.id || selectedBooking.locationId);
+                          const locationTimezone = bookingLocation?.timeZone;
+                          const localDate = locationTimezone 
+                            ? convertUTCToLocationTime(utcDate, locationTimezone)
+                            : utcDate;
+                          return `${localDate.toLocaleDateString()} at ${localDate.toLocaleTimeString([], {
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}`;
+                        })() : 'Loading...'}
                       </Text>
                     </BlockStack>
                     <BlockStack gap="100">
@@ -1096,9 +1183,16 @@ export default function SchedulePage() {
                   <InlineStack gap="400">
                     <BlockStack gap="100">
                       <Text as="p" variant="bodyMd" fontWeight="bold">Customer</Text>
-                      <Text as="p" variant="bodyMd">{selectedBooking.customerName}</Text>
-                      {selectedBooking.customerEmail && (
-                        <Text as="p" variant="bodyMd" tone="subdued">{selectedBooking.customerEmail}</Text>
+                      <Text as="p" variant="bodyMd">
+                        {selectedBooking.customer?.displayName || 
+                         (selectedBooking.customer?.firstName && selectedBooking.customer?.lastName ? 
+                          `${selectedBooking.customer.firstName} ${selectedBooking.customer.lastName}` : '') || 
+                         selectedBooking.customerName || 'No customer'}
+                      </Text>
+                      {(selectedBooking.customer?.email || selectedBooking.customerEmail) && (
+                        <Text as="p" variant="bodyMd" tone="subdued">
+                          {selectedBooking.customer?.email || selectedBooking.customerEmail}
+                        </Text>
                       )}
                     </BlockStack>
                     <BlockStack gap="100">
@@ -1119,10 +1213,8 @@ export default function SchedulePage() {
                   onChange={(value) => setSelectedBooking(prev => ({ ...prev, status: value }))}
                   options={[
                     { label: "Pending", value: "pending" },
-                    { label: "Confirmed", value: "confirmed" },
-                    { label: "Completed", value: "completed" },
-                    { label: "Cancelled", value: "cancelled" },
-                    { label: "No Show", value: "no_show" },
+                    { label: "Paid", value: "paid" },
+                    { label: "Not Paid", value: "not_paid" },
                   ]}
                 />
 

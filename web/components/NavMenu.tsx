@@ -13,6 +13,9 @@ export function NavMenu() {
       <Link to="/products">
         Products & Services
       </Link>
+      <Link to="/hours-of-operation">
+        Hours of Operation
+      </Link>
       <Link to="/schedule">
         Schedule
       </Link>

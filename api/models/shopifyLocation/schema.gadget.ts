@@ -6,7 +6,21 @@ import type { GadgetModel } from "gadget-server";
 export const schema: GadgetModel = {
   type: "gadget/model-schema/v1",
   storageKey: "DataModel-Shopify-Location",
-  fields: {},
+  fields: {
+    booking: {
+      type: "hasOne",
+      child: { model: "booking", belongsToField: "location" },
+      storageKey: "Wg5GlFS1IrM6",
+    },
+    enforceOperatingHours: {
+      type: "boolean",
+      default: false,
+      storageKey: "SwI_Vp6pElg7",
+    },
+    holidayClosures: { type: "json", storageKey: "8-ZvhNUya8SE" },
+    operatingHours: { type: "json", storageKey: "FpOWC9wvoSXc" },
+    timeZone: { type: "string", storageKey: "51HiL-wDPkpz" },
+  },
   shopify: {
     fields: [
       "activatable",

@@ -1,15 +1,16 @@
 import { RouteHandler } from "gadget-server";
 
 interface BookingSubmissionBody {
-  serviceId: string;
-  customerName: string;
-  customerEmail: string;
+  scheduledAt: string; // ISO datetime string
+  productId: string;
+  staffId: string;
   locationId: string;
-  staffId?: string;
-  bookingDate: string; // YYYY-MM-DD format
-  bookingTime: string; // HH:MM format
+  variantId?: string;
   duration: number;
+  totalPrice: number;
+  status: string;
   notes?: string;
+  shop: string; // shop domain
 }
 
 const route: RouteHandler<{ Body: BookingSubmissionBody }> = async ({ 
@@ -33,29 +34,45 @@ const route: RouteHandler<{ Body: BookingSubmissionBody }> = async ({
 
     const body = request.body;
     
+    // Debug logging to see exactly what data is being received
+    console.log('=== BOOKING SUBMISSION DEBUG ===');
+    console.log('Request method:', request.method);
+    console.log('Request body:', JSON.stringify(body, null, 2));
+    console.log('Request headers:', JSON.stringify(request.headers, null, 2));
+    logger.info({ 
+      requestBody: body, 
+      requestHeaders: request.headers 
+    }, "Booking submission received");
+    
     // Validate required fields
-    if (!body.serviceId || !body.customerName || !body.customerEmail || 
-        !body.locationId || !body.bookingDate || !body.bookingTime || 
-        !body.duration) {
+    if (!body.scheduledAt || !body.productId || !body.staffId || 
+        !body.locationId || !body.duration || body.totalPrice === undefined || 
+        !body.status || !body.shop) {
       await reply.status(400).send({
         success: false,
-        error: "Missing required fields: serviceId, customerName, customerEmail, locationId, bookingDate, bookingTime, duration"
+        error: "Missing required fields: scheduledAt, productId, staffId, locationId, duration, totalPrice, status, shop"
       });
       return;
     }
 
-    // Get current shop ID for tenancy
-    const shopId = connections.shopify.currentShopId?.toString();
-    if (!shopId) {
-      await reply.status(401).send({
+    // Find shop by domain since this is coming from storefront
+    const shop = await api.shopifyShop.findFirst({
+      filter: { domain: { equals: body.shop } },
+      select: { id: true, domain: true }
+    });
+
+    if (!shop) {
+      await reply.status(404).send({
         success: false,
-        error: "Shop context not found"
+        error: "Shop not found"
       });
       return;
     }
+
+    const shopId = shop.id;
 
     // Validate that the product exists and belongs to this shop
-    const product = await api.shopifyProduct.findOne(body.serviceId, {
+    const product = await api.shopifyProduct.findOne(body.productId, {
       filter: { shopId: { equals: shopId } },
       select: { id: true, title: true }
     });
@@ -82,52 +99,28 @@ const route: RouteHandler<{ Body: BookingSubmissionBody }> = async ({
       return;
     }
 
-    // Handle staff selection
-    let staffId = body.staffId;
-    if (!staffId) {
-      // If no staff specified, find the first available staff for this location
-      const availableStaff = await api.staff.findMany({
-        filter: { 
-          shopId: { equals: shopId },
-          locationId: { equals: body.locationId },
-          isActive: { equals: true }
-        },
-        first: 1,
-        select: { id: true }
-      });
+    // Validate that the staff exists and belongs to this shop
+    const staff = await api.staff.findOne(body.staffId, {
+      filter: { shopId: { equals: shopId } },
+      select: { id: true, name: true }
+    });
 
-      if (availableStaff.length === 0) {
-        await reply.status(400).send({
-          success: false,
-          error: "No available staff found for this location"
-        });
-        return;
-      }
-      staffId = availableStaff[0].id;
-    } else {
-      // Validate that the specified staff exists and belongs to this shop
-      const staff = await api.staff.findOne(staffId, {
-        filter: { shopId: { equals: shopId } },
-        select: { id: true, name: true }
+    if (!staff) {
+      await reply.status(404).send({
+        success: false,
+        error: "Staff member not found"
       });
-
-      if (!staff) {
-        await reply.status(404).send({
-          success: false,
-          error: "Staff member not found"
-        });
-        return;
-      }
+      return;
     }
 
-    // Combine date and time into scheduledAt datetime
-    const scheduledAt = new Date(`${body.bookingDate}T${body.bookingTime}:00`);
+    // Parse scheduledAt from ISO datetime string
+    const scheduledAt = new Date(body.scheduledAt);
     
     // Validate that the date is valid
     if (isNaN(scheduledAt.getTime())) {
       await reply.status(400).send({
         success: false,
-        error: "Invalid booking date or time format"
+        error: "Invalid scheduledAt datetime format"
       });
       return;
     }
@@ -141,20 +134,14 @@ const route: RouteHandler<{ Body: BookingSubmissionBody }> = async ({
       return;
     }
 
-    // For now, we'll use a default price of 0 since we don't have pricing data
-    // In a real implementation, you would fetch this from the product or have a separate pricing model
-    const totalPrice = 0;
-
     // Create the booking record
     const booking = await api.booking.create({
       scheduledAt,
-      product: { _link: body.serviceId },
-      totalPrice,
-      customerName: body.customerName,
-      customerEmail: body.customerEmail,
-      staff: { _link: staffId },
+      product: { _link: body.productId },
+      totalPrice: body.totalPrice,
+      staff: { _link: body.staffId },
       duration: body.duration,
-      status: "pending",
+      status: body.status,
       notes: body.notes || null,
       shop: { _link: shopId },
       location: { _link: body.locationId }
@@ -166,6 +153,7 @@ const route: RouteHandler<{ Body: BookingSubmissionBody }> = async ({
         customerName: true,
         customerEmail: true,
         duration: true,
+        totalPrice: true,
         notes: true,
         product: { id: true, title: true },
         staff: { id: true, name: true },
@@ -184,6 +172,7 @@ const route: RouteHandler<{ Body: BookingSubmissionBody }> = async ({
         customerName: booking.customerName,
         customerEmail: booking.customerEmail,
         duration: booking.duration,
+        totalPrice: booking.totalPrice,
         notes: booking.notes,
         service: {
           id: booking.product.id,
@@ -216,17 +205,18 @@ route.options = {
     body: {
       type: "object",
       properties: {
-        serviceId: { type: "string" },
-        customerName: { type: "string" },
-        customerEmail: { type: "string", format: "email" },
-        locationId: { type: "string" },
+        scheduledAt: { type: "string", format: "date-time" },
+        productId: { type: "string" },
         staffId: { type: "string" },
-        bookingDate: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
-        bookingTime: { type: "string", pattern: "^\\d{2}:\\d{2}$" },
+        locationId: { type: "string" },
+        variantId: { type: "string" },
         duration: { type: "number", minimum: 1 },
-        notes: { type: "string" }
+        totalPrice: { type: "number", minimum: 0 },
+        status: { type: "string" },
+        notes: { type: "string" },
+        shop: { type: "string" }
       },
-      required: ["serviceId", "customerName", "customerEmail", "locationId", "bookingDate", "bookingTime", "duration"],
+      required: ["scheduledAt", "productId", "staffId", "locationId", "duration", "totalPrice", "status", "shop"],
       additionalProperties: false
     }
   }

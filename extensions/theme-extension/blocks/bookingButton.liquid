@@ -38,194 +38,250 @@
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: rgba(0,0,0,0.4);
+    background-color: rgba(0,0,0,0.7);
   ">
     <div class="barbershop-modal-content" style="
       background-color: #fefefe;
-      margin: 5% auto;
-      padding: 20px;
+      margin: 0;
+      padding: 30px;
       border: none;
-      border-radius: 8px;
-      width: 90%;
-      max-width: 500px;
+      border-radius: 0;
+      width: 100%;
+      height: 100%;
       position: relative;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      box-shadow: none;
+      overflow-y: auto;
+      box-sizing: border-box;
     ">
       <!-- Close Button -->
       <span class="barbershop-close" style="
-        color: #aaa;
+        color: #666;
         float: right;
-        font-size: 28px;
+        font-size: 32px;
         font-weight: bold;
         cursor: pointer;
         position: absolute;
-        right: 15px;
-        top: 10px;
+        right: 25px;
+        top: 20px;
+        z-index: 10;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #f8f9fa;
+        transition: all 0.2s ease;
       " onclick="closeBookingModal()">&times;</span>
 
       <!-- Modal Content -->
       <div class="barbershop-modal-body">
-        <h2 style="margin-top: 0; margin-bottom: 15px;">Book Your Appointment</h2>
-        <p style="color: #666; margin-bottom: 20px;">{{ booking_instructions }}</p>
-
         <!-- Loading State -->
-        <div id="booking-loading" style="display: none; text-align: center; padding: 20px;">
-          <p>Loading booking options...</p>
+        <div id="booking-loading" style="display: none; text-align: center; padding: 40px;">
+          <p style="font-size: 16px;">Loading booking options...</p>
         </div>
 
         <!-- Error State -->
-        <div id="booking-error" style="display: none; color: #d32f2f; padding: 10px; background: #ffebee; border-radius: 4px; margin-bottom: 15px;">
+        <div id="booking-error" style="display: none; color: #d32f2f; padding: 15px; background: #ffebee; border-radius: 8px; margin-bottom: 20px;">
         </div>
 
         <!-- Success State -->
-        <div id="booking-success" style="display: none; color: #2e7d32; padding: 10px; background: #e8f5e8; border-radius: 4px; margin-bottom: 15px;">
+        <div id="booking-success" style="display: none; color: #2e7d32; padding: 15px; background: #e8f5e8; border-radius: 8px; margin-bottom: 20px;">
         </div>
 
-        <!-- Booking Form -->
-        <form id="booking-form" class="barbershop-booking-form">
-          <!-- Service Selection -->
-          <div style="margin-bottom: 15px;">
-            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Select Service *</label>
-            <select id="service-select" required style="
-              width: 100%;
-              padding: 10px;
-              border: 1px solid #ddd;
-              border-radius: 4px;
-              font-size: 14px;
-              box-sizing: border-box;
-            ">
-              <option value="">Select a service</option>
-            </select>
+        <!-- Selection Screen -->
+        <div id="booking-selection" style="display: none;">
+          <h2 style="margin-top: 0; margin-bottom: 15px; text-align: center; font-size: 32px; color: #333;">Book Your Appointment</h2>
+          <p style="color: #666; margin-bottom: 40px; text-align: center; font-size: 18px;">Choose how you'd like to book your appointment</p>
+
+          <!-- Book by Service Section -->
+          <div style="margin-bottom: 50px;">
+            <h3 style="margin-bottom: 25px; color: #333; font-size: 24px;">Book by Service</h3>
+            <div id="service-selection-buttons" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
+              <!-- Service buttons will be populated here -->
+            </div>
           </div>
 
-          <!-- Staff Selection -->
+          <!-- Book by Barber Section -->
           {% if show_staff_selection %}
-          <div style="margin-bottom: 15px;">
-            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Select Barber *</label>
-            <select id="staff-select" required style="
-              width: 100%;
-              padding: 10px;
-              border: 1px solid #ddd;
-              border-radius: 4px;
-              font-size: 14px;
-              box-sizing: border-box;
-            ">
-              <option value="">Select a barber</option>
-            </select>
+          <div>
+            <h3 style="margin-bottom: 25px; color: #333; font-size: 24px;">Book by Barber</h3>
+            <div id="staff-selection-buttons" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
+              <!-- Staff buttons will be populated here -->
+            </div>
           </div>
           {% endif %}
+        </div>
 
-          <!-- Location Selection -->
-          <div style="margin-bottom: 15px;">
-            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Location *</label>
-            <select id="location-select" required style="
-              width: 100%;
-              padding: 10px;
+        <!-- Calendar Booking Interface -->
+        <div id="booking-form-container" style="display: none;">
+          <!-- Back Button -->
+          <div style="margin-bottom: 30px;">
+            <button type="button" onclick="showSelectionScreen()" style="
+              background: none;
               border: 1px solid #ddd;
-              border-radius: 4px;
-              font-size: 14px;
-              box-sizing: border-box;
+              padding: 12px 20px;
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 16px;
+              color: #666;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              transition: all 0.2s ease;
             ">
-              <option value="">Select a location</option>
-            </select>
+              &#8592; Back to Selection
+            </button>
           </div>
 
-          <!-- Date Selection -->
-          <div style="margin-bottom: 15px;">
-            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Date *</label>
-            <input type="date" id="booking-date" required style="
-              width: 100%;
-              padding: 10px;
-              border: 1px solid #ddd;
-              border-radius: 4px;
-              font-size: 14px;
-              box-sizing: border-box;
+          <!-- Calendar Interface -->
+          <div class="barbershop-calendar-container">
+            <!-- Left Sidebar -->
+            <div class="barbershop-calendar-sidebar">
+              <!-- Selected Barber Info -->
+              <div id="selected-barber-info" class="barbershop-selected-barber">
+                <!-- Barber info will be populated here -->
+              </div>
+
+              <!-- Service Selection -->
+              <div class="barbershop-service-menu">
+                <h3 style="margin: 0 0 15px 0; font-size: 18px; color: #333;">Select Service</h3>
+                <div id="service-menu-list">
+                  <!-- Service options will be populated here -->
+                </div>
+              </div>
+
+              <!-- Location Selection -->
+              <div class="barbershop-location-selection">
+                <h3 style="margin: 20px 0 15px 0; font-size: 18px; color: #333;">Location</h3>
+                <select id="location-select" required style="
+                  width: 100%;
+                  padding: 10px;
+                  border: 1px solid #ddd;
+                  border-radius: 8px;
+                  font-size: 14px;
+                  box-sizing: border-box;
+                  background: white;
+                ">
+                  <option value="">Select a location</option>
+                </select>
+              </div>
+
+              <!-- Notes -->
+              <div class="barbershop-notes-section">
+                <h3 style="margin: 20px 0 15px 0; font-size: 18px; color: #333;">Notes</h3>
+                <textarea id="notes" rows="3" placeholder="Any special requests..." style="
+                  width: 100%;
+                  padding: 10px;
+                  border: 1px solid #ddd;
+                  border-radius: 8px;
+                  font-size: 14px;
+                  resize: vertical;
+                  box-sizing: border-box;
+                  background: white;
+                "></textarea>
+              </div>
+            </div>
+
+            <!-- Calendar Area -->
+            <div class="barbershop-calendar-area">
+              <!-- Calendar Header -->
+              <div class="barbershop-calendar-header">
+                <div class="barbershop-calendar-nav">
+                  <button type="button" id="prev-week" class="barbershop-nav-btn">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <h3 id="calendar-month-year" style="margin: 0; font-size: 18px; color: #333; flex: 1; text-align: center;">
+                    <!-- Month/Year will be populated here -->
+                  </h3>
+                  <button type="button" id="next-week" class="barbershop-nav-btn">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M6 4L10 8L6 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Calendar Grid -->
+              <div class="barbershop-calendar-grid">
+                <!-- Day Headers -->
+                <div class="barbershop-calendar-days">
+                  <div class="barbershop-day-header">Sun</div>
+                  <div class="barbershop-day-header">Mon</div>
+                  <div class="barbershop-day-header">Tue</div>
+                  <div class="barbershop-day-header">Wed</div>
+                  <div class="barbershop-day-header">Thu</div>
+                  <div class="barbershop-day-header">Fri</div>
+                  <div class="barbershop-day-header">Sat</div>
+                </div>
+
+                <!-- Calendar Body -->
+                <div class="barbershop-calendar-body" id="calendar-body">
+                  <!-- Calendar days and time slots will be populated here -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Booking Confirmation Modal -->
+        <div id="booking-confirmation" style="display: none; margin-top: 30px;">
+          <div style="
+            background: #f8f9fa;
+            border: 2px solid {{ button_color }};
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+          ">
+            <h3 style="margin: 0 0 20px 0; color: #333; font-size: 24px; text-align: center;">
+              Confirm Your Booking
+            </h3>
+            
+            <div id="booking-details" style="
+              background: white;
+              border-radius: 12px;
+              padding: 20px;
+              margin-bottom: 20px;
+              border: 1px solid #e9ecef;
             ">
+              <!-- Booking details will be populated here -->
+            </div>
+            
+            <div style="display: flex; gap: 15px; justify-content: center;">
+              <button type="button" onclick="cancelBooking()" style="
+                background: #f8f9fa;
+                color: #666;
+                border: 1px solid #ddd;
+                padding: 15px 30px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: 600;
+                transition: all 0.2s ease;
+                min-width: 140px;
+              ">
+                Cancel
+              </button>
+              
+              <button type="button" id="confirm-booking-btn" onclick="confirmBooking()" style="
+                background: {{ button_color }};
+                color: {{ button_text_color }};
+                border: none;
+                padding: 15px 30px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: 600;
+                transition: all 0.2s ease;
+                min-width: 140px;
+              ">
+                Add to Cart
+              </button>
+            </div>
           </div>
-
-          <!-- Time Selection -->
-          <div style="margin-bottom: 15px;">
-            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Time *</label>
-            <select id="time-select" required style="
-              width: 100%;
-              padding: 10px;
-              border: 1px solid #ddd;
-              border-radius: 4px;
-              font-size: 14px;
-              box-sizing: border-box;
-            ">
-              <option value="">Select a date first</option>
-            </select>
-          </div>
-
-          <!-- Duration -->
-          <div style="margin-bottom: 15px;">
-            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Duration (minutes) *</label>
-            <input type="number" id="duration" min="15" max="240" step="15" value="60" required style="
-              width: 100%;
-              padding: 10px;
-              border: 1px solid #ddd;
-              border-radius: 4px;
-              font-size: 14px;
-              box-sizing: border-box;
-            ">
-          </div>
-
-          <!-- Customer Information -->
-          <div style="margin-bottom: 15px;">
-            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Your Name *</label>
-            <input type="text" id="customer-name" required style="
-              width: 100%;
-              padding: 10px;
-              border: 1px solid #ddd;
-              border-radius: 4px;
-              font-size: 14px;
-              box-sizing: border-box;
-            ">
-          </div>
-
-          <div style="margin-bottom: 15px;">
-            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Email Address *</label>
-            <input type="email" id="customer-email" required style="
-              width: 100%;
-              padding: 10px;
-              border: 1px solid #ddd;
-              border-radius: 4px;
-              font-size: 14px;
-              box-sizing: border-box;
-            ">
-          </div>
-
-          <!-- Notes -->
-          <div style="margin-bottom: 20px;">
-            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Special Notes</label>
-            <textarea id="notes" rows="3" placeholder="Any special requests or notes..." style="
-              width: 100%;
-              padding: 10px;
-              border: 1px solid #ddd;
-              border-radius: 4px;
-              font-size: 14px;
-              resize: vertical;
-              box-sizing: border-box;
-            "></textarea>
-          </div>
-
-          <!-- Submit Button -->
-          <button type="submit" style="
-            background-color: {{ button_color }};
-            color: {{ button_text_color }};
-            padding: 12px 20px;
-            border: none;
-            border-radius: {{ button_radius }}px;
-            font-size: 16px;
-            font-weight: 600;
-            width: 100%;
-            cursor: pointer;
-            transition: opacity 0.2s ease;
-          " id="submit-booking">
-            Confirm Booking
-          </button>
-        </form>
+        </div>
       </div>
     </div>
   </div>
@@ -242,34 +298,463 @@
 }
 
 .barbershop-close:hover {
-  color: black;
-  opacity: 0.7;
+  color: white;
+  background: #333;
 }
 
-@media (max-width: 768px) {
-  .barbershop-modal-content {
-    margin: 10% auto;
-    width: 95%;
-    padding: 15px;
+.barbershop-selection-btn {
+  border: 2px solid #e1e5e9;
+  border-radius: 16px;
+  padding: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+  text-align: left;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.barbershop-selection-btn:hover {
+  border-color: {{ button_color }};
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+.barbershop-selection-btn:active {
+  transform: translateY(0);
+}
+
+.barbershop-service-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.barbershop-staff-btn {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.barbershop-staff-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e1e5e9;
+}
+
+.barbershop-staff-info {
+  flex: 1;
+}
+
+.barbershop-selection-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.barbershop-selection-subtitle {
+  font-size: 16px;
+  color: #666;
+  margin: 8px 0 0 0;
+  line-height: 1.3;
+}
+
+.barbershop-selection-price {
+  font-size: 18px;
+  font-weight: 600;
+  color: {{ button_color }};
+  margin: 8px 0 0 0;
+}
+
+  /* Calendar Interface Styles */
+  .barbershop-calendar-container {
+    display: flex;
+    gap: 40px;
+    min-height: 70vh;
   }
-  
-  .barbershop-booking-btn {
+
+  .barbershop-calendar-sidebar {
+    width: 320px;
+    flex-shrink: 0;
+    background: #f8f9fa;
+    padding: 30px;
+    border-radius: 16px;
+    border: 1px solid #e9ecef;
+  }
+
+  .barbershop-selected-barber {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    border: 1px solid #e9ecef;
+  }
+
+  .barbershop-selected-barber-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .barbershop-selected-barber-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e1e5e9;
+  }
+
+  .barbershop-selected-barber-details h4 {
+    margin: 0 0 5px 0;
+    color: #333;
+    font-size: 18px;
+  }
+
+  .barbershop-selected-barber-details p {
+    margin: 0;
+    color: #666;
+    font-size: 16px;
+  }
+
+  .barbershop-service-menu-item {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .barbershop-service-menu-item:hover {
+    border-color: {{ button_color }};
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .barbershop-service-menu-item.selected {
+    border-color: {{ button_color }};
+    background: rgba(0,0,0,0.02);
+  }
+
+  .barbershop-service-menu-item h4 {
+    margin: 0 0 8px 0;
+    color: #333;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .barbershop-service-menu-item p {
+    margin: 0;
+    color: #666;
     font-size: 14px;
   }
-}
+
+  .barbershop-service-menu-item .price {
+    color: {{ button_color }};
+    font-weight: 600;
+    font-size: 16px;
+    margin-top: 5px;
+  }
+
+  .barbershop-calendar-area {
+    flex: 1;
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .barbershop-calendar-header {
+    padding: 30px;
+    border-bottom: 1px solid #e9ecef;
+    background: #f8f9fa;
+  }
+
+  .barbershop-calendar-nav {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .barbershop-nav-btn {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .barbershop-nav-btn:hover {
+    background: #f8f9fa;
+    border-color: {{ button_color }};
+  }
+
+  .barbershop-calendar-grid {
+    padding: 30px;
+  }
+
+  .barbershop-calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin-bottom: 25px;
+  }
+
+  .barbershop-day-header {
+    text-align: center;
+    padding: 15px;
+    font-weight: 600;
+    color: #666;
+    font-size: 16px;
+  }
+
+  .barbershop-calendar-body {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 20px;
+  }
+
+  .barbershop-calendar-day {
+    min-height: 350px;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 15px;
+    background: white;
+  }
+
+  .barbershop-calendar-day.disabled {
+    background: #f8f9fa;
+    opacity: 0.5;
+  }
+
+  .barbershop-day-number {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 16px;
+  }
+
+  .barbershop-time-slot {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    background: white;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+  }
+
+  .barbershop-time-slot:hover {
+    background: rgba(0,0,0,0.05);
+    border-color: {{ button_color }};
+  }
+
+  .barbershop-time-slot.selected {
+    background: {{ button_color }};
+    color: {{ button_text_color }};
+    border-color: {{ button_color }};
+  }
+
+  .barbershop-time-slot.unavailable {
+    background: #f8f9fa;
+    color: #ccc;
+    cursor: not-allowed;
+    border-color: #f0f0f0;
+  }
+
+  .barbershop-time-slot.unavailable:hover {
+    background: #f8f9fa;
+    border-color: #f0f0f0;
+  }
+
+  @media (max-width: 1200px) {
+    .barbershop-calendar-container {
+      flex-direction: column;
+    }
+    
+    .barbershop-calendar-sidebar {
+      width: 100%;
+    }
+    
+    .barbershop-calendar-body {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  @media (max-width: 992px) {
+    .barbershop-calendar-body {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  /* Booking Confirmation Styles */
+  #booking-confirmation button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+  
+  #booking-confirmation button:active {
+    transform: translateY(0);
+  }
+  
+  .barbershop-booking-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  
+  .barbershop-booking-detail-row:last-child {
+    border-bottom: none;
+    font-weight: 600;
+    font-size: 18px;
+    color: #333;
+    margin-top: 10px;
+    padding-top: 20px;
+    border-top: 2px solid #e9ecef;
+  }
+  
+  .barbershop-booking-detail-label {
+    color: #666;
+    font-weight: 500;
+  }
+  
+  .barbershop-booking-detail-value {
+    color: #333;
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px) {
+    .barbershop-modal-content {
+      padding: 20px;
+    }
+    
+    .barbershop-close {
+      right: 15px;
+      top: 15px;
+      font-size: 28px;
+      width: 35px;
+      height: 35px;
+    }
+    
+    .barbershop-booking-btn {
+      font-size: 14px;
+    }
+
+    #service-selection-buttons,
+    #staff-selection-buttons {
+      grid-template-columns: 1fr;
+    }
+    
+    .barbershop-selection-btn {
+      padding: 20px;
+    }
+    
+    .barbershop-staff-avatar {
+      width: 50px;
+      height: 50px;
+    }
+    
+    .barbershop-selection-title {
+      font-size: 20px;
+    }
+
+    .barbershop-calendar-container {
+      gap: 20px;
+    }
+    
+    .barbershop-calendar-sidebar {
+      padding: 20px;
+    }
+    
+    .barbershop-calendar-body {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+    
+    .barbershop-calendar-day {
+      min-height: 300px;
+      padding: 12px;
+    }
+    
+    #booking-confirmation {
+      margin-top: 20px;
+    }
+    
+    #booking-confirmation > div {
+      padding: 20px;
+    }
+    
+    #booking-confirmation h3 {
+      font-size: 20px;
+    }
+    
+    #booking-confirmation button {
+      padding: 12px 20px;
+      font-size: 14px;
+      min-width: 120px;
+    }
+  }
 </style>
 
 <script>
+// Ensure API client is available
+if (!window.api && window.BarbershopClient) {
+  window.api = new BarbershopClient();
+}
+
+// Global variables to store booking data and current selection
+let bookingData = null;
+let currentSelection = {
+  type: null, // 'service' or 'staff'
+  serviceId: null,
+  staffId: null,
+  variantId: null,
+  selectedDate: null,
+  selectedTime: null,
+  locationId: null
+};
+let currentWeekStart = null;
+
 // Utility functions for UI manipulation
 function setLoading(show) {
+  console.log('⏳ Setting loading state:', show);
+  
   const loadingElement = document.getElementById('booking-loading');
-  const formElement = document.getElementById('booking-form');
+  const selectionElement = document.getElementById('booking-selection');
+  const formElement = document.getElementById('booking-form-container');
+  
+  console.log('⏳ Found elements:', {
+    loading: !!loadingElement,
+    selection: !!selectionElement,
+    form: !!formElement
+  });
   
   if (loadingElement) {
     loadingElement.style.display = show ? 'block' : 'none';
+    console.log('⏳ Loading element display:', loadingElement.style.display);
+  }
+  if (selectionElement) {
+    selectionElement.style.display = show ? 'none' : (formElement && formElement.style.display !== 'none' ? 'none' : 'block');
+    console.log('⏳ Selection element display:', selectionElement.style.display);
   }
   if (formElement) {
-    formElement.style.display = show ? 'none' : 'block';
+    formElement.style.display = show ? 'none' : 'none';
+    console.log('⏳ Form element display:', formElement.style.display);
   }
 }
 
@@ -300,316 +785,1034 @@ function closeBookingModal() {
     form.reset();
   }
   
+  // Reset selection state
+  currentSelection = {
+    type: null,
+    serviceId: null,
+    staffId: null,
+    variantId: null,
+    selectedDate: null,
+    selectedTime: null,
+    locationId: null
+  };
+  
+  // Show selection screen and hide form and confirmation
+  showSelectionScreen();
+  
+  // Hide confirmation modal
+  const confirmation = document.getElementById('booking-confirmation');
+  if (confirmation) {
+    confirmation.style.display = 'none';
+  }
+  
+  // Clear selected time slot
+  document.querySelectorAll('.barbershop-time-slot.selected').forEach(slot => {
+    slot.classList.remove('selected');
+  });
+  
   // Hide any messages
   hideMessage('error');
   hideMessage('success');
   
-  // Reset time select
+  // Reset time select and variant select
   const timeSelect = document.getElementById('time-select');
   if (timeSelect) {
     timeSelect.innerHTML = '<option value="">Select a date first</option>';
   }
-}
-
-async function loadBookingOptions() {
-  console.log('Loading booking options');
   
-  setLoading(true);
-  hideMessage('error');
-
-  try {
-    // Fetch booking data from our backend route
-    const response = await fetch('/apps/barbershop/api/booking-data');
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log('Loaded booking data:', data);
-
-    // Populate services dropdown
-    const serviceSelect = document.getElementById('service-select');
-    if (serviceSelect && data.services.length > 0) {
-      serviceSelect.innerHTML = '<option value="">Select a service</option>';
-      data.services.forEach(service => {
-        const option = document.createElement('option');
-        option.value = service.id;
-        option.textContent = service.title;
-        serviceSelect.appendChild(option);
-      });
-    } else if (serviceSelect) {
-      serviceSelect.innerHTML = '<option value="">No services available</option>';
-    }
-
-    // Populate staff dropdown
-    const staffSelect = document.getElementById('staff-select');
-    if (staffSelect && data.staff.length > 0) {
-      staffSelect.innerHTML = '<option value="">Select a barber</option>';
-      data.staff.forEach(member => {
-        const option = document.createElement('option');
-        option.value = member.id;
-        option.textContent = member.name;
-        staffSelect.appendChild(option);
-      });
-    } else if (staffSelect) {
-      staffSelect.innerHTML = '<option value="">No staff available</option>';
-    }
-
-    // Populate location dropdown
-    const locationSelect = document.getElementById('location-select');
-    if (locationSelect && data.locations.length > 0) {
-      locationSelect.innerHTML = '<option value="">Select a location</option>';
-      data.locations.forEach(location => {
-        const option = document.createElement('option');
-        option.value = location.id;
-        option.textContent = `${location.name} - ${location.address1}, ${location.city}`;
-        locationSelect.appendChild(option);
-      });
-    } else if (locationSelect) {
-      locationSelect.innerHTML = '<option value="">No locations available</option>';
-    }
-
-    setLoading(false);
-
-  } catch (error) {
-    console.error('Error loading booking options:', error);
-    setLoading(false);
-    showMessage('error', 'Failed to load booking options. Please try again.');
+  const variantSelect = document.getElementById('variant-select');
+  if (variantSelect) {
+    variantSelect.innerHTML = '<option value="">Select a service first</option>';
   }
 }
 
-// Generate time slots
-function generateTimeSlots() {
-  const slots = [];
-  for (let hour = 9; hour < 18; hour++) {
-    for (let minute = 0; minute < 60; minute += 30) {
-      const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-      slots.push(timeString);
-    }
+function showSelectionScreen() {
+  console.log('📱 Showing selection screen');
+  
+  const selectionElement = document.getElementById('booking-selection');
+  const formElement = document.getElementById('booking-form-container');
+  
+  console.log('📱 Found elements:', {
+    selection: !!selectionElement,
+    form: !!formElement
+  });
+  
+  if (selectionElement) {
+    selectionElement.style.display = 'block';
+    console.log('📱 Selection element display set to block');
   }
+  if (formElement) {
+    formElement.style.display = 'none';
+    console.log('📱 Form element display set to none');
+  }
+  
+  // Hide any messages
+  hideMessage('error');
+  hideMessage('success');
+  
+  console.log('✅ Selection screen shown');
+}
+
+function showBookingForm() {
+  const selectionElement = document.getElementById('booking-selection');
+  const formElement = document.getElementById('booking-form-container');
+  
+  if (selectionElement) {
+    selectionElement.style.display = 'none';
+  }
+  if (formElement) {
+    formElement.style.display = 'block';
+  }
+  
+  // Hide any messages
+  hideMessage('error');
+  hideMessage('success');
+  
+  // Initialize calendar
+  initializeCalendar();
+  
+  // Update selected barber info
+  updateSelectedBarberInfo();
+  
+  // Populate service menu
+  populateServiceMenu();
+  
+  // Populate locations
+  populateLocationDropdown();
+}
+
+function updateSelectedBarberInfo() {
+  const container = document.getElementById('selected-barber-info');
+  if (!container || !bookingData) return;
+  
+  if (currentSelection.staffId) {
+    const staff = bookingData.staff.find(s => s.id === currentSelection.staffId);
+    if (staff) {
+      const avatarHtml = staff.avatar 
+        ? `<img src="${staff.avatar}" alt="${staff.name}" class="barbershop-selected-barber-avatar">` 
+        : `<div class="barbershop-selected-barber-avatar" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: #666;">${staff.name.charAt(0)}</div>`;
+      
+      container.innerHTML = `
+        <div class="barbershop-selected-barber-info">
+          ${avatarHtml}
+          <div class="barbershop-selected-barber-details">
+            <h4>${staff.name}</h4>
+            <p>${staff.bio || 'Professional barber'}</p>
+          </div>
+        </div>
+      `;
+    }
+  } else {
+    container.innerHTML = `
+      <div style="text-align: center; color: #666; padding: 20px;">
+        <p>Select a barber to view their availability</p>
+      </div>
+    `;
+  }
+}
+
+function populateServiceMenu() {
+  const container = document.getElementById('service-menu-list');
+  if (!container || !bookingData) return;
+  
+  container.innerHTML = '';
+  
+  bookingData.services.forEach(service => {
+    if (service.variants && service.variants.length > 0) {
+      service.variants.forEach(variant => {
+        const serviceItem = document.createElement('div');
+        serviceItem.className = 'barbershop-service-menu-item';
+        serviceItem.onclick = () => selectServiceFromMenuVariant(service.id, variant.id);
+        
+        // Format duration for display
+        const durationText = variant.duration ? ` • ${variant.duration} minutes` : '';
+        const priceHtml = variant.price ? `<div class="price">$${variant.price}</div>` : '';
+        
+        serviceItem.innerHTML = `
+          <h4>${service.title} - ${variant.title}</h4>
+          <p>${service.body || 'Professional service'}${durationText}</p>
+          ${priceHtml}
+        `;
+        
+        container.appendChild(serviceItem);
+      });
+    }
+  });
+}
+
+function selectServiceFromMenuVariant(serviceId, variantId) {
+  // Remove previous selection
+  document.querySelectorAll('.barbershop-service-menu-item').forEach(item => {
+    item.classList.remove('selected');
+  });
+  
+  // Add selection to clicked item
+  event.target.closest('.barbershop-service-menu-item').classList.add('selected');
+  
+  // Update selection
+  currentSelection.serviceId = serviceId;
+  currentSelection.variantId = variantId;
+  
+  // Update calendar
+  updateCalendar();
+}
+
+
+
+function populateLocationDropdown() {
+  const locationSelect = document.getElementById('location-select');
+  if (!locationSelect || !bookingData) return;
+  
+  locationSelect.innerHTML = '<option value="">Select a location</option>';
+  
+  bookingData.locations.forEach(location => {
+    const option = document.createElement('option');
+    option.value = location.id;
+    option.textContent = `${location.name} - ${location.address1}, ${location.city}`;
+    locationSelect.appendChild(option);
+  });
+  
+  // Auto-select the first available location
+  if (bookingData.locations.length > 0) {
+    const firstLocation = bookingData.locations[0];
+    locationSelect.value = firstLocation.id;
+    currentSelection.locationId = firstLocation.id;
+    updateCalendar();
+  }
+}
+
+// Calendar initialization and navigation
+function initializeCalendar() {
+  const today = new Date();
+  currentWeekStart = getWeekStart(today);
+  updateCalendar();
+  
+  // Set up event listeners for navigation
+  document.getElementById('prev-week').addEventListener('click', () => {
+    currentWeekStart = new Date(currentWeekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+    updateCalendar();
+  });
+  
+  document.getElementById('next-week').addEventListener('click', () => {
+    currentWeekStart = new Date(currentWeekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+    updateCalendar();
+  });
+  
+  // Set up location change listener
+  document.getElementById('location-select').addEventListener('change', (e) => {
+    currentSelection.locationId = e.target.value;
+    updateCalendar();
+  });
+}
+
+function getWeekStart(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day;
+  return new Date(d.setDate(diff));
+}
+
+function updateCalendar() {
+  updateCalendarHeader();
+  renderCalendarDays();
+}
+
+function updateCalendarHeader() {
+  const monthYear = document.getElementById('calendar-month-year');
+  if (monthYear && currentWeekStart) {
+    const options = { month: 'long', year: 'numeric' };
+    monthYear.textContent = currentWeekStart.toLocaleDateString('en-US', options);
+  }
+}
+
+function renderCalendarDays() {
+  const calendarBody = document.getElementById('calendar-body');
+  if (!calendarBody || !currentWeekStart) return;
+  
+  calendarBody.innerHTML = '';
+  
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(currentWeekStart.getTime() + i * 24 * 60 * 60 * 1000);
+    const dayElement = createCalendarDay(date);
+    calendarBody.appendChild(dayElement);
+  }
+}
+
+function createCalendarDay(date) {
+  const dayElement = document.createElement('div');
+  dayElement.className = 'barbershop-calendar-day';
+  
+  const today = new Date();
+  const isPast = date < today.setHours(0, 0, 0, 0);
+  
+  if (isPast) {
+    dayElement.classList.add('disabled');
+  }
+  
+  const dayNumber = document.createElement('div');
+  dayNumber.className = 'barbershop-day-number';
+  dayNumber.textContent = date.getDate();
+  dayElement.appendChild(dayNumber);
+  
+  // Debug: Log conditions for showing time slots
+  const conditionsCheck = {
+    isPast: isPast,
+    hasServiceId: !!currentSelection.serviceId,
+    hasStaffId: !!currentSelection.staffId,
+    hasLocationId: !!currentSelection.locationId
+  };
+  console.log('createCalendarDay conditions for', date, ':', conditionsCheck);
+  
+  if (!isPast && currentSelection.serviceId && currentSelection.staffId && currentSelection.locationId) {
+    console.log('All conditions met, generating time slots for', date);
+    const timeSlots = generateTimeSlots(date);
+    console.log('Generated', timeSlots.length, 'time slots for', date);
+    timeSlots.forEach(slot => {
+      const timeSlotElement = createTimeSlot(slot, date);
+      dayElement.appendChild(timeSlotElement);
+    });
+  } else {
+    console.log('Conditions not met for showing time slots on', date);
+  }
+  
+  return dayElement;
+}
+
+function generateTimeSlots(date) {
+  console.log('generateTimeSlots called for date:', date);
+  
+  if (!currentSelection.staffId || !currentSelection.locationId || !bookingData) {
+    console.log('generateTimeSlots: Missing required data - staffId:', currentSelection.staffId, 'locationId:', currentSelection.locationId, 'bookingData:', !!bookingData);
+    return [];
+  }
+  
+  // Get day of week for the date
+  const dayOfWeek = getDayOfWeek(date);
+  console.log('Day of week for date:', dayOfWeek);
+  
+  // Debug: Log all staff availability records
+  console.log('All staff availability records:', bookingData.staffAvailability);
+  
+  // Find staff availability for this day and location
+  const staffAvailability = bookingData.staffAvailability.find(avail => 
+    avail.staffId === currentSelection.staffId &&
+    avail.locationId === currentSelection.locationId &&
+    avail.dayOfWeek && Array.isArray(avail.dayOfWeek) && avail.dayOfWeek.includes(dayOfWeek) &&
+    avail.isAvailable
+  );
+  
+  console.log('Found staff availability:', staffAvailability);
+  
+  // Check for date-specific availability overrides
+  const dateString = date.toISOString().split('T')[0];
+  const dateAvailability = bookingData.staffDateAvailability.find(avail =>
+    avail.staffId === currentSelection.staffId &&
+    avail.locationId === currentSelection.locationId &&
+    avail.date === dateString
+  );
+  
+  console.log('Found date availability override:', dateAvailability);
+  
+  // If there's a date override, use that; otherwise use regular availability
+  const availability = dateAvailability || staffAvailability;
+  
+  console.log('Using availability:', availability);
+  
+  if (!availability || !availability.isAvailable) {
+    console.log('No availability found or not available');
+    return [];
+  }
+  
+  // Generate time slots based on availability
+  const slots = [];
+  const startTime = parseTime(availability.startTime);
+  const endTime = parseTime(availability.endTime);
+  
+  console.log('Generating slots from', availability.startTime, 'to', availability.endTime);
+  console.log('Start time in minutes:', startTime, 'End time in minutes:', endTime);
+  
+  // Generate 30-minute slots within the available time range
+  for (let minutes = startTime; minutes < endTime; minutes += 30) {
+    const time = formatTime(minutes);
+    slots.push(time);
+  }
+  
+  console.log('Generated time slots:', slots);
+  
   return slots;
 }
 
-// Update time slots when date changes
-document.addEventListener('change', function(e) {
-  if (e.target.id === 'booking-date') {
-    const timeSelect = document.getElementById('time-select');
-    
-    if (timeSelect) {
-      timeSelect.innerHTML = '<option value="">Select a time</option>';
-      const timeSlots = generateTimeSlots();
-      
-      timeSlots.forEach(time => {
-        const option = document.createElement('option');
-        option.value = time;
-        option.textContent = time;
-        timeSelect.appendChild(option);
-      });
-    }
-  }
-});
+function getDayOfWeek(date) {
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  return days[date.getDay()];
+}
 
-// Handle form submission
-document.addEventListener('submit', async function(e) {
-  if (e.target.id === 'booking-form') {
-    e.preventDefault();
-    
-    console.log('Submitting booking form');
-    
-    await submitBooking();
-  }
-});
+function parseTime(timeString) {
+  if (!timeString) return 0;
+  const [hours, minutes] = timeString.split(':').map(Number);
+  return hours * 60 + minutes;
+}
 
-async function submitBooking() {
-  const submitButton = document.getElementById('submit-booking');
-  const originalText = submitButton.textContent;
+function formatTime(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+}
+
+function createTimeSlot(time, date) {
+  const timeSlotElement = document.createElement('button');
+  timeSlotElement.className = 'barbershop-time-slot';
+  timeSlotElement.textContent = time;
+  timeSlotElement.type = 'button';
   
-  submitButton.textContent = 'Processing...';
-  submitButton.disabled = true;
+  // Check if this time slot is available based on staff availability
+  const isAvailable = isTimeSlotAvailable(time, date);
+  
+  if (!isAvailable) {
+    timeSlotElement.classList.add('unavailable');
+    timeSlotElement.disabled = true;
+  } else {
+    timeSlotElement.addEventListener('click', () => {
+      selectTimeSlot(time, date, timeSlotElement);
+    });
+  }
+  
+  return timeSlotElement;
+}
+
+function isTimeSlotAvailable(time, date) {
+  if (!currentSelection.staffId || !currentSelection.locationId || !bookingData) {
+    return false;
+  }
+  
+  // Get day of week for the date
+  const dayOfWeek = getDayOfWeek(date);
+  
+  // Find staff availability for this day and location
+  const staffAvailability = bookingData.staffAvailability.find(avail => 
+    avail.staffId === currentSelection.staffId &&
+    avail.locationId === currentSelection.locationId &&
+    avail.dayOfWeek && avail.dayOfWeek.includes(dayOfWeek) &&
+    avail.isAvailable
+  );
+  
+  // Check for date-specific availability overrides
+  const dateString = date.toISOString().split('T')[0];
+  const dateAvailability = bookingData.staffDateAvailability.find(avail =>
+    avail.staffId === currentSelection.staffId &&
+    avail.locationId === currentSelection.locationId &&
+    avail.date === dateString
+  );
+  
+  // If there's a date override, use that; otherwise use regular availability
+  const availability = dateAvailability || staffAvailability;
+  
+  if (!availability || !availability.isAvailable) {
+    return false;
+  }
+  
+  // Check if the time slot falls within the available hours
+  const slotTime = parseTime(time);
+  const startTime = parseTime(availability.startTime);
+  const endTime = parseTime(availability.endTime);
+  
+  // Make sure the time slot is within the available window
+  // and that there's enough time for the service duration
+  const serviceDuration = getServiceDuration();
+  const slotEndTime = slotTime + serviceDuration;
+  
+  return slotTime >= startTime && slotEndTime <= endTime;
+}
+
+function getServiceDuration() {
+  if (!currentSelection.serviceId || !bookingData) return 60;
+  
+  const service = bookingData.services.find(s => s.id === currentSelection.serviceId);
+  if (!service || !service.variants || service.variants.length === 0) return 60;
+  
+  const variant = currentSelection.variantId 
+    ? service.variants.find(v => v.id === currentSelection.variantId)
+    : service.variants[0];
+  
+  return variant?.duration || 60;
+}
+
+function selectTimeSlot(time, date, element) {
+  // Remove previous selection
+  document.querySelectorAll('.barbershop-time-slot.selected').forEach(slot => {
+    slot.classList.remove('selected');
+  });
+  
+  // Add selection to clicked slot
+  element.classList.add('selected');
+  
+  // Update selection
+  currentSelection.selectedTime = time;
+  currentSelection.selectedDate = date;
+  
+  // Show booking confirmation
+  showBookingConfirmation();
+}
+
+function showBookingConfirmation() {
+  const confirmation = document.getElementById('booking-confirmation');
+  const formContainer = document.getElementById('booking-form-container');
+  if (!confirmation || !formContainer) return;
+  
+  const service = bookingData.services.find(s => s.id === currentSelection.serviceId);
+  const staff = bookingData.staff.find(s => s.id === currentSelection.staffId);
+  const location = bookingData.locations.find(l => l.id === currentSelection.locationId);
+  const variant = service?.variants.find(v => v.id === currentSelection.variantId);
+  
+  if (!service || !staff || !location || !variant) return;
+  
+  const details = document.getElementById('booking-details');
+  const notes = document.getElementById('notes').value;
+  
+  details.innerHTML = `
+    <div class="barbershop-booking-detail-row">
+      <span class="barbershop-booking-detail-label">Service:</span>
+      <span class="barbershop-booking-detail-value">${service.title} - ${variant.title}</span>
+    </div>
+    <div class="barbershop-booking-detail-row">
+      <span class="barbershop-booking-detail-label">Barber:</span>
+      <span class="barbershop-booking-detail-value">${staff.name}</span>
+    </div>
+    <div class="barbershop-booking-detail-row">
+      <span class="barbershop-booking-detail-label">Date & Time:</span>
+      <span class="barbershop-booking-detail-value">${currentSelection.selectedDate.toLocaleDateString()} at ${currentSelection.selectedTime}</span>
+    </div>
+    <div class="barbershop-booking-detail-row">
+      <span class="barbershop-booking-detail-label">Location:</span>
+      <span class="barbershop-booking-detail-value">${location.name}</span>
+    </div>
+    <div class="barbershop-booking-detail-row">
+      <span class="barbershop-booking-detail-label">Duration:</span>
+      <span class="barbershop-booking-detail-value">${variant.duration || 60} minutes</span>
+    </div>
+    ${notes ? `<div class="barbershop-booking-detail-row">
+      <span class="barbershop-booking-detail-label">Notes:</span>
+      <span class="barbershop-booking-detail-value">${notes}</span>
+    </div>` : ''}
+    <div class="barbershop-booking-detail-row">
+      <span class="barbershop-booking-detail-label">Total:</span>
+      <span class="barbershop-booking-detail-value">$${variant.price || 'N/A'}</span>
+    </div>
+  `;
+  
+  // Hide the booking form and show the confirmation
+  formContainer.style.display = 'none';
+  confirmation.style.display = 'block';
+}
+
+function cancelBooking() {
+  const confirmation = document.getElementById('booking-confirmation');
+  const formContainer = document.getElementById('booking-form-container');
+  
+  if (confirmation) {
+    confirmation.style.display = 'none';
+  }
+  
+  if (formContainer) {
+    formContainer.style.display = 'block';
+  }
+  
+  // Clear selected time slot
+  document.querySelectorAll('.barbershop-time-slot.selected').forEach(slot => {
+    slot.classList.remove('selected');
+  });
+  
+  currentSelection.selectedTime = null;
+  currentSelection.selectedDate = null;
+  
+  // Hide any messages
   hideMessage('error');
   hideMessage('success');
+}
 
+async function confirmBooking() {
+  console.log('🚀 confirmBooking function started');
+  
+  const confirmBtn = document.getElementById('confirm-booking-btn');
+  const originalText = confirmBtn.textContent;
+  
   try {
-    // Collect form data
-    const serviceId = document.getElementById('service-select').value;
-    const customerName = document.getElementById('customer-name').value;
-    const customerEmail = document.getElementById('customer-email').value;
-    const staffId = document.getElementById('staff-select').value;
-    const locationId = document.getElementById('location-select').value;
-    const bookingDate = document.getElementById('booking-date').value;
-    const bookingTime = document.getElementById('time-select').value;
-    const duration = parseInt(document.getElementById('duration').value);
+    console.log('📝 Setting up booking confirmation UI');
+    confirmBtn.textContent = 'Adding...';
+    confirmBtn.disabled = true;
+    
+    console.log('🔍 Finding booking data components');
+    const service = bookingData.services.find(s => s.id === currentSelection.serviceId);
+    const staff = bookingData.staff.find(s => s.id === currentSelection.staffId);
+    const location = bookingData.locations.find(l => l.id === currentSelection.locationId);
+    const variant = service?.variants.find(v => v.id === currentSelection.variantId);
     const notes = document.getElementById('notes').value;
-
-    // Validate required fields
-    if (!serviceId || !customerName || !customerEmail || !locationId || !bookingDate || !bookingTime || !duration) {
-      showMessage('error', 'Please fill in all required fields.');
-      submitButton.textContent = originalText;
-      submitButton.disabled = false;
-      return;
-    }
-
-    // Validate staff selection if required
-    const staffSelect = document.getElementById('staff-select');
-    if (staffSelect && staffSelect.offsetParent !== null && !staffId) {
-      showMessage('error', 'Please select a barber.');
-      submitButton.textContent = originalText;
-      submitButton.disabled = false;
-      return;
-    }
-
-    // Create booking object
-    const bookingData = {
-      serviceId: serviceId,
-      customerName: customerName,
-      customerEmail: customerEmail,
-      locationId: locationId,
-      bookingDate: bookingDate,
-      bookingTime: bookingTime,
-      duration: duration,
+    
+    console.log('📋 Booking components found:', {
+      service: service ? { id: service.id, title: service.title } : null,
+      staff: staff ? { id: staff.id, name: staff.name } : null,
+      location: location ? { id: location.id, name: location.name } : null,
+      variant: variant ? { id: variant.id, title: variant.title, price: variant.price } : null,
       notes: notes
-    };
-
-    // Add staff ID if staff selection is enabled
-    if (staffId) {
-      bookingData.staffId = staffId;
+    });
+    
+    // Construct the scheduled datetime with proper timezone handling
+    console.log('🕐 Constructing scheduled datetime');
+    const selectedDate = new Date(currentSelection.selectedDate);
+    const [timeHours, timeMinutes] = currentSelection.selectedTime.split(':').map(Number);
+    
+    // Create a new date object with the selected date and time in local timezone
+    const scheduledAt = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+      timeHours,
+      timeMinutes,
+      0,
+      0
+    );
+    
+    console.log('🕐 Scheduled datetime constructed:', {
+      originalDate: currentSelection.selectedDate,
+      originalTime: currentSelection.selectedTime,
+      scheduledAt: scheduledAt.toISOString(),
+      localString: scheduledAt.toLocaleString()
+    });
+    
+    console.log('🛒 Starting cart addition process');
+    
+    // Check if variant has a Shopify variant ID
+    console.log('🔍 Checking variant for Shopify variant ID:', variant);
+    const shopifyVariantId = variant.shopifyVariantId || variant.variantId;
+    console.log('🆔 Shopify variant ID:', shopifyVariantId);
+    
+    if (shopifyVariantId) {
+      console.log('🛍️ Constructing cart item data');
+      const cartItemData = {
+        id: shopifyVariantId,
+        quantity: 1,
+        properties: {
+          'Booking Date': currentSelection.selectedDate.toLocaleDateString(),
+          'Booking Time': currentSelection.selectedTime,
+          'Barber': staff.name,
+          'Location': location.name,
+          'Duration': `${variant.duration || 60} minutes`,
+          'Notes': notes || '',
+          'Service ID': currentSelection.serviceId,
+          'Variant ID': currentSelection.variantId,
+          'Staff ID': currentSelection.staffId,
+          'Location ID': currentSelection.locationId,
+          'Scheduled At': scheduledAt.toISOString()
+        }
+      };
+      
+      console.log('📦 Cart item data constructed:', cartItemData);
+      
+      console.log('🛒 Adding item to Shopify cart');
+      
+      // Use Shopify's cart API
+      const cartResponse = await fetch('/cart/add.js', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cartItemData)
+      });
+      
+      console.log('🛒 Cart API response received:', {
+        status: cartResponse.status,
+        statusText: cartResponse.statusText,
+        ok: cartResponse.ok,
+        headers: Object.fromEntries(cartResponse.headers.entries())
+      });
+      
+      if (cartResponse.ok) {
+        const cartResult = await cartResponse.json();
+        console.log('✅ Cart addition successful:', cartResult);
+        
+        showMessage('success', 'Booking added to cart successfully! Complete your purchase to confirm your appointment.');
+        
+        // Optionally redirect to cart
+        console.log('🔄 Redirecting to cart');
+        setTimeout(() => {
+          window.location.href = '/cart';
+        }, 1500);
+        
+      } else {
+        console.error('❌ Cart addition failed:', cartResponse.status, cartResponse.statusText);
+        const cartError = await cartResponse.text();
+        console.error('❌ Cart error details:', cartError);
+        
+        showMessage('error', 'Failed to add booking to cart. Please try again.');
+      }
+      
+    } else {
+      console.warn('⚠️ No Shopify variant ID found, cannot add to cart');
+      showMessage('error', 'This service cannot be booked online. Please contact us directly.');
     }
+    
+  } catch (error) {
+    console.error('💥 Exception in confirmBooking:', error);
+    console.error('💥 Error stack:', error.stack);
+    showMessage('error', error.message || 'Failed to add booking to cart. Please try again.');
+  } finally {
+    console.log('🔄 Resetting UI state');
+    confirmBtn.textContent = originalText;
+    confirmBtn.disabled = false;
+    console.log('✅ confirmBooking function completed');
+  }
+}
 
-    console.log('Submitting booking:', bookingData);
+function parseTimeToMinutes(timeStr) {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours * 60 + minutes;
+}
 
-    // Submit booking
-    const response = await fetch('/apps/barbershop/api/submit-booking', {
-      method: 'POST',
+// Service and staff selection functions
+function selectService(serviceId, variantId) {
+  currentSelection.type = 'service';
+  currentSelection.serviceId = serviceId;
+  currentSelection.variantId = variantId;
+  currentSelection.staffId = null;
+  showBookingForm();
+}
+
+function selectStaff(staffId) {
+  currentSelection.type = 'staff';
+  currentSelection.staffId = staffId;
+  currentSelection.serviceId = null;
+  showBookingForm();
+}
+
+// Main modal opening function
+async function openBookingModal() {
+  console.log('🚀 Opening booking modal');
+  
+  const modal = document.getElementById('barbershop-modal');
+  if (!modal) {
+    console.error('❌ Modal element not found');
+    return;
+  }
+  
+  modal.style.display = 'block';
+  console.log('👁️ Modal display set to block');
+  
+  // Reset any previous state
+  currentSelection = {
+    type: null,
+    serviceId: null,
+    staffId: null,
+    variantId: null,
+    selectedDate: null,
+    selectedTime: null,
+    locationId: null
+  };
+  console.log('🔄 Current selection reset');
+  
+  // Show loading state
+  console.log('⏳ Setting loading state to true');
+  setLoading(true);
+  
+  try {
+    // Load booking data
+    console.log('📊 Loading booking data...');
+    await loadBookingData();
+    console.log('✅ Booking data loaded successfully');
+    
+    // Populate initial selection screen
+    console.log('🔘 Populating service buttons...');
+    populateServiceButtons();
+    console.log('👤 Populating staff buttons...');
+    populateStaffButtons();
+    
+    // Show selection screen
+    console.log('⏳ Setting loading state to false');
+    setLoading(false);
+    console.log('📱 Showing selection screen');
+    showSelectionScreen();
+    
+    console.log('✅ Modal opened successfully');
+    
+  } catch (error) {
+    console.error('💥 Error opening booking modal:', error);
+    console.error('💥 Error stack:', error.stack);
+    showMessage('error', `Failed to load booking options: ${error.message}`);
+    setLoading(false);
+  }
+}
+
+async function loadBookingData() {
+  console.log('🔄 Starting loadBookingData function');
+  
+  try {
+    // Get shop domain for API call
+    const shopDomain = window.Shopify?.shop?.myshopifyDomain || window.location.hostname;
+    console.log('🏪 Shop domain:', shopDomain);
+    
+    const apiUrl = `https://barbershop--development.gadget.app/api/booking-data?shop=${encodeURIComponent(shopDomain)}`;
+    console.log('📡 API URL:', apiUrl);
+    
+    // Load booking data from REST API
+    const response = await fetch(apiUrl, {
+      method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(bookingData)
+      mode: 'cors'
     });
-
+    
+    console.log('📡 API response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+    
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('❌ API error response:', errorText);
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
     }
-
-    const result = await response.json();
-    console.log('Booking submitted successfully:', result);
-
-    // Show success message
-    showMessage('success', 'Booking confirmed! You will receive a confirmation email shortly.');
     
-    // Reset form after successful submission
-    document.getElementById('booking-form').reset();
+    const data = await response.json();
+    console.log('📊 Raw API response data:', data);
     
-    // Hide form and show success state
-    document.getElementById('booking-form').style.display = 'none';
+    // Handle different response formats
+    let processedData;
+    if (data.success && data.data) {
+      // Response has success/data wrapper
+      console.log('✅ Response has success wrapper');
+      processedData = data.data;
+    } else if (data.services && data.staff && data.locations) {
+      // Response is direct data
+      console.log('✅ Response is direct data');
+      processedData = data;
+    } else if (data.success === false) {
+      // Explicit failure
+      console.error('❌ API returned failure:', data.error);
+      throw new Error(data.error || 'Failed to load booking data');
+    } else {
+      // Unknown format
+      console.error('❌ Unknown response format:', data);
+      throw new Error('Invalid response format from booking API');
+    }
     
-    // Auto-close modal after 3 seconds
-    setTimeout(() => {
-      closeBookingModal();
-    }, 3000);
-
+    // Validate that we have the required data
+    if (!processedData.services || !processedData.staff || !processedData.locations) {
+      console.error('❌ Missing required data in response:', {
+        hasServices: !!processedData.services,
+        hasStaff: !!processedData.staff,
+        hasLocations: !!processedData.locations
+      });
+      throw new Error('Invalid booking data: missing required fields');
+    }
+    
+    // Set the booking data
+    bookingData = processedData;
+    
+    console.log('✅ Booking data processed successfully:', {
+      servicesCount: bookingData.services?.length || 0,
+      staffCount: bookingData.staff?.length || 0,
+      locationsCount: bookingData.locations?.length || 0,
+      staffAvailabilityCount: bookingData.staffAvailability?.length || 0,
+      dateAvailabilityCount: bookingData.staffDateAvailability?.length || 0
+    });
+    
+    // Debug: Log the entire booking data object
+    console.log('📋 Complete booking data:', bookingData);
+    
   } catch (error) {
-    console.error('Error submitting booking:', error);
-    showMessage('error', error.message || 'Failed to submit booking. Please try again.');
-  } finally {
-    // Reset submit button
-    submitButton.textContent = originalText;
-    submitButton.disabled = false;
+    console.error('💥 Error in loadBookingData:', error);
+    console.error('💥 Error stack:', error.stack);
+    throw error;
   }
 }
 
-async function openBookingModal() {
-  console.log('Opening booking modal');
+
+function populateServiceButtons() {
+  console.log('🔘 Starting populateServiceButtons');
   
-  const modal = document.getElementById('barbershop-modal');
-  if (modal) {
-    modal.style.display = 'block';
-    
-    // Set minimum date to today
-    const today = new Date().toISOString().split('T')[0];
-    const dateInput = document.getElementById('booking-date');
-    if (dateInput) {
-      dateInput.setAttribute('min', today);
-      dateInput.value = today;
-      // Trigger change event to populate time slots
-      dateInput.dispatchEvent(new Event('change'));
-    }
-    
-    // Load booking options
-    await loadBookingOptions();
+  const container = document.getElementById('service-selection-buttons');
+  if (!container) {
+    console.error('❌ Service selection buttons container not found');
+    return;
   }
+  
+  if (!bookingData) {
+    console.error('❌ No booking data available');
+    return;
+  }
+  
+  if (!bookingData.services || !Array.isArray(bookingData.services)) {
+    console.error('❌ Invalid services data:', bookingData.services);
+    return;
+  }
+  
+  console.log('🔘 Found', bookingData.services.length, 'services');
+  
+  container.innerHTML = '';
+  
+  bookingData.services.forEach((service, index) => {
+    console.log(`🔘 Processing service ${index + 1}:`, service);
+    
+    if (service.variants && service.variants.length > 0) {
+      service.variants.forEach((variant, variantIndex) => {
+        console.log(`  📦 Processing variant ${variantIndex + 1}:`, variant);
+        
+        const button = document.createElement('button');
+        button.className = 'barbershop-selection-btn barbershop-service-btn';
+        button.onclick = () => selectService(service.id, variant.id);
+        
+        // Format duration for display
+        const durationText = variant.duration ? `${variant.duration} minutes` : '';
+        const subtitleText = durationText ? `${service.body || 'Professional barber service'} • ${durationText}` : (service.body || 'Professional barber service');
+        
+        const priceHtml = variant.price ? `<div class="barbershop-selection-price">$${variant.price}</div>` : '';
+        
+        button.innerHTML = `
+          <div class="barbershop-selection-title">${service.title} - ${variant.title}</div>
+          <div class="barbershop-selection-subtitle">${subtitleText}</div>
+          ${priceHtml}
+        `;
+        
+        container.appendChild(button);
+      });
+    } else {
+      console.log(`  ⚠️ Service ${service.title} has no variants`);
+    }
+  });
+  
+  console.log('✅ Service buttons populated');
 }
 
-// Close modal when clicking outside
-window.addEventListener('click', function(event) {
-  if (event.target.id === 'barbershop-modal') {
-    closeBookingModal();
+function populateStaffButtons() {
+  console.log('👤 Starting populateStaffButtons');
+  
+  const container = document.getElementById('staff-selection-buttons');
+  if (!container) {
+    console.error('❌ Staff selection buttons container not found');
+    return;
   }
-});
+  
+  if (!bookingData) {
+    console.error('❌ No booking data available');
+    return;
+  }
+  
+  if (!bookingData.staff || !Array.isArray(bookingData.staff)) {
+    console.error('❌ Invalid staff data:', bookingData.staff);
+    return;
+  }
+  
+  console.log('👤 Found', bookingData.staff.length, 'staff members');
+  
+  container.innerHTML = '';
+  
+  bookingData.staff.forEach((staff, index) => {
+    console.log(`👤 Processing staff ${index + 1}:`, staff);
+    
+    const button = document.createElement('button');
+    button.className = 'barbershop-selection-btn barbershop-staff-btn';
+    button.onclick = () => selectStaff(staff.id);
+    
+    const avatarHtml = staff.avatar 
+      ? `<img src="${staff.avatar}" alt="${staff.name}" class="barbershop-staff-avatar">` 
+      : `<div class="barbershop-staff-avatar" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #666;">${staff.name.charAt(0)}</div>`;
+    
+    button.innerHTML = `
+      ${avatarHtml}
+      <div class="barbershop-staff-info">
+        <div class="barbershop-selection-title">${staff.name}</div>
+        <div class="barbershop-selection-subtitle">${staff.bio || 'Professional barber'}</div>
+      </div>
+    `;
+    
+    container.appendChild(button);
+  });
+  
+  console.log('✅ Staff buttons populated');
+}
 
-console.log('Barbershop booking widget initialized');
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize API client if not already available
+  if (!window.api && window.BarbershopClient) {
+    window.api = new BarbershopClient();
+  }
+  
+  // Close modal when clicking outside
+  window.onclick = function(event) {
+    const modal = document.getElementById('barbershop-modal');
+    if (event.target === modal) {
+      closeBookingModal();
+    }
+  };
+});
 </script>
 
 {% schema %}
 {
-  "name": "Barbershop Booking Button",
+  "name": "Booking Button",
   "target": "section",
+  "stylesheet": "bookingButton.css",
+  "javascript": "bookingButton.js",
   "settings": [
     {
       "type": "text",
-      "label": "Button Text",
       "id": "button_text",
-      "default": "Book Now"
-    },
-    {
-      "type": "checkbox",
-      "label": "Show Staff Selection",
-      "id": "show_staff_selection",
-      "default": true
-    },
-    {
-      "type": "checkbox",
-      "label": "Only Show for Barber Services",
-      "id": "only_show_for_services",
-      "default": true
+      "label": "Button Text",
+      "default": "Book Now",
+      "info": "Text displayed on the booking button"
     },
     {
       "type": "color",
-      "label": "Button Background Color",
       "id": "button_color",
-      "default": "#000000"
+      "label": "Button Color",
+      "default": "#000000",
+      "info": "Background color of the booking button"
     },
     {
       "type": "color",
-      "label": "Button Text Color",
       "id": "button_text_color",
-      "default": "#FFFFFF"
+      "label": "Button Text Color",
+      "default": "#FFFFFF",
+      "info": "Text color of the booking button"
     },
     {
       "type": "range",
-      "label": "Button Padding (px)",
       "id": "button_padding",
+      "label": "Button Padding",
       "min": 5,
       "max": 20,
       "step": 1,
-      "default": 10
+      "default": 10,
+      "unit": "px",
+      "info": "Padding around the button text"
     },
     {
       "type": "range",
-      "label": "Button Border Radius (px)",
       "id": "button_radius",
+      "label": "Button Border Radius",
       "min": 0,
       "max": 20,
       "step": 1,
-      "default": 4
+      "default": 4,
+      "unit": "px",
+      "info": "Rounded corners of the button"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_staff_selection",
+      "label": "Show Staff Selection",
+      "default": true,
+      "info": "Allow customers to book by selecting a specific barber"
     },
     {
       "type": "textarea",
-      "label": "Booking Instructions",
       "id": "booking_instructions",
+      "label": "Booking Instructions",
       "default": "Select a date, time and barber to book this service.",
-      "info": "Instructions shown at the top of the booking modal"
+      "info": "Instructions shown to customers when booking"
     }
   ]
 }

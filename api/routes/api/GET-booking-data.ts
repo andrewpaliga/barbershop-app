@@ -95,14 +95,16 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
               id: true,
               title: true,
               price: true,
-              compareAtPrice: true
+              compareAtPrice: true,
+              option1: true,
+              sku: true
             }
           }
         }
       }
     });
 
-    // Fetch active staff members with their locations
+    // Fetch active staff members
     const staff = await api.staff.findMany({
       filter: {
         shopId: { equals: shopId },
@@ -117,17 +119,6 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         avatar: {
           url: true,
           fileName: true
-        },
-        location: {
-          id: true,
-          name: true,
-          address1: true,
-          address2: true,
-          city: true,
-          province: true,
-          country: true,
-          zipCode: true,
-          phone: true
         }
       }
     });
@@ -151,6 +142,57 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
       }
     });
 
+    // Fetch staff availability (recurring weekly availability)
+    const staffAvailability = await api.staffAvailability.findMany({
+      filter: {
+        shopId: { equals: shopId },
+        isAvailable: { equals: true }
+      },
+      select: {
+        id: true,
+        staffId: true,
+        locationId: true,
+        dayOfWeek: true,
+        startTime: true,
+        endTime: true,
+        isAvailable: true
+      }
+    });
+
+    // Fetch staff date availability (specific date overrides)
+    const staffDateAvailability = await api.staffDateAvailability.findMany({
+      filter: {
+        shopId: { equals: shopId }
+      },
+      select: {
+        id: true,
+        staffId: true,
+        locationId: true,
+        date: true,
+        startTime: true,
+        endTime: true,
+        isAvailable: true
+      }
+    });
+
+    // Helper function to parse duration from text
+    const parseDuration = (text: string): number | null => {
+      if (!text) return null;
+      
+      // Look for patterns like "30 min", "60 min", "1 hour", "2 hours"
+      const minMatch = text.match(/(\d+)\s*min/i);
+      if (minMatch) {
+        return parseInt(minMatch[1], 10);
+      }
+      
+      const hourMatch = text.match(/(\d+)\s*hours?/i);
+      if (hourMatch) {
+        return parseInt(hourMatch[1], 10) * 60;
+      }
+      
+      return null;
+    };
+
     // Transform the data into a simple JSON format
     const responseData = {
       services: services.map(service => ({
@@ -160,12 +202,19 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         handle: service.handle,
         productType: service.productType,
         vendor: service.vendor,
-        variants: service.variants?.edges?.map(edge => ({
-          id: edge.node.id,
-          title: edge.node.title,
-          price: edge.node.price,
-          compareAtPrice: edge.node.compareAtPrice
-        })) || []
+        variants: service.variants?.edges?.map(edge => {
+          const duration = parseDuration(edge.node.option1 || '') || parseDuration(edge.node.title || '');
+          
+          return {
+            id: edge.node.id,
+            title: edge.node.title,
+            price: edge.node.price,
+            compareAtPrice: edge.node.compareAtPrice,
+            shopifyVariantId: edge.node.id,
+            duration: duration,
+            sku: edge.node.sku
+          };
+        }) || []
       })),
       staff: staff.map(staffMember => ({
         id: staffMember.id,
@@ -176,39 +225,42 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         avatar: staffMember.avatar ? {
           url: staffMember.avatar.url,
           fileName: staffMember.avatar.fileName
-        } : null,
-        location: staffMember.location ? {
-          id: staffMember.location.id,
-          name: staffMember.location.name,
-          address: {
-            address1: staffMember.location.address1,
-            address2: staffMember.location.address2,
-            city: staffMember.location.city,
-            province: staffMember.location.province,
-            country: staffMember.location.country,
-            zipCode: staffMember.location.zipCode
-          },
-          phone: staffMember.location.phone
         } : null
       })),
       locations: locations.map(location => ({
         id: location.id,
         name: location.name,
-        address: {
-          address1: location.address1,
-          address2: location.address2,
-          city: location.city,
-          province: location.province,
-          country: location.country,
-          zipCode: location.zipCode
-        },
+        address1: location.address1,
+        address2: location.address2,
+        city: location.city,
+        province: location.province,
+        country: location.country,
+        zipCode: location.zipCode,
         phone: location.phone
+      })),
+      staffAvailability: staffAvailability.map(availability => ({
+        id: availability.id,
+        staffId: availability.staffId,
+        locationId: availability.locationId,
+        dayOfWeek: availability.dayOfWeek,
+        startTime: availability.startTime,
+        endTime: availability.endTime,
+        isAvailable: availability.isAvailable
+      })),
+      staffDateAvailability: staffDateAvailability.map(dateAvailability => ({
+        id: dateAvailability.id,
+        staffId: dateAvailability.staffId,
+        locationId: dateAvailability.locationId,
+        date: dateAvailability.date,
+        startTime: dateAvailability.startTime,
+        endTime: dateAvailability.endTime,
+        isAvailable: dateAvailability.isAvailable
       }))
     };
 
-    logger.info(`Successfully fetched booking data for shop ${shopId}: ${services.length} services, ${staff.length} staff, ${locations.length} locations`);
+    logger.info(`Successfully fetched booking data for shop ${shopId}: ${services.length} services, ${staff.length} staff, ${locations.length} locations, ${staffAvailability.length} staff availability records, ${staffDateAvailability.length} staff date availability records`);
 
-    await reply.code(200).send(responseData);
+    await reply.code(200).send({ success: true, data: responseData });
 
   } catch (error) {
     logger.error("Error fetching booking data:", error);

@@ -19,7 +19,7 @@ export default function StaffIndex() {
   };
 
   const handleStaffClick = (record: any) => {
-    navigate(`/staff/${record.id}/edit`);
+    navigate(`/staff/${record.id}`);
   };
 
   return (
@@ -38,7 +38,6 @@ export default function StaffIndex() {
               "name",
               "email", 
               "phone",
-              "location.name",
               {
                 header: "Active",
                 field: "isActive",

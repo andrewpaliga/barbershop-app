@@ -32,6 +32,17 @@ export const permissions: GadgetPermissions = {
             update: true,
           },
         },
+        locationHours: {
+          read: {
+            filter:
+              "accessControl/filters/shopify/locationHours.gelly",
+          },
+          actions: {
+            create: true,
+            delete: true,
+            update: true,
+          },
+        },
         shopifyCustomer: {
           read: {
             filter:
@@ -57,6 +68,11 @@ export const permissions: GadgetPermissions = {
           read: {
             filter:
               "accessControl/filters/shopify/shopifyLocation.gelly",
+          },
+          actions: {
+            create: true,
+            delete: true,
+            update: true,
           },
         },
         shopifyOrder: {
@@ -144,6 +160,17 @@ export const permissions: GadgetPermissions = {
             update: true,
           },
         },
+        staffDateAvailability: {
+          read: {
+            filter:
+              "accessControl/filters/shopify/staffDateAvailability.gelly",
+          },
+          actions: {
+            create: true,
+            delete: true,
+            update: true,
+          },
+        },
         staffProduct: {
           read: {
             filter:
@@ -156,9 +183,15 @@ export const permissions: GadgetPermissions = {
           },
         },
       },
+      actions: {
+        saveLocationHours: true,
+      },
     },
     unauthenticated: {
       storageKey: "unauthenticated",
+    },
+    "Role A": {
+      storageKey: "soF1nJ0ZmZiV",
     },
   },
 };

@@ -1,0 +1,15 @@
+api_version = "2025-07"
+
+[[extensions]]
+type = "ui_extension"
+name = "pos-ui-smart-grid"
+handle = "pos-ui-smart-grid"
+description = "A typescript-react POS UI extension"
+
+[[extensions.targeting]]
+module = "./src/Tile.tsx"
+target = "pos.home.tile.render"
+
+[[extensions.targeting]]
+module = "./src/Modal.tsx"
+target = "pos.home.modal.render"

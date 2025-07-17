@@ -17,11 +17,6 @@ export const schema: GadgetModel = {
     bio: { type: "string", storageKey: "iL32ZGQ0oxIH" },
     email: { type: "email", storageKey: "v9T5V49rMcOL" },
     isActive: { type: "boolean", storageKey: "B_HsH1sA5mjB" },
-    location: {
-      type: "belongsTo",
-      parent: { model: "shopifyLocation" },
-      storageKey: "9EwkIlU63EWB",
-    },
     name: {
       type: "string",
       validations: { required: true },
