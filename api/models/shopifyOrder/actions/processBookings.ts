@@ -18,13 +18,7 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
     currency: record.currency
   });
 
-  // Only process orders with 'paid' financial status
-  if (record.financialStatus !== 'paid') {
-    logger.info(`Order ${record.id} is not paid (status: ${record.financialStatus}), skipping booking processing`);
-    return;
-  }
-
-  logger.info(`Order ${record.id} has paid financial status, proceeding with booking processing`);
+  logger.info(`Processing order ${record.id} regardless of financial status`);
 
   // Check if this order has already been processed to avoid duplicates
   logger.info(`Checking for existing bookings for order ${record.id} with name ${record.name}`);
@@ -61,10 +55,14 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
       quantity: true,
       price: true,
       properties: true,
-      product: {
+      variantId: true,
+      variant: {
         id: true,
-        title: true,
-        isBarberService: true
+        product: {
+          id: true,
+          title: true,
+          isBarberService: true
+        }
       }
     }
   });
@@ -82,17 +80,18 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
         name: lineItem.name,
         quantity: lineItem.quantity,
         price: lineItem.price,
-        productId: lineItem.product?.id,
-        productTitle: lineItem.product?.title,
+        variantId: lineItem.variantId,
+        productId: lineItem.variant?.product?.id,
+        productTitle: lineItem.variant?.product?.title,
         propertiesCount: lineItem.properties?.length || 0
       });
 
       // Check if this line item represents a barber service
-      const isBarberService = lineItem.product?.isBarberService === true;
+      const isBarberService = lineItem.variant?.product?.isBarberService === true;
       
       logger.info(`Line item ${lineItem.id} barber service check`, {
         isBarberService,
-        productIsBarberService: lineItem.product?.isBarberService
+        productIsBarberService: lineItem.variant?.product?.isBarberService
       });
       
       if (!isBarberService) {
@@ -231,7 +230,8 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
         originalTime: bookingData.time,
         locationTimeZone: locationTimeZone,
         scheduledAt: scheduledAt.toISOString(),
-        productId: lineItem.product.id,
+        variantId: lineItem.variantId,
+        productId: lineItem.variant?.product?.id,
         staffId: staff[0].id,
         locationId: location[0].id,
         duration: bookingData.duration || 60
@@ -258,14 +258,15 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
       // Create booking record
       const bookingCreateData = {
         scheduledAt,
-        product: { _link: lineItem.product.id },
+        variant: { _link: lineItem.variantId },
         totalPrice: totalPrice,
         staff: { _link: staff[0].id },
         duration: bookingData.duration || 60, // Default to 60 minutes
         status: 'confirmed',
         notes: `Order: ${record.name}\nService: ${lineItem.name}\n${bookingData.notes || ''}`.trim(),
         shop: { _link: record.shopId },
-        location: { _link: location[0].id }
+        location: { _link: location[0].id },
+        order: { _link: record.id }
       };
 
       // Only set customer relationship if customerId exists, otherwise fall back to email/name

@@ -18,7 +18,7 @@ import {
   Grid,
 } from "@shopify/polaris";
 import { ArrowLeftIcon } from "@shopify/polaris-icons";
-import { useFindOne, useFindFirst, useGlobalAction } from "@gadgetinc/react";
+import { useFindOne, useFindFirst, useGlobalAction, useAction } from "@gadgetinc/react";
 import { api } from "../api";
 
 interface OperatingHours {
@@ -149,11 +149,16 @@ export default function LocationHours() {
       name: true,
       timeZone: true,
       countryCode: true,
+      offersServices: true,
     },
   });
 
   const [{ data: updateResult, fetching: updating, error: updateError }, saveLocationHours] = useGlobalAction(
     api.saveLocationHours
+  );
+
+  const [{ data: locationUpdateResult, fetching: updatingLocation, error: locationUpdateError }, updateLocation] = useAction(
+    api.shopifyLocation.update
   );
 
   const [operatingHours, setOperatingHours] = useState<OperatingHours>({
@@ -182,6 +187,7 @@ export default function LocationHours() {
   const [customHolidayInput, setCustomHolidayInput] = useState("");
   const [customHolidayDate, setCustomHolidayDate] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [offersServices, setOffersServices] = useState(true);
 
   useEffect(() => {
     if (locationHours) {
@@ -214,6 +220,12 @@ export default function LocationHours() {
       setTimeout(() => setShowSuccess(false), 3000);
     }
   }, [updateResult]);
+
+  useEffect(() => {
+    if (location?.offersServices !== undefined) {
+      setOffersServices(location.offersServices);
+    }
+  }, [location]);
 
   const handleModeChange = (mode: OperatingHours["mode"]) => {
     setOperatingHours({ ...operatingHours, mode });
@@ -303,6 +315,20 @@ export default function LocationHours() {
     const predefinedHolidays = getHolidaysForCountry(location?.countryCode);
     const customHolidays = holidayClosures.filter(holiday => typeof holiday === 'object');
     return [...predefinedHolidays, ...customHolidays];
+  };
+
+  const handleOffersServicesChange = async (checked: boolean) => {
+    setOffersServices(checked);
+    try {
+      await updateLocation({
+        id: locationId!,
+        offersServices: checked,
+      });
+    } catch (error) {
+      console.error("Error updating location services setting:", error);
+      // Revert state on error
+      setOffersServices(!checked);
+    }
   };
 
   const handleSave = async () => {
@@ -406,6 +432,27 @@ export default function LocationHours() {
             </Text>
           </Banner>
         )}
+
+        <Card>
+          <BlockStack gap="400">
+            <Text as="h2" variant="headingMd">
+              Service Availability
+            </Text>
+            <Checkbox
+              label="I offer services at this location"
+              checked={offersServices}
+              onChange={handleOffersServicesChange}
+              helpText="When enabled, customers can book appointments at this location. When disabled, this location will not appear in the booking widget."
+            />
+            {locationUpdateError && (
+              <Banner status="critical">
+                <Text as="p" variant="bodyMd">
+                  Error updating service availability: {locationUpdateError.toString()}
+                </Text>
+              </Banner>
+            )}
+          </BlockStack>
+        </Card>
 
         <Card>
           <BlockStack gap="500">

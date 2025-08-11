@@ -327,8 +327,32 @@
 
 .barbershop-service-btn {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 15px;
+}
+
+.barbershop-service-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 2px solid #e1e5e9;
+  flex-shrink: 0;
+}
+
+.barbershop-service-placeholder {
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  color: #666;
+}
+
+.barbershop-service-info {
+  flex: 1;
+  text-align: left;
 }
 
 .barbershop-staff-btn {
@@ -732,29 +756,18 @@ let currentWeekStart = null;
 
 // Utility functions for UI manipulation
 function setLoading(show) {
-  console.log('⏳ Setting loading state:', show);
-  
   const loadingElement = document.getElementById('booking-loading');
   const selectionElement = document.getElementById('booking-selection');
   const formElement = document.getElementById('booking-form-container');
   
-  console.log('⏳ Found elements:', {
-    loading: !!loadingElement,
-    selection: !!selectionElement,
-    form: !!formElement
-  });
-  
   if (loadingElement) {
     loadingElement.style.display = show ? 'block' : 'none';
-    console.log('⏳ Loading element display:', loadingElement.style.display);
   }
   if (selectionElement) {
     selectionElement.style.display = show ? 'none' : (formElement && formElement.style.display !== 'none' ? 'none' : 'block');
-    console.log('⏳ Selection element display:', selectionElement.style.display);
   }
   if (formElement) {
     formElement.style.display = show ? 'none' : 'none';
-    console.log('⏳ Form element display:', formElement.style.display);
   }
 }
 
@@ -827,30 +840,19 @@ function closeBookingModal() {
 }
 
 function showSelectionScreen() {
-  console.log('📱 Showing selection screen');
-  
   const selectionElement = document.getElementById('booking-selection');
   const formElement = document.getElementById('booking-form-container');
   
-  console.log('📱 Found elements:', {
-    selection: !!selectionElement,
-    form: !!formElement
-  });
-  
   if (selectionElement) {
     selectionElement.style.display = 'block';
-    console.log('📱 Selection element display set to block');
   }
   if (formElement) {
     formElement.style.display = 'none';
-    console.log('📱 Form element display set to none');
   }
   
   // Hide any messages
   hideMessage('error');
   hideMessage('success');
-  
-  console.log('✅ Selection screen shown');
 }
 
 function showBookingForm() {
@@ -888,8 +890,8 @@ function updateSelectedBarberInfo() {
   if (currentSelection.staffId) {
     const staff = bookingData.staff.find(s => s.id === currentSelection.staffId);
     if (staff) {
-      const avatarHtml = staff.avatar 
-        ? `<img src="${staff.avatar}" alt="${staff.name}" class="barbershop-selected-barber-avatar">` 
+      const avatarHtml = staff.avatar?.url 
+        ? `<img src="${staff.avatar.url}" alt="${staff.name}" class="barbershop-selected-barber-avatar">` 
         : `<div class="barbershop-selected-barber-avatar" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: #666;">${staff.name.charAt(0)}</div>`;
       
       container.innerHTML = `
@@ -1054,44 +1056,24 @@ function createCalendarDay(date) {
   dayNumber.textContent = date.getDate();
   dayElement.appendChild(dayNumber);
   
-  // Debug: Log conditions for showing time slots
-  const conditionsCheck = {
-    isPast: isPast,
-    hasServiceId: !!currentSelection.serviceId,
-    hasStaffId: !!currentSelection.staffId,
-    hasLocationId: !!currentSelection.locationId
-  };
-  console.log('createCalendarDay conditions for', date, ':', conditionsCheck);
-  
   if (!isPast && currentSelection.serviceId && currentSelection.staffId && currentSelection.locationId) {
-    console.log('All conditions met, generating time slots for', date);
     const timeSlots = generateTimeSlots(date);
-    console.log('Generated', timeSlots.length, 'time slots for', date);
     timeSlots.forEach(slot => {
       const timeSlotElement = createTimeSlot(slot, date);
       dayElement.appendChild(timeSlotElement);
     });
-  } else {
-    console.log('Conditions not met for showing time slots on', date);
   }
   
   return dayElement;
 }
 
 function generateTimeSlots(date) {
-  console.log('generateTimeSlots called for date:', date);
-  
   if (!currentSelection.staffId || !currentSelection.locationId || !bookingData) {
-    console.log('generateTimeSlots: Missing required data - staffId:', currentSelection.staffId, 'locationId:', currentSelection.locationId, 'bookingData:', !!bookingData);
     return [];
   }
   
   // Get day of week for the date
   const dayOfWeek = getDayOfWeek(date);
-  console.log('Day of week for date:', dayOfWeek);
-  
-  // Debug: Log all staff availability records
-  console.log('All staff availability records:', bookingData.staffAvailability);
   
   // Find staff availability for this day and location
   const staffAvailability = bookingData.staffAvailability.find(avail => 
@@ -1101,8 +1083,6 @@ function generateTimeSlots(date) {
     avail.isAvailable
   );
   
-  console.log('Found staff availability:', staffAvailability);
-  
   // Check for date-specific availability overrides
   const dateString = date.toISOString().split('T')[0];
   const dateAvailability = bookingData.staffDateAvailability.find(avail =>
@@ -1111,15 +1091,10 @@ function generateTimeSlots(date) {
     avail.date === dateString
   );
   
-  console.log('Found date availability override:', dateAvailability);
-  
   // If there's a date override, use that; otherwise use regular availability
   const availability = dateAvailability || staffAvailability;
   
-  console.log('Using availability:', availability);
-  
   if (!availability || !availability.isAvailable) {
-    console.log('No availability found or not available');
     return [];
   }
   
@@ -1128,16 +1103,11 @@ function generateTimeSlots(date) {
   const startTime = parseTime(availability.startTime);
   const endTime = parseTime(availability.endTime);
   
-  console.log('Generating slots from', availability.startTime, 'to', availability.endTime);
-  console.log('Start time in minutes:', startTime, 'End time in minutes:', endTime);
-  
   // Generate 30-minute slots within the available time range
   for (let minutes = startTime; minutes < endTime; minutes += 30) {
     const time = formatTime(minutes);
     slots.push(time);
   }
-  
-  console.log('Generated time slots:', slots);
   
   return slots;
 }
@@ -1185,6 +1155,23 @@ function isTimeSlotAvailable(time, date) {
     return false;
   }
   
+  // Check if the time slot is in the past (for today only)
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const appointmentDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  
+  // If the appointment is today, check if the time slot has already passed with 15-minute grace period
+  if (appointmentDate.getTime() === today.getTime()) {
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    const slotTime = parseTime(time);
+    const gracePeriod = 15; // 15-minute grace period
+    
+    // Only mark as unavailable if more than 15 minutes have passed since the slot start time
+    if (currentTime > slotTime + gracePeriod) {
+      return false;
+    }
+  }
+  
   // Get day of week for the date
   const dayOfWeek = getDayOfWeek(date);
   
@@ -1221,7 +1208,18 @@ function isTimeSlotAvailable(time, date) {
   const serviceDuration = getServiceDuration();
   const slotEndTime = slotTime + serviceDuration;
   
-  return slotTime >= startTime && slotEndTime <= endTime;
+  if (!(slotTime >= startTime && slotEndTime <= endTime)) {
+    return false;
+  }
+  
+  // Check for booking conflicts with existing appointments
+  const hasConflict = checkBookingConflicts(date, time, serviceDuration);
+  if (hasConflict) {
+    console.log('❌ Time slot', time, 'has booking conflict');
+    return false;
+  }
+  
+  return true;
 }
 
 function getServiceDuration() {
@@ -1235,6 +1233,53 @@ function getServiceDuration() {
     : service.variants[0];
   
   return variant?.duration || 60;
+}
+
+function checkBookingConflicts(date, time, serviceDuration) {
+  if (!bookingData.existingBookings || !Array.isArray(bookingData.existingBookings)) {
+    return false; // No conflicts if no booking data
+  }
+  
+  // Convert the proposed booking time to a comparable format
+  const proposedDate = new Date(date);
+  const [hours, minutes] = time.split(':').map(Number);
+  const proposedStart = new Date(
+    proposedDate.getFullYear(),
+    proposedDate.getMonth(), 
+    proposedDate.getDate(),
+    hours,
+    minutes,
+    0
+  );
+  const proposedEnd = new Date(proposedStart.getTime() + (serviceDuration * 60 * 1000));
+  
+  // Check each existing booking for conflicts
+  for (let i = 0; i < bookingData.existingBookings.length; i++) {
+    const existingBooking = bookingData.existingBookings[i];
+    
+    // Skip if different staff or location
+    if (existingBooking.staffId !== currentSelection.staffId || 
+        existingBooking.locationId !== currentSelection.locationId) {
+      continue;
+    }
+    
+    // Parse the existing booking time
+    const existingStart = new Date(existingBooking.scheduledAt);
+    const existingEnd = new Date(existingStart.getTime() + (existingBooking.duration * 60 * 1000));
+    
+    // Check for time overlap
+    const hasOverlap = (
+      (proposedStart >= existingStart && proposedStart < existingEnd) || // Proposed starts during existing
+      (proposedEnd > existingStart && proposedEnd <= existingEnd) || // Proposed ends during existing
+      (proposedStart <= existingStart && proposedEnd >= existingEnd) // Proposed completely contains existing
+    );
+    
+    if (hasOverlap) {
+      return true; // Conflict found
+    }
+  }
+  
+  return false; // No conflicts
 }
 
 function selectTimeSlot(time, date, element) {
@@ -1331,33 +1376,20 @@ function cancelBooking() {
 }
 
 async function confirmBooking() {
-  console.log('🚀 confirmBooking function started');
-  
   const confirmBtn = document.getElementById('confirm-booking-btn');
   const originalText = confirmBtn.textContent;
   
   try {
-    console.log('📝 Setting up booking confirmation UI');
     confirmBtn.textContent = 'Adding...';
     confirmBtn.disabled = true;
     
-    console.log('🔍 Finding booking data components');
     const service = bookingData.services.find(s => s.id === currentSelection.serviceId);
     const staff = bookingData.staff.find(s => s.id === currentSelection.staffId);
     const location = bookingData.locations.find(l => l.id === currentSelection.locationId);
     const variant = service?.variants.find(v => v.id === currentSelection.variantId);
     const notes = document.getElementById('notes').value;
     
-    console.log('📋 Booking components found:', {
-      service: service ? { id: service.id, title: service.title } : null,
-      staff: staff ? { id: staff.id, name: staff.name } : null,
-      location: location ? { id: location.id, name: location.name } : null,
-      variant: variant ? { id: variant.id, title: variant.title, price: variant.price } : null,
-      notes: notes
-    });
-    
     // Construct the scheduled datetime with proper timezone handling
-    console.log('🕐 Constructing scheduled datetime');
     const selectedDate = new Date(currentSelection.selectedDate);
     const [timeHours, timeMinutes] = currentSelection.selectedTime.split(':').map(Number);
     
@@ -1372,22 +1404,10 @@ async function confirmBooking() {
       0
     );
     
-    console.log('🕐 Scheduled datetime constructed:', {
-      originalDate: currentSelection.selectedDate,
-      originalTime: currentSelection.selectedTime,
-      scheduledAt: scheduledAt.toISOString(),
-      localString: scheduledAt.toLocaleString()
-    });
-    
-    console.log('🛒 Starting cart addition process');
-    
     // Check if variant has a Shopify variant ID
-    console.log('🔍 Checking variant for Shopify variant ID:', variant);
     const shopifyVariantId = variant.shopifyVariantId || variant.variantId;
-    console.log('🆔 Shopify variant ID:', shopifyVariantId);
     
     if (shopifyVariantId) {
-      console.log('🛍️ Constructing cart item data');
       const cartItemData = {
         id: shopifyVariantId,
         quantity: 1,
@@ -1406,10 +1426,6 @@ async function confirmBooking() {
         }
       };
       
-      console.log('📦 Cart item data constructed:', cartItemData);
-      
-      console.log('🛒 Adding item to Shopify cart');
-      
       // Use Shopify's cart API
       const cartResponse = await fetch('/cart/add.js', {
         method: 'POST',
@@ -1419,53 +1435,88 @@ async function confirmBooking() {
         body: JSON.stringify(cartItemData)
       });
       
-      console.log('🛒 Cart API response received:', {
-        status: cartResponse.status,
-        statusText: cartResponse.statusText,
-        ok: cartResponse.ok,
-        headers: Object.fromEntries(cartResponse.headers.entries())
-      });
-      
       if (cartResponse.ok) {
         const cartResult = await cartResponse.json();
-        console.log('✅ Cart addition successful:', cartResult);
         
         showMessage('success', 'Booking added to cart successfully! Complete your purchase to confirm your appointment.');
         
         // Optionally redirect to cart
-        console.log('🔄 Redirecting to cart');
         setTimeout(() => {
           window.location.href = '/cart';
         }, 1500);
         
       } else {
-        console.error('❌ Cart addition failed:', cartResponse.status, cartResponse.statusText);
         const cartError = await cartResponse.text();
-        console.error('❌ Cart error details:', cartError);
-        
         showMessage('error', 'Failed to add booking to cart. Please try again.');
       }
       
     } else {
-      console.warn('⚠️ No Shopify variant ID found, cannot add to cart');
       showMessage('error', 'This service cannot be booked online. Please contact us directly.');
     }
     
   } catch (error) {
-    console.error('💥 Exception in confirmBooking:', error);
-    console.error('💥 Error stack:', error.stack);
     showMessage('error', error.message || 'Failed to add booking to cart. Please try again.');
   } finally {
-    console.log('🔄 Resetting UI state');
     confirmBtn.textContent = originalText;
     confirmBtn.disabled = false;
-    console.log('✅ confirmBooking function completed');
   }
 }
 
 function parseTimeToMinutes(timeStr) {
   const [hours, minutes] = timeStr.split(':').map(Number);
   return hours * 60 + minutes;
+}
+
+function hasStaffAvailabilityInNext3Months(staffId) {
+  if (!bookingData || !bookingData.staffAvailability || !bookingData.locations) {
+    return false;
+  }
+  
+  const today = new Date();
+  const threeMonthsFromNow = new Date(today.getTime() + (90 * 24 * 60 * 60 * 1000));
+  
+  // Check if staff has any regular availability
+  const hasRegularAvailability = bookingData.staffAvailability.some(avail => 
+    avail.staffId === staffId && 
+    avail.isAvailable &&
+    avail.dayOfWeek && 
+    Array.isArray(avail.dayOfWeek) && 
+    avail.dayOfWeek.length > 0
+  );
+  
+  if (!hasRegularAvailability) {
+    // If no regular availability, check date-specific availability in the next 3 months
+    if (bookingData.staffDateAvailability) {
+      return bookingData.staffDateAvailability.some(dateAvail => {
+        if (dateAvail.staffId !== staffId || !dateAvail.isAvailable) {
+          return false;
+        }
+        
+        const availDate = new Date(dateAvail.date);
+        return availDate >= today && availDate <= threeMonthsFromNow;
+      });
+    }
+    return false;
+  }
+  
+  // If staff has regular availability, check if they're blocked for the entire next 3 months
+  // by date-specific unavailability
+  if (bookingData.staffDateAvailability) {
+    // Count how many days in next 3 months they're specifically marked unavailable
+    const unavailableDays = bookingData.staffDateAvailability.filter(dateAvail => 
+      dateAvail.staffId === staffId && 
+      !dateAvail.isAvailable &&
+      new Date(dateAvail.date) >= today && 
+      new Date(dateAvail.date) <= threeMonthsFromNow
+    ).length;
+    
+    // If they're unavailable for more than 80 days out of 90, consider them unavailable
+    if (unavailableDays > 80) {
+      return false;
+    }
+  }
+  
+  return true;
 }
 
 // Service and staff selection functions
@@ -1486,16 +1537,12 @@ function selectStaff(staffId) {
 
 // Main modal opening function
 async function openBookingModal() {
-  console.log('🚀 Opening booking modal');
-  
   const modal = document.getElementById('barbershop-modal');
   if (!modal) {
-    console.error('❌ Modal element not found');
     return;
   }
   
   modal.style.display = 'block';
-  console.log('👁️ Modal display set to block');
   
   // Reset any previous state
   currentSelection = {
@@ -1507,50 +1554,34 @@ async function openBookingModal() {
     selectedTime: null,
     locationId: null
   };
-  console.log('🔄 Current selection reset');
   
   // Show loading state
-  console.log('⏳ Setting loading state to true');
   setLoading(true);
   
   try {
     // Load booking data
-    console.log('📊 Loading booking data...');
     await loadBookingData();
-    console.log('✅ Booking data loaded successfully');
     
     // Populate initial selection screen
-    console.log('🔘 Populating service buttons...');
     populateServiceButtons();
-    console.log('👤 Populating staff buttons...');
     populateStaffButtons();
     
     // Show selection screen
-    console.log('⏳ Setting loading state to false');
     setLoading(false);
-    console.log('📱 Showing selection screen');
     showSelectionScreen();
     
-    console.log('✅ Modal opened successfully');
-    
   } catch (error) {
-    console.error('💥 Error opening booking modal:', error);
-    console.error('💥 Error stack:', error.stack);
     showMessage('error', `Failed to load booking options: ${error.message}`);
     setLoading(false);
   }
 }
 
 async function loadBookingData() {
-  console.log('🔄 Starting loadBookingData function');
-  
   try {
     // Get shop domain for API call
     const shopDomain = window.Shopify?.shop?.myshopifyDomain || window.location.hostname;
-    console.log('🏪 Shop domain:', shopDomain);
     
     const apiUrl = `https://barbershop--development.gadget.app/api/booking-data?shop=${encodeURIComponent(shopDomain)}`;
-    console.log('📡 API URL:', apiUrl);
     
     // Load booking data from REST API
     const response = await fetch(apiUrl, {
@@ -1561,128 +1592,90 @@ async function loadBookingData() {
       mode: 'cors'
     });
     
-    console.log('📡 API response received:', {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok,
-      headers: Object.fromEntries(response.headers.entries())
-    });
-    
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ API error response:', errorText);
       throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
     }
     
     const data = await response.json();
-    console.log('📊 Raw API response data:', data);
     
     // Handle different response formats
     let processedData;
     if (data.success && data.data) {
       // Response has success/data wrapper
-      console.log('✅ Response has success wrapper');
       processedData = data.data;
     } else if (data.services && data.staff && data.locations) {
       // Response is direct data
-      console.log('✅ Response is direct data');
       processedData = data;
     } else if (data.success === false) {
       // Explicit failure
-      console.error('❌ API returned failure:', data.error);
       throw new Error(data.error || 'Failed to load booking data');
     } else {
       // Unknown format
-      console.error('❌ Unknown response format:', data);
       throw new Error('Invalid response format from booking API');
     }
     
     // Validate that we have the required data
     if (!processedData.services || !processedData.staff || !processedData.locations) {
-      console.error('❌ Missing required data in response:', {
-        hasServices: !!processedData.services,
-        hasStaff: !!processedData.staff,
-        hasLocations: !!processedData.locations
-      });
       throw new Error('Invalid booking data: missing required fields');
     }
     
     // Set the booking data
     bookingData = processedData;
     
-    console.log('✅ Booking data processed successfully:', {
-      servicesCount: bookingData.services?.length || 0,
-      staffCount: bookingData.staff?.length || 0,
-      locationsCount: bookingData.locations?.length || 0,
-      staffAvailabilityCount: bookingData.staffAvailability?.length || 0,
-      dateAvailabilityCount: bookingData.staffDateAvailability?.length || 0
-    });
-    
-    // Debug: Log the entire booking data object
-    console.log('📋 Complete booking data:', bookingData);
-    
   } catch (error) {
-    console.error('💥 Error in loadBookingData:', error);
-    console.error('💥 Error stack:', error.stack);
     throw error;
   }
 }
 
 
 function populateServiceButtons() {
-  console.log('🔘 Starting populateServiceButtons');
-  
   const container = document.getElementById('service-selection-buttons');
-  if (!container) {
-    console.error('❌ Service selection buttons container not found');
+  if (!container || !bookingData || !bookingData.services || !Array.isArray(bookingData.services)) {
     return;
   }
-  
-  if (!bookingData) {
-    console.error('❌ No booking data available');
-    return;
-  }
-  
-  if (!bookingData.services || !Array.isArray(bookingData.services)) {
-    console.error('❌ Invalid services data:', bookingData.services);
-    return;
-  }
-  
-  console.log('🔘 Found', bookingData.services.length, 'services');
   
   container.innerHTML = '';
   
-  bookingData.services.forEach((service, index) => {
-    console.log(`🔘 Processing service ${index + 1}:`, service);
-    
+  bookingData.services.forEach((service) => {
     if (service.variants && service.variants.length > 0) {
-      service.variants.forEach((variant, variantIndex) => {
-        console.log(`  📦 Processing variant ${variantIndex + 1}:`, variant);
-        
+      service.variants.forEach((variant) => {
         const button = document.createElement('button');
         button.className = 'barbershop-selection-btn barbershop-service-btn';
         button.onclick = () => selectService(service.id, variant.id);
         
+        // Use variant image if available, otherwise fallback to placeholder
+        console.log(`Processing variant: ${variant.id} (${variant.title})`);
+        console.log(`Variant image data:`, variant.image);
+        
+        let imageHtml;
+        if (variant.image && variant.image.url && variant.image.url !== 'null') {
+          console.log(`Using image for variant ${variant.id}: ${variant.image.url}`);
+          imageHtml = `<img src="${variant.image.url}" alt="${service.title} - ${variant.title}" class="barbershop-service-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="barbershop-service-image barbershop-service-placeholder" style="display: none;">${service.title.charAt(0)}</div>`;
+        } else {
+          console.log(`No image for variant ${variant.id}, using placeholder`);
+          imageHtml = `<div class="barbershop-service-image barbershop-service-placeholder">${service.title.charAt(0)}</div>`;
+        }
+        
         // Format duration for display
         const durationText = variant.duration ? `${variant.duration} minutes` : '';
-        const subtitleText = durationText ? `${service.body || 'Professional barber service'} • ${durationText}` : (service.body || 'Professional barber service');
+        const subtitleText = durationText ? `${durationText}` : '';
         
         const priceHtml = variant.price ? `<div class="barbershop-selection-price">$${variant.price}</div>` : '';
         
         button.innerHTML = `
-          <div class="barbershop-selection-title">${service.title} - ${variant.title}</div>
-          <div class="barbershop-selection-subtitle">${subtitleText}</div>
-          ${priceHtml}
+          ${imageHtml}
+          <div class="barbershop-service-info">
+            <div class="barbershop-selection-title">${service.title} - ${variant.title}</div>
+            ${subtitleText ? `<div class="barbershop-selection-subtitle">${subtitleText}</div>` : ''}
+            ${priceHtml}
+          </div>
         `;
         
         container.appendChild(button);
       });
-    } else {
-      console.log(`  ⚠️ Service ${service.title} has no variants`);
     }
   });
-  
-  console.log('✅ Service buttons populated');
 }
 
 function populateStaffButtons() {
@@ -1704,19 +1697,33 @@ function populateStaffButtons() {
     return;
   }
   
-  console.log('👤 Found', bookingData.staff.length, 'staff members');
+  console.log('👤 Found', bookingData.staff.length, 'total staff members');
+  
+  // Filter staff to only show those with availability in the next 3 months
+  const availableStaff = bookingData.staff.filter(staff => {
+    const hasAvailability = hasStaffAvailabilityInNext3Months(staff.id);
+    console.log(`👤 Staff ${staff.name} (${staff.id}) - Has availability in next 3 months:`, hasAvailability);
+    return hasAvailability;
+  });
+  
+  console.log('👤 Found', availableStaff.length, 'staff members with availability in next 3 months');
   
   container.innerHTML = '';
   
-  bookingData.staff.forEach((staff, index) => {
-    console.log(`👤 Processing staff ${index + 1}:`, staff);
+  if (availableStaff.length === 0) {
+    container.innerHTML = '<div style="text-align: center; color: #666; padding: 40px;"><p>No barbers are currently available for booking in the next 3 months. Please check back later or contact us directly.</p></div>';
+    return;
+  }
+  
+  availableStaff.forEach((staff, index) => {
+    console.log(`👤 Processing available staff ${index + 1}:`, staff);
     
     const button = document.createElement('button');
     button.className = 'barbershop-selection-btn barbershop-staff-btn';
     button.onclick = () => selectStaff(staff.id);
     
-    const avatarHtml = staff.avatar 
-      ? `<img src="${staff.avatar}" alt="${staff.name}" class="barbershop-staff-avatar">` 
+    const avatarHtml = staff.avatar?.url 
+      ? `<img src="${staff.avatar.url}" alt="${staff.name}" class="barbershop-staff-avatar">` 
       : `<div class="barbershop-staff-avatar" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #666;">${staff.name.charAt(0)}</div>`;
     
     button.innerHTML = `
@@ -1730,7 +1737,7 @@ function populateStaffButtons() {
     container.appendChild(button);
   });
   
-  console.log('✅ Staff buttons populated');
+  console.log('✅ Available staff buttons populated');
 }
 
 // Initialize when DOM is loaded

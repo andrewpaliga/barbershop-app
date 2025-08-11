@@ -213,7 +213,13 @@ export default function SchedulePage() {
         lessThan: weekEnd.toISOString(),
       },
       ...(selectedStaffId && { staffId: { equals: selectedStaffId } }),
-      ...(selectedServiceId && { productId: { equals: selectedServiceId } }),
+      ...(selectedServiceId && { 
+        variant: {
+          product: {
+            id: { equals: selectedServiceId }
+          }
+        }
+      }),
     },
     select: {
       id: true,
@@ -234,9 +240,13 @@ export default function SchedulePage() {
         id: true,
         name: true,
       },
-      product: {
+      variant: {
         id: true,
         title: true,
+        product: {
+          id: true,
+          title: true,
+        },
       },
       totalPrice: true,
     },
@@ -335,28 +345,34 @@ export default function SchedulePage() {
         
         // Convert UTC booking time to location timezone for comparison
         const bookingUTCDate = new Date(booking.scheduledAt);
-        const bookingLocationDate = locationTimezone 
+        const bookingStartDate = locationTimezone 
           ? convertUTCToLocationTime(bookingUTCDate, locationTimezone)
           : bookingUTCDate;
+        
+        // Calculate booking end time by adding duration in minutes
+        const bookingEndDate = new Date(bookingStartDate);
+        bookingEndDate.setMinutes(bookingEndDate.getMinutes() + (booking.duration || 60));
         
         // Create the slot time in the same date context
         const slotDate = new Date(date);
         slotDate.setHours(hour, minute, 0, 0);
         
-        // Compare the booking time in location timezone with the slot time
-        return (
-          bookingLocationDate.getDate() === slotDate.getDate() &&
-          bookingLocationDate.getMonth() === slotDate.getMonth() &&
-          bookingLocationDate.getFullYear() === slotDate.getFullYear() &&
-          bookingLocationDate.getHours() === slotDate.getHours() &&
-          bookingLocationDate.getMinutes() === slotDate.getMinutes()
-        );
+        // Check if the slot falls within the booking's duration range
+        // Slot should be >= booking start AND < booking end
+        return slotDate >= bookingStartDate && slotDate < bookingEndDate;
       });
 
       return slotBookings;
     },
     [bookings, locations]
   );
+
+
+
+  // Helper function to calculate how many 30-minute slots a booking spans
+  const getBookingSpanCount = useCallback((duration: number) => {
+    return Math.ceil(duration / 30);
+  }, []);
 
   // Handle time slot click
   const handleTimeSlotClick = useCallback((date: Date, hour: number, minute: number) => {
@@ -426,7 +442,7 @@ export default function SchedulePage() {
         scheduledAt: scheduledAtUTC.toISOString(),
         duration: parseInt(formData.duration) || 60,
         staff: { _link: formData.staffId },
-        product: { _link: formData.productId },
+        variant: { _link: formData.variantId },
         location: { _link: formData.locationId },
         notes: formData.notes,
         status: "pending",
@@ -750,94 +766,206 @@ export default function SchedulePage() {
 
               {/* Calendar Grid */}
               <Box padding="200">
-                <div style={{ display: "grid", gridTemplateColumns: "80px repeat(7, 1fr)", gap: "1px", backgroundColor: "#e1e3e5" }}>
-                  {/* Header row - time column + days */}
-                  <div style={{ backgroundColor: "white", padding: "8px", fontWeight: "bold" }}>Time</div>
-                  {weekDates.map((date) => (
-                    <div
-                      key={date.toDateString()}
-                      style={{
-                        backgroundColor: "white",
-                        padding: "8px",
-                        textAlign: "center",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      <div>{mounted ? date.toLocaleDateString("en-US", { weekday: "short" }) : 'Loading...'}</div>
-                      <div style={{ fontSize: "0.9em", color: "#666" }}>{mounted ? date.getDate().toString() : '...'}</div>
+                <div style={{ backgroundColor: "#e1e3e5" }}>
+                  {/* Header row */}
+                  <div style={{ display: "flex", gap: "1px", marginBottom: "1px" }}>
+                    <div style={{ width: "80px", backgroundColor: "white", padding: "8px", fontWeight: "bold" }}>
+                      Time
                     </div>
-                  ))}
-
-                  {/* Time slots */}
-                  {timeSlots.map(({ hour, minute }) => (
-                    <div key={`${hour}-${minute}`} style={{ display: "contents" }}>
-                      {/* Time label */}
+                    {weekDates.map((date) => (
                       <div
+                        key={date.toDateString()}
                         style={{
+                          flex: 1,
                           backgroundColor: "white",
                           padding: "8px",
-                          fontSize: "0.8em",
-                          color: "#666",
-                          textAlign: "right",
+                          textAlign: "center",
+                          fontWeight: "bold",
                         }}
                       >
-                        {formatTime(hour, minute)}
+                        <div>{mounted ? date.toLocaleDateString("en-US", { weekday: "short" }) : 'Loading...'}</div>
+                        <div style={{ fontSize: "0.9em", color: "#666" }}>{mounted ? date.getDate().toString() : '...'}</div>
                       </div>
+                    ))}
+                  </div>
 
-                      {/* Day columns */}
+                  {/* Main calendar body */}
+                  <div style={{ display: "flex", gap: "1px" }}>
+                    {/* Time labels column */}
+                    <div style={{ width: "80px", display: "flex", flexDirection: "column", gap: "1px" }}>
+                      {timeSlots.map(({ hour, minute }) => (
+                        <div
+                          key={`${hour}-${minute}`}
+                          style={{
+                            height: "50px",
+                            backgroundColor: "white",
+                            border: "1px solid transparent",
+                            padding: "8px",
+                            fontSize: "0.8em",
+                            color: "#666",
+                            textAlign: "right",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "flex-end",
+                            boxSizing: "border-box",
+                          }}
+                        >
+                          {formatTime(hour, minute)}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Day columns container */}
+                    <div style={{ display: "flex", flex: 1, gap: "1px" }}>
                       {weekDates.map((date) => {
-                        const slotBookings = getBookingsForSlot(date, hour, minute);
-                        const hasBooking = slotBookings.length > 0;
+                        // Helper function to render slots for this specific day
+                        const renderDaySlots = () => {
+                          const daySlots = [];
+                          let slotIndex = 0;
+
+                          // Track which slots are occupied by continuing bookings
+                          const occupiedSlots = new Set();
+
+                          // First pass: identify all occupied slots
+                          for (let i = 0; i < timeSlots.length; i++) {
+                            const { hour, minute } = timeSlots[i];
+                            const slotBookings = getBookingsForSlot(date, hour, minute);
+                            
+                            // Find bookings that start exactly at this time slot
+                            const startingBookings = slotBookings.filter((booking) => {
+                              const bookingLocation = locations?.find(loc => loc.id === booking.locationId);
+                              const locationTimezone = bookingLocation?.timeZone;
+                              
+                              const bookingUTCDate = new Date(booking.scheduledAt);
+                              const bookingStartDate = locationTimezone 
+                                ? convertUTCToLocationTime(bookingUTCDate, locationTimezone)
+                                : bookingUTCDate;
+                              
+                              const slotDate = new Date(date);
+                              slotDate.setHours(hour, minute, 0, 0);
+                              
+                              return bookingStartDate.getTime() === slotDate.getTime();
+                            });
+
+                            if (startingBookings.length > 0) {
+                              const primaryBooking = startingBookings[0];
+                              const duration = primaryBooking.duration || 60;
+                              const slotsToOccupy = Math.ceil(duration / 30);
+                              
+                              // Mark this slot and subsequent slots as occupied
+                              for (let j = 0; j < slotsToOccupy && (i + j) < timeSlots.length; j++) {
+                                occupiedSlots.add(i + j);
+                              }
+                            }
+                          }
+
+                          // Second pass: render slots
+                          for (let i = 0; i < timeSlots.length; i++) {
+                            const { hour, minute } = timeSlots[i];
+
+                            // Skip slots that are in the middle of a booking
+                            if (occupiedSlots.has(i)) {
+                              const slotBookings = getBookingsForSlot(date, hour, minute);
+                              const startingBookings = slotBookings.filter((booking) => {
+                                const bookingLocation = locations?.find(loc => loc.id === booking.locationId);
+                                const locationTimezone = bookingLocation?.timeZone;
+                                
+                                const bookingUTCDate = new Date(booking.scheduledAt);
+                                const bookingStartDate = locationTimezone 
+                                  ? convertUTCToLocationTime(bookingUTCDate, locationTimezone)
+                                  : bookingUTCDate;
+                                
+                                const slotDate = new Date(date);
+                                slotDate.setHours(hour, minute, 0, 0);
+                                
+                                return bookingStartDate.getTime() === slotDate.getTime();
+                              });
+
+                              // Only render if this is where the booking starts
+                              if (startingBookings.length > 0) {
+                                const primaryBooking = startingBookings[0];
+                                const duration = primaryBooking.duration || 60;
+                                const slotsSpanned = Math.ceil(duration / 30);
+                                const height = (slotsSpanned * 50) + (slotsSpanned - 1);
+
+                                daySlots.push(
+                                  <div
+                                    key={`${date.toDateString()}-${hour}-${minute}`}
+                                    style={{
+                                      height: `${height}px`,
+                                      backgroundColor: "#e3f2fd",
+                                      border: "1px solid #0070f3",
+                                      borderRadius: "4px",
+                                      cursor: "pointer",
+                                      overflow: "hidden",
+                                      boxSizing: "border-box",
+                                    }}
+                                    onClick={() => handleBookingClick(primaryBooking)}
+                                    title={`${date.toDateString()} ${formatTime(hour, minute)} - ${primaryBooking?.variant?.product?.title} (${primaryBooking?.duration}min)`}
+                                  >
+                                    <Box padding="50">
+                                      <BlockStack gap="25">
+                                        <Badge tone={getStatusColor(primaryBooking.status) as any}>
+                                          {primaryBooking.status}
+                                        </Badge>
+                                        <Text as="p" variant="bodyXs" fontWeight="bold">
+                                          {primaryBooking.variant?.product?.title}
+                                        </Text>
+                                        <Text as="p" variant="bodyXs">
+                                          {primaryBooking.customer?.displayName || 
+                                           (primaryBooking.customer?.firstName && primaryBooking.customer?.lastName ? 
+                                            `${primaryBooking.customer.firstName} ${primaryBooking.customer.lastName}` : '') || 
+                                           primaryBooking.customerName || 'No customer'}
+                                        </Text>
+                                        <Text as="p" variant="bodyXs" tone="subdued">
+                                          {primaryBooking.staff?.name}
+                                        </Text>
+                                        <Text as="p" variant="bodyXs" tone="subdued">
+                                          {primaryBooking.duration}min
+                                        </Text>
+                                      </BlockStack>
+                                    </Box>
+                                  </div>
+                                );
+                              }
+                            } else {
+                              // Empty slot - render clickable area
+                              daySlots.push(
+                                <div
+                                  key={`${date.toDateString()}-${hour}-${minute}`}
+                                  style={{
+                                    height: "50px",
+                                    backgroundColor: "white",
+                                    cursor: "pointer",
+                                    border: "1px solid transparent",
+                                    boxSizing: "border-box",
+                                  }}
+                                  onClick={() => handleTimeSlotClick(date, hour, minute)}
+                                  title={`${date.toDateString()} ${formatTime(hour, minute)} - Click to book`}
+                                />
+                              );
+                            }
+                          }
+
+                          return daySlots;
+                        };
 
                         return (
                           <div
-                            key={`${date.toDateString()}-${hour}-${minute}`}
+                            key={date.toDateString()}
                             style={{
-                              backgroundColor: hasBooking ? "#f0f8ff" : "white",
-                              padding: "4px",
-                              minHeight: "40px",
-                              cursor: hasBooking ? "default" : "pointer",
-                              border: hasBooking ? "1px solid #0070f3" : "none",
-                              position: "relative",
+                              flex: 1,
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "1px",
                             }}
-                            onClick={() => !hasBooking && handleTimeSlotClick(date, hour, minute)}
-                            title={`${date.toDateString()} ${formatTime(hour, minute)} - ${slotBookings.length} bookings`}
                           >
-                            {slotBookings.map((booking) => (
-                              <Box 
-                                key={booking.id} 
-                                padding="100"
-                                style={{ cursor: "pointer" }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleBookingClick(booking);
-                                }}
-                              >
-                                <BlockStack gap="50">
-                                  <Badge tone={getStatusColor(booking.status) as any}>
-                                    {booking.status}
-                                  </Badge>
-                                  <Text as="p" variant="bodyXs" fontWeight="bold">
-                                    {booking.product?.title}
-                                  </Text>
-                                  <Text as="p" variant="bodyXs">
-                                    {booking.customer?.displayName || 
-                                     (booking.customer?.firstName && booking.customer?.lastName ? 
-                                      `${booking.customer.firstName} ${booking.customer.lastName}` : '') || 
-                                     booking.customerName || 'No customer'}
-                                  </Text>
-                                  <Text as="p" variant="bodyXs" tone="subdued">
-                                    {booking.staff?.name}
-                                  </Text>
-                                </BlockStack>
-                              </Box>
-                            ))}
-
+                            {renderDaySlots()}
                           </div>
                         );
                       })}
                     </div>
-                  ))}
+                  </div>
                 </div>
               </Box>
             </BlockStack>
@@ -1173,7 +1301,7 @@ export default function SchedulePage() {
                   <InlineStack gap="400">
                     <BlockStack gap="100">
                       <Text as="p" variant="bodyMd" fontWeight="bold">Service</Text>
-                      <Text as="p" variant="bodyMd">{selectedBooking.product?.title}</Text>
+                      <Text as="p" variant="bodyMd">{selectedBooking.variant?.product?.title}</Text>
                     </BlockStack>
                     <BlockStack gap="100">
                       <Text as="p" variant="bodyMd" fontWeight="bold">Staff</Text>

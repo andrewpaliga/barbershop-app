@@ -6,7 +6,7 @@ import type { GadgetModel } from "gadget-server";
 export const schema: GadgetModel = {
   type: "gadget/model-schema/v1",
   storageKey: "DataModel-Shopify-ProductVariant",
-  fields: {},
+  fields: { image: { type: "json", storageKey: "Gd0uRFZnWye-" } },
   shopify: {
     fields: [
       "barcode",

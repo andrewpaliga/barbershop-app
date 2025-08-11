@@ -2,6 +2,7 @@ import { useLoaderData, Outlet } from "@remix-run/react";
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import { Page, Card, Text, Box } from "@shopify/polaris";
 import { NavMenu } from "../components/NavMenu";
+import { POSRedirect } from "../components/POSRedirect";
 
 export const loader = async ({ context }: LoaderFunctionArgs) => {
   return json({
@@ -12,14 +13,23 @@ export const loader = async ({ context }: LoaderFunctionArgs) => {
 export default function() {
   const { gadgetConfig } = useLoaderData<typeof loader>();
 
-  return gadgetConfig.shopifyInstallState ? (
-    <>
-      <NavMenu />
-      <Outlet />
-    </>
-  ) : (
-    <Unauthenticated />
-  );
+  console.log('_app.tsx component rendering');
+  console.log('gadgetConfig.shopifyInstallState:', gadgetConfig.shopifyInstallState);
+
+  if (gadgetConfig.shopifyInstallState) {
+    console.log('Taking authenticated branch - rendering POSRedirect, NavMenu, and Outlet');
+    console.log('POSRedirect component should be rendered');
+    return (
+      <>
+        <POSRedirect />
+        <NavMenu />
+        <Outlet />
+      </>
+    );
+  } else {
+    console.log('Taking unauthenticated branch - rendering Unauthenticated component');
+    return <Unauthenticated />;
+  }
 }
 
 const Unauthenticated = () => {

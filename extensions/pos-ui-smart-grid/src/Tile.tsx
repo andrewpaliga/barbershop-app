@@ -1,12 +1,19 @@
-import {extension, Tile} from '@shopify/ui-extensions/point-of-sale';
+import React from 'react';
+import { Tile, reactExtension, useApi } from '@shopify/ui-extensions-react/point-of-sale';
 
-export default extension('pos.home.tile.render', (root, api) => {
-  const tile = root.createComponent(Tile, {
-    title: 'Appointments',
-    subtitle: 'Barbify',
-    onPress: () => api.action.presentModal(),
-    enabled: true,
-  });
+function TileComponent() {
+  const api = useApi<'pos.home.tile.render'>();
 
-  root.append(tile);
-});
+  return (
+    <Tile
+      title="Appointments"
+      subtitle="Barbify"
+      onPress={() => {
+        api.action.presentModal();
+      }}
+      enabled
+    />
+  );
+}
+
+export default reactExtension('pos.home.tile.render', () => <TileComponent />);

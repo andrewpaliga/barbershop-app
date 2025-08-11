@@ -3,197 +3,142 @@ import { RouteHandler } from "gadget-server";
 const route: RouteHandler = async ({ request, reply, api, logger, connections }) => {
   try {
     let shopId: string | null = null;
-    
-    // First try to get shop context from Shopify session (authenticated admin requests)
+
+    // Get shop context
     const rawShopId = connections.shopify.currentShopId;
-    
     if (rawShopId) {
       shopId = String(rawShopId);
       logger.info(`Found shop ID from session context: ${shopId}`);
     } else {
-      // Fallback for app proxy requests - get shop domain from query parameters
       const shopDomain = request.query?.shop as string;
       logger.info(`No session context found, checking query params. Shop domain: ${shopDomain}`);
-      
+
       if (!shopDomain) {
-        logger.error("No shop context found in session or query parameters");
-        await reply.code(400).send({ 
-          error: "Shop context not found. Please ensure the request includes shop information." 
-        });
+        await reply.code(400).send({ error: "Shop context not found. Please include shop information." });
         return;
       }
-      
-      try {
-        // Look up the shop record by domain to get the shop ID
-        const shopRecord = await api.shopifyShop.findFirst({
-          filter: {
-            OR: [
-              { myshopifyDomain: { equals: shopDomain } },
-              { domain: { equals: shopDomain } }
-            ]
-          },
-          select: {
-            id: true,
-            name: true,
-            myshopifyDomain: true,
-            domain: true
-          }
-        });
-        
-        if (!shopRecord) {
-          logger.error(`Shop not found for domain: ${shopDomain}`);
-          await reply.code(404).send({
-            error: "Shop not found",
-            message: `No shop found for domain: ${shopDomain}`
-          });
-          return;
-        }
-        
-        shopId = shopRecord.id;
-        logger.info(`Found shop ID from domain lookup: ${shopId} (${shopRecord.name})`);
-        
-      } catch (domainLookupError) {
-        logger.error(`Error looking up shop by domain ${shopDomain}:`, domainLookupError);
-        await reply.code(500).send({
-          error: "Shop lookup failed",
-          message: "Unable to find shop information"
-        });
-        return;
-      }
-    }
-    
-    if (!shopId) {
-      logger.error("Unable to determine shop ID");
-      await reply.code(400).send({ 
-        error: "Unable to determine shop context" 
+
+      const shopRecord = await api.shopifyShop.findFirst({
+        filter: { OR: [{ myshopifyDomain: { equals: shopDomain } }, { domain: { equals: shopDomain } }] },
+        select: { id: true, name: true, myshopifyDomain: true, domain: true }
       });
+
+      if (!shopRecord) {
+        await reply.code(404).send({ error: "Shop not found", message: `No shop for domain: ${shopDomain}` });
+        return;
+      }
+      shopId = shopRecord.id;
+      logger.info(`Found shop ID from domain lookup: ${shopId} (${shopRecord.name})`);
+    }
+
+    if (!shopId) {
+      await reply.code(400).send({ error: "Unable to determine shop context" });
       return;
     }
 
-    // Set CORS headers to allow cross-origin requests from storefront
-    reply.header('Access-Control-Allow-Origin', '*');
-    reply.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    // CORS headers
+    reply.header("Access-Control-Allow-Origin", "*");
+    reply.header("Access-Control-Allow-Methods", "GET, OPTIONS");
+    reply.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-    // Fetch services (shopifyProduct records where isBarberService is true)
+    // Fetch services
     const services = await api.shopifyProduct.findMany({
       filter: {
         shopId: { equals: shopId },
         isBarberService: { equals: true },
         status: { equals: "active" }
       },
-      select: {
-        id: true,
-        title: true,
-        body: true,
-        handle: true,
-        productType: true,
-        vendor: true,
-        variants: {
-          edges: {
-            node: {
-              id: true,
-              title: true,
-              price: true,
-              compareAtPrice: true,
-              option1: true,
-              sku: true
+              select: {
+          id: true,
+          title: true,
+          body: true,
+          handle: true,
+          productType: true,
+          vendor: true,
+          variants: {
+            edges: {
+              node: {
+                id: true,
+                title: true,
+                price: true,
+                compareAtPrice: true,
+                option1: true,
+                sku: true,
+                image: true
+              }
             }
           }
         }
-      }
     });
 
-    // Fetch active staff members
-    const staff = await api.staff.findMany({
-      filter: {
-        shopId: { equals: shopId },
-        isActive: { equals: true }
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        bio: true,
-        avatar: {
-          url: true,
-          fileName: true
+    logger.info(`Found ${services.length} services`);
+
+    // Use existing variant images from the database
+    const variantImages = new Map();
+    
+    for (const service of services) {
+      if (service.variants?.edges) {
+        // Use existing variant images that were populated by the action
+        service.variants.edges.forEach(edge => {
+          if (edge.node.image && edge.node.image.url) {
+            variantImages.set(edge.node.id, edge.node.image);
+            logger.info(`Using existing image for variant ${edge.node.id}: ${edge.node.image.url}`);
+          }
+        });
+      }
+    }
+
+    // Fetch other data
+    const [staff, locations, staffAvailability, staffDateAvailability, existingBookings] = await Promise.all([
+      api.staff.findMany({
+        filter: { shopId: { equals: shopId }, isActive: { equals: true } },
+        select: {
+          id: true, name: true, email: true, phone: true, bio: true,
+          avatar: { url: true, fileName: true }
         }
-      }
-    });
+      }),
+      api.shopifyLocation.findMany({
+        filter: { shopId: { equals: shopId }, active: { equals: true } },
+        select: {
+          id: true, name: true, address1: true, address2: true, city: true,
+          province: true, country: true, zipCode: true, phone: true
+        }
+      }),
+      api.staffAvailability.findMany({
+        filter: { shopId: { equals: shopId }, isAvailable: { equals: true } },
+        select: {
+          id: true, staffId: true, locationId: true, dayOfWeek: true,
+          startTime: true, endTime: true, isAvailable: true
+        }
+      }),
+      api.staffDateAvailability.findMany({
+        filter: { shopId: { equals: shopId } },
+        select: {
+          id: true, staffId: true, locationId: true, date: true,
+          startTime: true, endTime: true, isAvailable: true
+        }
+      }),
+      api.booking.findMany({
+        filter: { shopId: { equals: shopId }, status: { in: ["pending", "paid", "confirmed", "not_paid"] } },
+        select: {
+          id: true, scheduledAt: true, duration: true, status: true,
+          staffId: true, locationId: true, variantId: true, totalPrice: true,
+          customerName: true, customerEmail: true, notes: true, arrived: true
+        }
+      })
+    ]);
 
-    // Fetch active locations
-    const locations = await api.shopifyLocation.findMany({
-      filter: {
-        shopId: { equals: shopId },
-        active: { equals: true }
-      },
-      select: {
-        id: true,
-        name: true,
-        address1: true,
-        address2: true,
-        city: true,
-        province: true,
-        country: true,
-        zipCode: true,
-        phone: true
-      }
-    });
-
-    // Fetch staff availability (recurring weekly availability)
-    const staffAvailability = await api.staffAvailability.findMany({
-      filter: {
-        shopId: { equals: shopId },
-        isAvailable: { equals: true }
-      },
-      select: {
-        id: true,
-        staffId: true,
-        locationId: true,
-        dayOfWeek: true,
-        startTime: true,
-        endTime: true,
-        isAvailable: true
-      }
-    });
-
-    // Fetch staff date availability (specific date overrides)
-    const staffDateAvailability = await api.staffDateAvailability.findMany({
-      filter: {
-        shopId: { equals: shopId }
-      },
-      select: {
-        id: true,
-        staffId: true,
-        locationId: true,
-        date: true,
-        startTime: true,
-        endTime: true,
-        isAvailable: true
-      }
-    });
-
-    // Helper function to parse duration from text
+    // Helper function to parse duration
     const parseDuration = (text: string): number | null => {
       if (!text) return null;
-      
-      // Look for patterns like "30 min", "60 min", "1 hour", "2 hours"
       const minMatch = text.match(/(\d+)\s*min/i);
-      if (minMatch) {
-        return parseInt(minMatch[1], 10);
-      }
-      
+      if (minMatch) return parseInt(minMatch[1], 10);
       const hourMatch = text.match(/(\d+)\s*hours?/i);
-      if (hourMatch) {
-        return parseInt(hourMatch[1], 10) * 60;
-      }
-      
+      if (hourMatch) return parseInt(hourMatch[1], 10) * 60;
       return null;
     };
 
-    // Transform the data into a simple JSON format
+    // Build response
     const responseData = {
       services: services.map(service => ({
         id: service.id,
@@ -212,7 +157,8 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
             compareAtPrice: edge.node.compareAtPrice,
             shopifyVariantId: edge.node.id,
             duration: duration,
-            sku: edge.node.sku
+            sku: edge.node.sku,
+            image: variantImages.get(edge.node.id) || null
           };
         }) || []
       })),
@@ -255,20 +201,30 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         startTime: dateAvailability.startTime,
         endTime: dateAvailability.endTime,
         isAvailable: dateAvailability.isAvailable
+      })),
+      existingBookings: existingBookings.map(booking => ({
+        id: booking.id,
+        scheduledAt: booking.scheduledAt,
+        duration: booking.duration,
+        status: booking.status,
+        staffId: booking.staffId,
+        locationId: booking.locationId,
+        variantId: booking.variantId,
+        totalPrice: booking.totalPrice,
+        customerName: booking.customerName,
+        customerEmail: booking.customerEmail,
+        notes: booking.notes,
+        arrived: booking.arrived
       }))
     };
 
-    logger.info(`Successfully fetched booking data for shop ${shopId}: ${services.length} services, ${staff.length} staff, ${locations.length} locations, ${staffAvailability.length} staff availability records, ${staffDateAvailability.length} staff date availability records`);
+    logger.info(`Successfully fetched booking data for shop ${shopId}: ${services.length} services, ${staff.length} staff, ${locations.length} locations`);
 
     await reply.code(200).send({ success: true, data: responseData });
 
   } catch (error) {
     logger.error("Error fetching booking data:", error);
-    
-    await reply.code(500).send({
-      error: "Internal server error",
-      message: "Failed to fetch booking data"
-    });
+    await reply.code(500).send({ error: "Internal server error", message: "Failed to fetch booking data" });
   }
 };
 

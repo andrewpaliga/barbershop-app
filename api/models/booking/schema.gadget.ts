@@ -9,6 +9,11 @@ export const schema: GadgetModel = {
   comment:
     "Represents a scheduled appointment or booking, including the customer, staff member, product, location, and appointment details.",
   fields: {
+    arrived: {
+      type: "boolean",
+      default: false,
+      storageKey: "ux_CVwHTPDlG",
+    },
     customer: {
       type: "belongsTo",
       parent: { model: "shopifyCustomer" },
@@ -29,11 +34,10 @@ export const schema: GadgetModel = {
       storageKey: "xo9fHwJgCM3z",
     },
     notes: { type: "string", storageKey: "LQmRZvstTbws" },
-    product: {
+    order: {
       type: "belongsTo",
-      validations: { required: true },
-      parent: { model: "shopifyProduct" },
-      storageKey: "6OARSJ_Gj29r",
+      parent: { model: "shopifyOrder" },
+      storageKey: "IZuv6f4Kqr-w",
     },
     scheduledAt: {
       type: "dateTime",
@@ -76,6 +80,11 @@ export const schema: GadgetModel = {
         numberRange: { min: 0, max: null },
       },
       storageKey: "CafzbQI1EA_z",
+    },
+    variant: {
+      type: "belongsTo",
+      parent: { model: "shopifyProductVariant" },
+      storageKey: "wLJ11BLKqpPg",
     },
   },
 };

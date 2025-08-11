@@ -18,6 +18,11 @@ export const schema: GadgetModel = {
       storageKey: "SwI_Vp6pElg7",
     },
     holidayClosures: { type: "json", storageKey: "8-ZvhNUya8SE" },
+    offersServices: {
+      type: "boolean",
+      default: true,
+      storageKey: "VdGTMnimpF_H",
+    },
     operatingHours: { type: "json", storageKey: "FpOWC9wvoSXc" },
     timeZone: { type: "string", storageKey: "51HiL-wDPkpz" },
   },

@@ -16,7 +16,7 @@ import {
   ButtonGroup,
 } from "@shopify/polaris";
 import { DeleteIcon, PlusIcon, XIcon, ChevronLeftIcon, ChevronRightIcon, EditIcon } from "@shopify/polaris-icons";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import {
   AutoForm,
   AutoInput,
@@ -24,7 +24,7 @@ import {
   SubmitResultBanner,
   AutoHiddenInput,
 } from "@gadgetinc/react/auto/polaris";
-import { useAction, useFindMany } from "@gadgetinc/react";
+import { useAction, useFindMany, useFindOne } from "@gadgetinc/react";
 import { api } from "../api";
 
 // Types
@@ -75,19 +75,19 @@ const generateTimeOptions = (): TimeOption[] => {
 };
 
 // Combined availability table component
-function CombinedAvailabilityTable({ 
-  weeklyData, 
+function CombinedAvailabilityTable({
+  weeklyData,
   dateData,
-  onRefresh 
-}: { 
-  weeklyData: any[] | null | undefined, 
+  onRefresh
+}: {
+  weeklyData: any[] | null | undefined,
   dateData: any[] | null | undefined,
-  onRefresh: () => void 
+  onRefresh: () => void;
 }) {
-  const [editingRecord, setEditingRecord] = useState<{ type: 'weekly' | 'date', id: string } | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'weekly' | 'date', id: string } | null>(null);
+  const [editingRecord, setEditingRecord] = useState<{ type: 'weekly' | 'date', id: string; } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'weekly' | 'date', id: string; } | null>(null);
   const [editFormData, setEditFormData] = useState<any>({});
-  
+
   // Action hooks for updating and deleting records
   const [, updateWeeklyAvailability] = useAction(api.staffAvailability.update);
   const [, deleteWeeklyAvailability] = useAction(api.staffAvailability.delete);
@@ -129,7 +129,7 @@ function CombinedAvailabilityTable({
 
   const handleSaveEdit = async () => {
     if (!editingRecord) return;
-    
+
     try {
       if (editingRecord.type === 'weekly') {
         await updateWeeklyAvailability({
@@ -155,7 +155,7 @@ function CombinedAvailabilityTable({
           })
         });
       }
-      
+
       setEditingRecord(null);
       setEditFormData({});
       onRefresh();
@@ -171,14 +171,14 @@ function CombinedAvailabilityTable({
 
   const handleDelete = async () => {
     if (!deleteConfirm) return;
-    
+
     try {
       if (deleteConfirm.type === 'weekly') {
         await deleteWeeklyAvailability({ id: deleteConfirm.id });
       } else {
         await deleteDateAvailability({ id: deleteConfirm.id });
       }
-      
+
       setDeleteConfirm(null);
       onRefresh();
     } catch (error) {
@@ -188,7 +188,7 @@ function CombinedAvailabilityTable({
 
   const combinedRecords = useMemo(() => {
     const records: any[] = [];
-    
+
     // Add weekly availability records
     if (weeklyData && Array.isArray(weeklyData)) {
       weeklyData.forEach(record => {
@@ -196,14 +196,14 @@ function CombinedAvailabilityTable({
           records.push({
             ...record,
             type: 'weekly',
-            displayDate: Array.isArray(record.dayOfWeek) 
+            displayDate: Array.isArray(record.dayOfWeek)
               ? record.dayOfWeek.map((day: string) => day.charAt(0).toUpperCase() + day.slice(1)).join(', ')
               : record.dayOfWeek || ''
           });
         }
       });
     }
-    
+
     // Add date-specific availability records
     if (dateData && Array.isArray(dateData)) {
       dateData.forEach(record => {
@@ -216,7 +216,7 @@ function CombinedAvailabilityTable({
         }
       });
     }
-    
+
     return records;
   }, [weeklyData, dateData]);
 
@@ -270,7 +270,7 @@ function CombinedAvailabilityTable({
           <tbody>
             {combinedRecords.map((record) => {
               const isEditing = editingRecord?.id === record.id && editingRecord?.type === record.type;
-              
+
               if (isEditing) {
                 return (
                   <tr key={`${record.type}-${record.id}`}>
@@ -280,7 +280,7 @@ function CombinedAvailabilityTable({
                           <Text as="h4" variant="headingSm">
                             Edit {record.type === 'weekly' ? 'Weekly' : 'Date'} Availability
                           </Text>
-                          
+
                           <FormLayout>
                             {record.type === 'weekly' ? (
                               <div>
@@ -317,7 +317,7 @@ function CombinedAvailabilityTable({
                                 onChange={(value) => setEditFormData({ ...editFormData, date: value })}
                               />
                             )}
-                            
+
                             <FormLayout.Group>
                               <Select
                                 label="Start Time"
@@ -332,13 +332,13 @@ function CombinedAvailabilityTable({
                                 onChange={(value) => setEditFormData({ ...editFormData, endTime: value })}
                               />
                             </FormLayout.Group>
-                            
+
                             <Checkbox
                               label="Available"
                               checked={editFormData.isAvailable || false}
                               onChange={(checked) => setEditFormData({ ...editFormData, isAvailable: checked })}
                             />
-                            
+
                             {record.type === 'date' && (
                               <TextField
                                 label="Notes"
@@ -348,7 +348,7 @@ function CombinedAvailabilityTable({
                               />
                             )}
                           </FormLayout>
-                          
+
                           <InlineStack gap="200">
                             <Button variant="primary" onClick={handleSaveEdit}>
                               Save
@@ -363,7 +363,7 @@ function CombinedAvailabilityTable({
                   </tr>
                 );
               }
-              
+
               return (
                 <tr key={`${record.type}-${record.id}`}>
                   <td style={{ padding: '8px', borderBottom: '1px solid #e1e5e9', fontSize: '13px' }}>
@@ -454,7 +454,7 @@ function CalendarView({ staffId, weeklyData, dateData, currentWeekStart }: Calen
 
   // Convert day name to number (0 = Sunday)
   const dayNameToNumber = (dayName: string): number => {
-    const mapping: { [key: string]: number } = {
+    const mapping: { [key: string]: number; } = {
       'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3,
       'thursday': 4, 'friday': 5, 'saturday': 6
     };
@@ -494,7 +494,7 @@ function CalendarView({ staffId, weeklyData, dateData, currentWeekStart }: Calen
           const weekStart = new Date(currentWeekStart);
           const weekEnd = new Date(currentWeekStart);
           weekEnd.setDate(weekStart.getDate() + 6);
-          
+
           if (recordDate >= weekStart && recordDate <= weekEnd) {
             blocks.push({
               type: 'date',
@@ -519,10 +519,10 @@ function CalendarView({ staffId, weeklyData, dateData, currentWeekStart }: Calen
     const endMinutes = parseTimeToMinutes(endTime);
     const dayStartMinutes = 8 * 60; // 8 AM
     const slotDurationMinutes = 30;
-    
+
     const startSlot = Math.floor((startMinutes - dayStartMinutes) / slotDurationMinutes);
     const duration = Math.ceil((endMinutes - startMinutes) / slotDurationMinutes);
-    
+
     return { startSlot, duration };
   };
 
@@ -532,8 +532,8 @@ function CalendarView({ staffId, weeklyData, dateData, currentWeekStart }: Calen
   };
 
   return (
-    <div style={{ 
-      display: 'grid', 
+    <div style={{
+      display: 'grid',
       gridTemplateColumns: '80px repeat(7, 1fr)',
       gap: '1px',
       backgroundColor: '#e1e5e9',
@@ -542,20 +542,20 @@ function CalendarView({ staffId, weeklyData, dateData, currentWeekStart }: Calen
       overflow: 'hidden'
     }}>
       {/* Header row */}
-      <div style={{ 
-        backgroundColor: '#f6f6f7', 
-        padding: '12px 8px', 
+      <div style={{
+        backgroundColor: '#f6f6f7',
+        padding: '12px 8px',
         borderBottom: '2px solid #e1e5e9',
         fontSize: '12px',
         fontWeight: 600
       }}>
         Time
       </div>
-      
+
       {weekDays.map(day => (
-        <div key={day.dayOfWeek} style={{ 
-          backgroundColor: '#f6f6f7', 
-          padding: '12px 8px', 
+        <div key={day.dayOfWeek} style={{
+          backgroundColor: '#f6f6f7',
+          padding: '12px 8px',
           textAlign: 'center',
           borderBottom: '2px solid #e1e5e9',
           fontSize: '12px',
@@ -572,9 +572,9 @@ function CalendarView({ staffId, weeklyData, dateData, currentWeekStart }: Calen
       {timeSlots.map((slot, slotIndex) => (
         <div key={`row-${slotIndex}`} style={{ display: 'contents' }}>
           {/* Time label */}
-          <div style={{ 
-            backgroundColor: '#f6f6f7', 
-            padding: '8px 6px', 
+          <div style={{
+            backgroundColor: '#f6f6f7',
+            padding: '8px 6px',
             fontSize: '11px',
             color: '#6d7175',
             textAlign: 'center',
@@ -585,17 +585,17 @@ function CalendarView({ staffId, weeklyData, dateData, currentWeekStart }: Calen
           }}>
             {slot.time12}
           </div>
-          
+
           {/* Day columns */}
           {weekDays.map(day => {
-            const dayBlocks = availabilityBlocks.filter(block => 
+            const dayBlocks = availabilityBlocks.filter(block =>
               block.day === day.dayOfWeek &&
               getBlockPosition(block.startTime, block.endTime).startSlot <= slotIndex &&
               getBlockPosition(block.startTime, block.endTime).startSlot + getBlockPosition(block.startTime, block.endTime).duration > slotIndex
             );
-            
+
             return (
-              <div key={`${day.dayOfWeek}-${slotIndex}`} style={{ 
+              <div key={`${day.dayOfWeek}-${slotIndex}`} style={{
                 backgroundColor: 'white',
                 minHeight: '40px',
                 position: 'relative',
@@ -604,9 +604,9 @@ function CalendarView({ staffId, weeklyData, dateData, currentWeekStart }: Calen
                 {dayBlocks.map((block, blockIndex) => {
                   const { startSlot, duration } = getBlockPosition(block.startTime, block.endTime);
                   const isFirstSlot = slotIndex === startSlot;
-                  
+
                   if (!isFirstSlot) return null;
-                  
+
                   return (
                     <div
                       key={blockIndex}
@@ -670,7 +670,21 @@ export default function StaffEdit() {
     return sunday;
   });
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   const [{ data: deleteData, fetching: deleting, error: deleteError }, deleteStaff] = useAction(api.staff.delete);
+
+  // Fetch staff data to get current avatar and name
+  const [{ data: staffData }] = useFindOne(api.staff, id, {
+    select: {
+      id: true,
+      name: true,
+      avatar: {
+        url: true
+      }
+    }
+  });
 
   // Fetch availability data for the calendar
   const [{ data: weeklyData }] = useFindMany(api.staffAvailability, {
@@ -713,7 +727,7 @@ export default function StaffEdit() {
   };
 
   const timeOptions = generateTimeOptions();
-  
+
   const daysOfWeek: DayOption[] = [
     { value: 'monday', label: 'Monday' },
     { value: 'tuesday', label: 'Tuesday' },
@@ -750,19 +764,190 @@ export default function StaffEdit() {
   const formatWeekRange = (weekStart: Date): string => {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
-    
+
     const startMonth = weekStart.toLocaleDateString('en-US', { month: 'short' });
     const startDay = weekStart.getDate();
     const endMonth = weekEnd.toLocaleDateString('en-US', { month: 'short' });
     const endDay = weekEnd.getDate();
     const year = weekStart.getFullYear();
-    
+
     if (startMonth === endMonth) {
       return `${startMonth} ${startDay}-${endDay}, ${year}`;
     } else {
       return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
     }
   };
+
+  const handleUploadPhotoClick = () => {
+    console.log('Upload photo button clicked, searching for file input...');
+
+    const findFileInput = (): HTMLInputElement | null => {
+      // Try multiple approaches to find the file input
+      const selectors = [
+        'input[name="avatar"]',
+        'input[name="staff.avatar"]',
+        'form input[type="file"]',
+        'input[type="file"][name*="avatar" i]',
+        'input[type="file"]'
+      ];
+
+      // First try querySelector with various selectors
+      for (const selector of selectors) {
+        const input = document.querySelector(selector) as HTMLInputElement;
+        if (input && input.type === 'file') {
+          console.log(`Found file input using selector: ${selector}`);
+          return input;
+        }
+      }
+
+      // Try getElementsByTagName as fallback
+      const fileInputs = document.getElementsByTagName('input');
+      for (let i = 0; i < fileInputs.length; i++) {
+        const input = fileInputs[i] as HTMLInputElement;
+        if (input.type === 'file') {
+          console.log(`Found file input using getElementsByTagName at index ${i}`);
+          return input;
+        }
+      }
+
+      return null;
+    };
+
+    const setupFileChangeHandler = (input: HTMLInputElement) => {
+      console.log('Setting up file change handler for input');
+
+      // Remove any existing listeners to avoid duplicates
+      const existingHandler = (input as any)._previewHandler;
+      if (existingHandler) {
+        input.removeEventListener('change', existingHandler);
+      }
+
+      // Create new handler
+      const handleFileChange = (event: Event) => {
+        console.log('File change event triggered');
+        const target = event.target as HTMLInputElement;
+        const file = target.files?.[0];
+
+        if (file) {
+          console.log('File selected:', file.name, file.type);
+
+          // Clean up previous preview URL
+          if (previewUrl) {
+            console.log('Cleaning up previous preview URL');
+            URL.revokeObjectURL(previewUrl);
+          }
+
+          // Create new preview URL
+          const newPreviewUrl = URL.createObjectURL(file);
+          console.log('Created new preview URL:', newPreviewUrl);
+          setPreviewUrl(newPreviewUrl);
+        } else {
+          console.log('No file selected');
+        }
+      };
+
+      // Store handler reference for cleanup
+      (input as any)._previewHandler = handleFileChange;
+
+      // Attach listener
+      input.addEventListener('change', handleFileChange);
+      console.log('File change handler attached successfully');
+    };
+
+    const tryClick = (attempt: number = 1): void => {
+      console.log(`Attempt ${attempt} to find file input...`);
+
+      const avatarInput = findFileInput();
+
+      if (avatarInput) {
+        console.log('File input found, setting up handler and triggering click');
+
+        // Set up the change handler before clicking
+        setupFileChangeHandler(avatarInput);
+
+        // Then trigger the click
+        avatarInput.click();
+        console.log('File input clicked successfully');
+      } else if (attempt < 5) {
+        // Retry after a short delay to allow AutoInput to render
+        console.log(`File input not found on attempt ${attempt}, retrying in ${attempt * 50}ms...`);
+        setTimeout(() => tryClick(attempt + 1), attempt * 50);
+      } else {
+        console.error('Could not find file input after 5 attempts');
+        // As a last resort, try to find any form and see if we can trigger file selection
+        const forms = document.getElementsByTagName('form');
+        if (forms.length > 0) {
+          console.log('Found form, looking for any file inputs within forms...');
+          for (let i = 0; i < forms.length; i++) {
+            const formInputs = forms[i].querySelectorAll('input[type="file"]');
+            if (formInputs.length > 0) {
+              console.log('Found file input within form, setting up handler and triggering click');
+              const input = formInputs[0] as HTMLInputElement;
+              setupFileChangeHandler(input);
+              input.click();
+              return;
+            }
+          }
+        }
+        console.error('No file input found in any form either');
+      }
+    };
+
+    tryClick();
+  };
+
+  const getInitials = (name: string) => {
+    if (!name) return '';
+    const words = name.trim().split(' ');
+    if (words.length >= 2) {
+      return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+    }
+    return words[0][0].toUpperCase();
+  };
+
+  const getAvatarSource = () => {
+    if (previewUrl) return previewUrl;
+    if (staffData?.avatar?.url) return staffData.avatar.url;
+    return null;
+  };
+
+
+
+  // Clean up preview URLs and handle file input cleanup
+  useEffect(() => {
+    console.log('Setting up file input cleanup effect');
+
+    // Cleanup function to handle preview URL cleanup and remove any stale listeners
+    return () => {
+      console.log('Cleaning up file input effect');
+
+      // Clean up preview URL if it exists
+      if (previewUrl) {
+        console.log('Cleaning up preview URL on unmount');
+        URL.revokeObjectURL(previewUrl);
+      }
+
+      // Clean up any existing handlers on file inputs
+      const fileInputs = document.querySelectorAll('input[type="file"]');
+      fileInputs.forEach((input) => {
+        const existingHandler = (input as any)._previewHandler;
+        if (existingHandler) {
+          console.log('Removing existing file change handler');
+          input.removeEventListener('change', existingHandler);
+          delete (input as any)._previewHandler;
+        }
+      });
+    };
+  }, []); // Empty dependency array - only run on mount/unmount
+
+  // Additional effect to clean up preview URL when staff data changes
+  useEffect(() => {
+    if (staffData?.avatar?.url && previewUrl) {
+      console.log('Staff avatar URL changed, cleaning up preview URL');
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+  }, [staffData?.avatar?.url, previewUrl]);
 
   return (
     <Page
@@ -771,16 +956,6 @@ export default function StaffEdit() {
         onAction: () => navigate("/staff"),
       }}
       title="Edit Staff Member"
-      primaryAction={
-        <Button
-          variant="primary"
-          form="staff-edit-form"
-          submit
-          loading={false}
-        >
-          Save
-        </Button>
-      }
       secondaryActions={[
         {
           content: "Delete",
@@ -819,14 +994,93 @@ export default function StaffEdit() {
           </Banner>
         )}
 
+        {showSuccessMessage && (
+          <Banner
+            title="Staff member updated successfully"
+            tone="success"
+            onDismiss={() => setShowSuccessMessage(false)}
+          >
+            <Text as="p" variant="bodyMd">
+              The staff member information has been saved.
+            </Text>
+          </Banner>
+        )}
+
         <Card>
-          <AutoForm action={api.staff.update} findBy={id} id="staff-edit-form">
+          <AutoForm
+            action={api.staff.update}
+            findBy={id}
+            onSuccess={(record) => {
+              console.log('AutoForm onSuccess called with record:', record);
+              console.log('Staff updated successfully - showing success banner');
+              setShowSuccessMessage(true);
+              // Clear preview URL to show the actual saved avatar
+              if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+                setPreviewUrl(null);
+              }
+              // Auto-hide success message after 5 seconds
+              setTimeout(() => {
+                setShowSuccessMessage(false);
+              }, 5000);
+            }}
+            onFailure={(error) => {
+              console.error('AutoForm onFailure called with error:', error);
+              console.error('Error updating staff - this will be shown by SubmitResultBanner');
+            }}
+          >
             <BlockStack gap="400">
               <Text as="h2" variant="headingMd">
-                Staff Information
+                Details
               </Text>
-              
+
               <BlockStack gap="300">
+                {/* Custom Avatar Upload Section */}
+                <div>
+                  <InlineStack gap="300" blockAlign="center">
+                    {/* Avatar Circle */}
+                    <div style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '8px',
+                      backgroundColor: getAvatarSource() ? 'transparent' : '#b3c1cc',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      border: '1px solid #e1e5e9'
+                    }}>
+                      {getAvatarSource() ? (
+                        <img
+                          src={getAvatarSource()!}
+                          alt="Avatar"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                          }}
+                        />
+                      ) : (
+                        <Text as="span" variant="bodyMd" tone="subdued">
+                          {getInitials(staffData?.name || '')}
+                        </Text>
+                      )}
+                    </div>
+
+                    {/* Upload Button */}
+                    <Button size="large" onClick={handleUploadPhotoClick}>
+                      Upload photo
+                    </Button>
+
+
+                  </InlineStack>
+                </div>
+
+                {/* AutoInput for avatar - hidden but handles the actual form submission */}
+                <div style={{ display: 'none' }}>
+                  <AutoInput field="avatar" />
+                </div>
+
                 <AutoInput field="name" />
                 <AutoInput field="email" />
                 <AutoInput field="phone" />
@@ -835,6 +1089,12 @@ export default function StaffEdit() {
               </BlockStack>
 
               <SubmitResultBanner />
+
+              <InlineStack gap="200">
+                <AutoSubmit variant="primary">
+                  Save Staff Member
+                </AutoSubmit>
+              </InlineStack>
             </BlockStack>
           </AutoForm>
         </Card>
@@ -871,7 +1131,7 @@ export default function StaffEdit() {
               <>
                 <Divider />
                 <Card background="bg-surface-secondary">
-                  <AutoForm 
+                  <AutoForm
                     action={api.staffAvailability.create}
                     defaultValues={{
                       staffAvailability: {
@@ -890,7 +1150,7 @@ export default function StaffEdit() {
                       <Text as="h3" variant="headingSm">
                         Add Weekly Schedule
                       </Text>
-                      
+
                       <BlockStack gap="300">
                         <div>
                           <Text as="p" variant="bodyMd">Days of Week *</Text>
@@ -905,7 +1165,7 @@ export default function StaffEdit() {
                             ))}
                           </BlockStack>
                         </div>
-                        
+
                         <FormLayout.Group>
                           <div>
                             <Text as="label" variant="bodyMd">Start time *</Text>
@@ -924,17 +1184,17 @@ export default function StaffEdit() {
                             />
                           </div>
                         </FormLayout.Group>
-                        
+
                         <AutoHiddenInput field="dayOfWeek" value={selectedDays} />
                         <AutoHiddenInput field="startTime" value={startTime} />
                         <AutoHiddenInput field="endTime" value={endTime} />
                         <AutoHiddenInput field="isAvailable" value={true} />
-                        
+
                         <AutoInput field="location" />
                       </BlockStack>
 
                       <SubmitResultBanner />
-                      
+
                       <InlineStack gap="200">
                         <AutoSubmit variant="primary">Create Weekly Schedule</AutoSubmit>
                         <Button onClick={() => {
@@ -955,7 +1215,7 @@ export default function StaffEdit() {
               <>
                 <Divider />
                 <Card background="bg-surface-secondary">
-                  <AutoForm 
+                  <AutoForm
                     action={api.staffDateAvailability.create}
                     defaultValues={{
                       staffDateAvailability: {
@@ -973,10 +1233,10 @@ export default function StaffEdit() {
                       <Text as="h3" variant="headingSm">
                         Add Date Override
                       </Text>
-                      
+
                       <BlockStack gap="300">
                         <AutoInput field="date" />
-                        
+
                         <FormLayout.Group>
                           <div>
                             <Text as="label" variant="bodyMd">Start time *</Text>
@@ -995,17 +1255,17 @@ export default function StaffEdit() {
                             />
                           </div>
                         </FormLayout.Group>
-                        
+
                         <AutoHiddenInput field="startTime" value={dateStartTime} />
                         <AutoHiddenInput field="endTime" value={dateEndTime} />
                         <AutoHiddenInput field="isAvailable" value={true} />
-                        
+
                         <AutoInput field="location" />
                         <AutoInput field="notes" />
                       </BlockStack>
 
                       <SubmitResultBanner />
-                      
+
                       <InlineStack gap="200">
                         <AutoSubmit variant="primary">Create Date Override</AutoSubmit>
                         <Button onClick={() => setShowAddDateAvailability(false)}>
@@ -1036,8 +1296,8 @@ export default function StaffEdit() {
                 <Text as="h3" variant="headingMd">
                   Availability Details
                 </Text>
-                <CombinedAvailabilityTable 
-                  weeklyData={weeklyData} 
+                <CombinedAvailabilityTable
+                  weeklyData={weeklyData}
                   dateData={dateData}
                   onRefresh={handleRefreshAvailability}
                 />
@@ -1053,7 +1313,7 @@ export default function StaffEdit() {
               <Text as="h2" variant="headingLg">
                 Availability Calendar
               </Text>
-              
+
               {/* Week Navigation */}
               <InlineStack gap="200" blockAlign="center">
                 <Button
@@ -1073,26 +1333,26 @@ export default function StaffEdit() {
                 />
               </InlineStack>
             </InlineStack>
-            
+
             {/* Legend */}
             <InlineStack gap="300" blockAlign="center">
               <InlineStack gap="100" blockAlign="center">
-                <div style={{ 
-                  width: '16px', 
-                  height: '16px', 
-                  backgroundColor: '#e3f2fd', 
-                  border: '1px solid #2196f3', 
-                  borderRadius: '3px' 
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  backgroundColor: '#e3f2fd',
+                  border: '1px solid #2196f3',
+                  borderRadius: '3px'
                 }} />
                 <Text as="span" variant="bodyMd" tone="subdued">Weekly Schedule</Text>
               </InlineStack>
               <InlineStack gap="100" blockAlign="center">
-                <div style={{ 
-                  width: '16px', 
-                  height: '16px', 
-                  backgroundColor: '#e8f5e8', 
-                  border: '1px solid #4caf50', 
-                  borderRadius: '3px' 
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  backgroundColor: '#e8f5e8',
+                  border: '1px solid #4caf50',
+                  borderRadius: '3px'
                 }} />
                 <Text as="span" variant="bodyMd" tone="subdued">Date Override</Text>
               </InlineStack>
@@ -1100,9 +1360,9 @@ export default function StaffEdit() {
 
             {/* Calendar View */}
             {(weeklyData && weeklyData.length > 0) || (dateData && dateData.length > 0) ? (
-              <CalendarView 
-                staffId={id || ''} 
-                weeklyData={weeklyData || []} 
+              <CalendarView
+                staffId={id || ''}
+                weeklyData={weeklyData || []}
                 dateData={dateData || []}
                 currentWeekStart={currentWeekStart}
               />
