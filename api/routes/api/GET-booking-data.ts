@@ -91,7 +91,10 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     // Fetch other data
     const [staff, locations, staffAvailability, staffDateAvailability, existingBookings] = await Promise.all([
       api.staff.findMany({
-        filter: { shopId: { equals: shopId }, isActive: { equals: true } },
+        filter: { 
+          shopId: { equals: shopId }, 
+          isActive: { notEquals: false } // Include staff unless explicitly marked inactive
+        },
         select: {
           id: true, name: true, email: true, phone: true, bio: true,
           avatar: { url: true, fileName: true }

@@ -53,8 +53,8 @@
       overflow-y: auto;
       box-sizing: border-box;
     ">
-      <!-- Close Button -->
-      <span class="barbershop-close" style="
+      <!-- Close Button - Only visible during selection and calendar views -->
+      <span class="barbershop-close" id="main-close-button" style="
         color: #666;
         float: right;
         font-size: 32px;
@@ -244,6 +244,46 @@
           </div>
         </div>
 
+        <!-- Barber Selection Modal -->
+        <div id="barber-selection-modal" style="display: none; margin-top: 30px;">
+          <div style="
+            background: #f8f9fa;
+            border: 2px solid {{ button_color }};
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+          ">
+            <h3 style="margin: 0 0 20px 0; color: #333; font-size: 24px; text-align: center;">
+              Choose Your Barber
+            </h3>
+            
+            <p style="text-align: center; color: #666; margin-bottom: 30px;">
+              Multiple barbers are available for your selected time. Please choose your preferred barber:
+            </p>
+            
+            <div id="available-barbers-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+              <!-- Available barbers will be populated here -->
+            </div>
+            
+            <div style="display: flex; gap: 15px; justify-content: center;">
+              <button type="button" onclick="cancelBarberSelection()" style="
+                background: #f8f9fa;
+                color: #666;
+                border: 1px solid #ddd;
+                padding: 15px 30px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: 600;
+                transition: all 0.2s ease;
+                min-width: 140px;
+              ">
+                Back
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Booking Confirmation Modal -->
         <div id="booking-confirmation" style="display: none; margin-top: 30px;">
           <div style="
@@ -252,7 +292,28 @@
             border-radius: 16px;
             padding: 30px;
             margin-bottom: 20px;
+            position: relative;
           ">
+            <!-- Close button for confirmation view -->
+            <span class="barbershop-close" style="
+              color: #666;
+              position: absolute;
+              right: 15px;
+              top: 15px;
+              font-size: 24px;
+              font-weight: bold;
+              cursor: pointer;
+              width: 30px;
+              height: 30px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border-radius: 50%;
+              background: #f8f9fa;
+              transition: all 0.2s ease;
+              z-index: 10;
+            " onclick="closeConfirmationView()">&times;</span>
+            
             <h3 style="margin: 0 0 20px 0; color: #333; font-size: 24px; text-align: center;">
               Confirm Your Booking
             </h3>
@@ -680,6 +741,49 @@
     font-weight: 600;
   }
 
+  /* Barber Selection Modal Styles */
+  .barbershop-barber-choice {
+    background: white;
+    border: 2px solid #e1e5e9;
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+  }
+
+  .barbershop-barber-choice:hover {
+    border-color: {{ button_color }};
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+  }
+
+  .barbershop-barber-choice:active {
+    transform: translateY(0);
+  }
+
+  .barbershop-barber-choice-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e1e5e9;
+    margin: 0 auto 15px;
+  }
+
+  .barbershop-barber-choice-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+  }
+
+  .barbershop-barber-choice-bio {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.4;
+  }
+
   @media (max-width: 768px) {
     .barbershop-modal-content {
       padding: 20px;
@@ -852,9 +956,43 @@ function closeBookingModal() {
   }
   
   const variantSelect = document.getElementById('variant-select');
-  if (variantSelect) {
-    variantSelect.innerHTML = '<option value="">Select a service first</option>';
+  if (timeSelect) {
+    timeSelect.innerHTML = '<option value="">Select a service first</option>';
   }
+}
+
+// NEW: Function to close just the confirmation view and return to calendar
+function closeConfirmationView() {
+  // Hide confirmation modal
+  const confirmation = document.getElementById('booking-confirmation');
+  if (confirmation) {
+    confirmation.style.display = 'none';
+  }
+  
+  // Show booking form (calendar) again
+  const formContainer = document.getElementById('booking-form-container');
+  if (formContainer) {
+    formContainer.style.display = 'block';
+  }
+  
+  // Show the main close button again when returning to calendar
+  const mainCloseButton = document.getElementById('main-close-button');
+  if (mainCloseButton) {
+    mainCloseButton.style.display = 'flex';
+  }
+  
+  // Clear selected time slot
+  document.querySelectorAll('.barbershop-time-slot.selected').forEach(slot => {
+    slot.classList.remove('selected');
+  });
+  
+  // Reset time selection
+  currentSelection.selectedTime = null;
+  currentSelection.selectedDate = null;
+  
+  // Hide any messages
+  hideMessage('error');
+  hideMessage('success');
 }
 
 function showSelectionScreen() {
@@ -926,10 +1064,22 @@ function updateSelectedBarberInfo() {
         </div>
       `;
     }
+  } else if (currentSelection.serviceId) {
+    // Show service-based availability message
+    const service = bookingData.services.find(s => s.id === currentSelection.serviceId);
+    const variant = service?.variants.find(v => v.id === currentSelection.variantId);
+    const serviceName = service && variant ? `${service.title} - ${variant.title}` : 'this service';
+    
+    container.innerHTML = `
+      <div style="text-align: center; color: #666; padding: 20px;">
+        <h4 style="margin-bottom: 10px; color: #333;">Any Available Barber</h4>
+        <p>Showing availability for ${serviceName} from all qualified barbers</p>
+      </div>
+    `;
   } else {
     container.innerHTML = `
       <div style="text-align: center; color: #666; padding: 20px;">
-        <p>Select a barber to view their availability</p>
+        <p>Select a service to view availability</p>
       </div>
     `;
   }
@@ -941,8 +1091,6 @@ function populateServiceMenu() {
   
   container.innerHTML = '';
   
-  let isFirstItem = true;
-  
   bookingData.services.forEach(service => {
     if (service.variants && service.variants.length > 0) {
       service.variants.forEach(variant => {
@@ -950,11 +1098,8 @@ function populateServiceMenu() {
         serviceItem.className = 'barbershop-service-menu-item';
         serviceItem.onclick = () => selectServiceFromMenuVariant(service.id, variant.id);
         
-        // If this is the first item and we have a pre-selected service/variant that matches, or
-        // if this is the first item and we're in staff-first mode with no service selected yet,
-        // mark it as selected
-        if (isFirstItem && currentSelection.staffId && 
-            (currentSelection.serviceId === service.id && currentSelection.variantId === variant.id)) {
+        // Mark as selected if this matches current selection
+        if (currentSelection.serviceId === service.id && currentSelection.variantId === variant.id) {
           serviceItem.classList.add('selected');
         }
         
@@ -969,7 +1114,6 @@ function populateServiceMenu() {
         `;
         
         container.appendChild(serviceItem);
-        isFirstItem = false;
       });
     }
   });
@@ -984,12 +1128,21 @@ function selectServiceFromMenuVariant(serviceId, variantId) {
   // Add selection to clicked item
   event.target.closest('.barbershop-service-menu-item').classList.add('selected');
   
-  // Update selection
+  // Update selection - clear staff selection when changing service
   currentSelection.serviceId = serviceId;
   currentSelection.variantId = variantId;
+  currentSelection.staffId = null; // Clear staff selection for service-first flow
   
-  // Update calendar
+  // Update UI
+  updateSelectedBarberInfo();
   updateCalendar();
+  
+  // Clear any selected time slots
+  document.querySelectorAll('.barbershop-time-slot.selected').forEach(slot => {
+    slot.classList.remove('selected');
+  });
+  currentSelection.selectedTime = null;
+  currentSelection.selectedDate = null;
 }
 
 
@@ -1144,7 +1297,7 @@ function createCalendarDay(date) {
   dayNumber.textContent = date.getDate();
   dayElement.appendChild(dayNumber);
   
-  if (!isPast && currentSelection.serviceId && currentSelection.staffId && currentSelection.locationId) {
+  if (!isPast && currentSelection.serviceId && currentSelection.locationId) {
     const timeSlots = generateTimeSlots(date);
     timeSlots.forEach(slot => {
       const timeSlotElement = createTimeSlot(slot, date);
@@ -1156,48 +1309,60 @@ function createCalendarDay(date) {
 }
 
 function generateTimeSlots(date) {
-  if (!currentSelection.staffId || !currentSelection.locationId || !bookingData) {
+  if (!currentSelection.serviceId || !currentSelection.locationId || !bookingData) {
+    return [];
+  }
+  
+  // Get all qualified staff for this service
+  const qualifiedStaff = getQualifiedStaffForService(currentSelection.serviceId);
+  if (qualifiedStaff.length === 0) {
     return [];
   }
   
   // Get day of week for the date
   const dayOfWeek = getDayOfWeek(date);
-  
-  // Find staff availability for this day and location
-  const staffAvailability = bookingData.staffAvailability.find(avail => 
-    avail.staffId === currentSelection.staffId &&
-    avail.locationId === currentSelection.locationId &&
-    avail.dayOfWeek && Array.isArray(avail.dayOfWeek) && avail.dayOfWeek.includes(dayOfWeek) &&
-    avail.isAvailable
-  );
-  
-  // Check for date-specific availability overrides
   const dateString = date.toISOString().split('T')[0];
-  const dateAvailability = bookingData.staffDateAvailability.find(avail =>
-    avail.staffId === currentSelection.staffId &&
-    avail.locationId === currentSelection.locationId &&
-    avail.date === dateString
-  );
   
-  // If there's a date override, use that; otherwise use regular availability
-  const availability = dateAvailability || staffAvailability;
+  // Collect all available time slots from all qualified staff
+  const aggregatedSlots = new Set();
   
-  if (!availability || !availability.isAvailable) {
-    return [];
-  }
+  qualifiedStaff.forEach(staffId => {
+    // Find staff availability for this day and location
+    const staffAvailability = bookingData.staffAvailability.find(avail => 
+      avail.staffId === staffId &&
+      (avail.locationId === currentSelection.locationId || !avail.locationId) &&
+      avail.dayOfWeek && Array.isArray(avail.dayOfWeek) && avail.dayOfWeek.includes(dayOfWeek) &&
+      avail.isAvailable
+    );
+    
+    // Check for date-specific availability overrides
+    const dateAvailability = bookingData.staffDateAvailability.find(avail =>
+      avail.staffId === staffId &&
+      (avail.locationId === currentSelection.locationId || !avail.locationId) &&
+      avail.date === dateString
+    );
+    
+    // If there's a date override, use that; otherwise use regular availability
+    const availability = dateAvailability || staffAvailability;
+    
+    if (availability && availability.isAvailable) {
+      // Generate time slots based on availability
+      const startTime = parseTime(availability.startTime);
+      const endTime = parseTime(availability.endTime);
+      
+      // Generate 30-minute slots within the available time range
+      for (let minutes = startTime; minutes < endTime; minutes += 30) {
+        const time = formatTime(minutes);
+        // Check if this staff member can actually work at this time (no conflicts)
+        if (isTimeSlotAvailableForStaff(time, date, staffId)) {
+          aggregatedSlots.add(time);
+        }
+      }
+    }
+  });
   
-  // Generate time slots based on availability
-  const slots = [];
-  const startTime = parseTime(availability.startTime);
-  const endTime = parseTime(availability.endTime);
-  
-  // Generate 30-minute slots within the available time range
-  for (let minutes = startTime; minutes < endTime; minutes += 30) {
-    const time = formatTime(minutes);
-    slots.push(time);
-  }
-  
-  return slots;
+  // Convert Set to sorted array
+  return Array.from(aggregatedSlots).sort();
 }
 
 function getDayOfWeek(date) {
@@ -1239,10 +1404,31 @@ function createTimeSlot(time, date) {
 }
 
 function isTimeSlotAvailable(time, date) {
-  if (!currentSelection.staffId || !currentSelection.locationId || !bookingData) {
+  if (!currentSelection.serviceId || !currentSelection.locationId || !bookingData) {
     return false;
   }
   
+  // Get all qualified staff for this service
+  const qualifiedStaff = getQualifiedStaffForService(currentSelection.serviceId);
+  if (qualifiedStaff.length === 0) {
+    return false;
+  }
+  
+  // Check if ANY staff is available for this time slot
+  const availableStaff = qualifiedStaff.filter(staffId => {
+    return isTimeSlotAvailableForStaff(time, date, staffId);
+  });
+  
+  return availableStaff.length > 0;
+}
+
+function isTimeSlotAvailableForStaff(time, date, staffId) {
+  const staff = bookingData.staff.find(s => s.id === staffId);
+  
+  if (!staffId || !currentSelection.locationId || !bookingData) {
+    return false;
+  }
+
   // Check if the time slot is in the past (for today only)
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -1259,23 +1445,23 @@ function isTimeSlotAvailable(time, date) {
       return false;
     }
   }
-  
+
   // Get day of week for the date
   const dayOfWeek = getDayOfWeek(date);
   
   // Find staff availability for this day and location
   const staffAvailability = bookingData.staffAvailability.find(avail => 
-    avail.staffId === currentSelection.staffId &&
-    avail.locationId === currentSelection.locationId &&
+    avail.staffId === staffId &&
+    (avail.locationId === currentSelection.locationId || !avail.locationId) &&
     avail.dayOfWeek && avail.dayOfWeek.includes(dayOfWeek) &&
     avail.isAvailable
   );
-  
+    
   // Check for date-specific availability overrides
   const dateString = date.toISOString().split('T')[0];
   const dateAvailability = bookingData.staffDateAvailability.find(avail =>
-    avail.staffId === currentSelection.staffId &&
-    avail.locationId === currentSelection.locationId &&
+    avail.staffId === staffId &&
+    (avail.locationId === currentSelection.locationId || !avail.locationId) &&
     avail.date === dateString
   );
   
@@ -1301,7 +1487,8 @@ function isTimeSlotAvailable(time, date) {
   }
   
   // Check for booking conflicts with existing appointments
-  const hasConflict = checkBookingConflicts(date, time, serviceDuration);
+  const hasConflict = checkBookingConflictsForStaff(date, time, serviceDuration, staffId);
+  
   if (hasConflict) {
     return false;
   }
@@ -1323,6 +1510,36 @@ function getServiceDuration() {
 }
 
 function checkBookingConflicts(date, time, serviceDuration) {
+  // For service-first flow, we don't check conflicts here since we don't have a specific staff member yet
+  // The individual staff availability check will handle conflicts
+  return false;
+}
+
+function getQualifiedStaffForService(serviceId) {
+  if (!bookingData || !bookingData.staff || !Array.isArray(bookingData.staff)) {
+    return [];
+  }
+  
+  // FIXED: If we have a specific staff member selected (barber-first flow), only return that staff member
+  if (currentSelection.staffId) {
+    const selectedStaff = bookingData.staff.find(staff => staff.id === currentSelection.staffId);
+    if (selectedStaff && selectedStaff.isActive !== false) {
+      return [selectedStaff.id];
+    } else {
+      return [];
+    }
+  }
+  
+  // Service-first flow: return all active staff since we don't have staffProduct data on the client side
+  // In a real implementation, you would filter based on which staff can perform this service
+  const filteredStaff = bookingData.staff.filter(staff => {
+    return staff.isActive !== false;
+  });
+  
+  return filteredStaff.map(staff => staff.id);
+}
+
+function checkBookingConflictsForStaff(date, time, serviceDuration, staffId) {
   if (!bookingData.existingBookings || !Array.isArray(bookingData.existingBookings)) {
     return false; // No conflicts if no booking data
   }
@@ -1332,41 +1549,34 @@ function checkBookingConflicts(date, time, serviceDuration) {
   const [hours, minutes] = time.split(':').map(Number);
   const proposedStart = new Date(
     proposedDate.getFullYear(),
-    proposedDate.getMonth(), 
+    proposedDate.getMonth(),
     proposedDate.getDate(),
     hours,
-    minutes,
-    0
+    minutes
   );
+  
   const proposedEnd = new Date(proposedStart.getTime() + (serviceDuration * 60 * 1000));
   
-  // Check each existing booking for conflicts
-  for (let i = 0; i < bookingData.existingBookings.length; i++) {
-    const existingBooking = bookingData.existingBookings[i];
-    
-    // Skip if different staff or location
-    if (existingBooking.staffId !== currentSelection.staffId || 
-        existingBooking.locationId !== currentSelection.locationId) {
-      continue;
+  // Check for conflicts with existing bookings for this staff member
+  const conflictingBookings = bookingData.existingBookings.filter(booking => {
+    // Only check bookings for the same staff member
+    if (booking.staffId !== staffId) {
+      return false;
     }
     
-    // Parse the existing booking time
-    const existingStart = new Date(existingBooking.scheduledAt);
-    const existingEnd = new Date(existingStart.getTime() + (existingBooking.duration * 60 * 1000));
+    // Parse the existing booking's scheduled time
+    const existingStart = new Date(booking.scheduledAt);
+    const existingDuration = booking.duration || 60; // Default to 60 minutes if not specified
+    const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60 * 1000));
     
     // Check for time overlap
-    const hasOverlap = (
-      (proposedStart >= existingStart && proposedStart < existingEnd) || // Proposed starts during existing
-      (proposedEnd > existingStart && proposedEnd <= existingEnd) || // Proposed ends during existing
-      (proposedStart <= existingStart && proposedEnd >= existingEnd) // Proposed completely contains existing
-    );
+    // Bookings conflict if: (proposed start < existing end) AND (proposed end > existing start)
+    const hasOverlap = (proposedStart < existingEnd) && (proposedEnd > existingStart);
     
-    if (hasOverlap) {
-      return true; // Conflict found
-    }
-  }
+    return hasOverlap;
+  });
   
-  return false; // No conflicts
+  return conflictingBookings.length > 0;
 }
 
 function selectTimeSlot(time, date, element) {
@@ -1382,14 +1592,110 @@ function selectTimeSlot(time, date, element) {
   currentSelection.selectedTime = time;
   currentSelection.selectedDate = date;
   
+  // Check if we're in service-first mode (have service but no staff)
+  if (currentSelection.serviceId && !currentSelection.staffId) {
+    // Show barber selection modal for this time slot
+    showBarberSelectionForTimeSlot(time, date);
+  } else {
+    // We have both service and staff, proceed to confirmation
+    showBookingConfirmation();
+  }
+}
+
+function showBarberSelectionForTimeSlot(time, date) {
+  const barberModal = document.getElementById('barber-selection-modal');
+  const formContainer = document.getElementById('booking-form-container');
+  if (!barberModal || !formContainer) return;
+  
+  // Find all qualified staff who are available at this specific time slot
+  const qualifiedStaff = getQualifiedStaffForService(currentSelection.serviceId);
+  
+  // Get available staff for this time slot
+  const availableStaff = qualifiedStaff.filter(staffId => {
+    return isTimeSlotAvailableForStaff(time, date, staffId);
+  });
+  
+  if (availableStaff.length === 0) {
+    showMessage('error', 'No barbers are available at this time. Please select a different time slot.');
+    return;
+  }
+  
+  // Populate available barbers list
+  const barbersList = document.getElementById('available-barbers-list');
+  barbersList.innerHTML = '';
+  
+  availableStaff.forEach(staffId => {
+    const staff = bookingData.staff.find(s => s.id === staffId);
+    if (!staff) return;
+    
+    const barberChoice = document.createElement('div');
+    barberChoice.className = 'barbershop-barber-choice';
+    barberChoice.onclick = () => selectBarberForTimeSlot(staffId);
+    
+    const avatarHtml = staff.avatar?.url 
+      ? `<img src="${staff.avatar.url}" alt="${staff.name}" class="barbershop-barber-choice-avatar">` 
+      : `<div class="barbershop-barber-choice-avatar" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #666;">${staff.name.charAt(0)}</div>`;
+    
+    barberChoice.innerHTML = `
+      ${avatarHtml}
+      <div class="barbershop-barber-choice-name">${staff.name}</div>
+      <div class="barbershop-barber-choice-bio">${staff.bio || 'Professional barber'}</div>
+    `;
+    
+    barbersList.appendChild(barberChoice);
+  });
+  
+  // Hide the booking form and show the barber selection modal
+  formContainer.style.display = 'none';
+  barberModal.style.display = 'block';
+}
+
+function selectBarberForTimeSlot(staffId) {
+  // Set the selected staff member
+  currentSelection.staffId = staffId;
+  
+  // Hide barber selection modal
+  const barberModal = document.getElementById('barber-selection-modal');
+  if (barberModal) {
+    barberModal.style.display = 'none';
+  }
+  
   // Show booking confirmation
   showBookingConfirmation();
+}
+
+function cancelBarberSelection() {
+  const barberModal = document.getElementById('barber-selection-modal');
+  const formContainer = document.getElementById('booking-form-container');
+  
+  if (barberModal) {
+    barberModal.style.display = 'none';
+  }
+  
+  if (formContainer) {
+    formContainer.style.display = 'block';
+  }
+  
+  // Clear the selected time slot since we're going back
+  document.querySelectorAll('.barbershop-time-slot.selected').forEach(slot => {
+    slot.classList.remove('selected');
+  });
+  
+  currentSelection.selectedTime = null;
+  currentSelection.selectedDate = null;
+  
+  // Hide any messages
+  hideMessage('error');
+  hideMessage('success');
 }
 
 function showBookingConfirmation() {
   const confirmation = document.getElementById('booking-confirmation');
   const formContainer = document.getElementById('booking-form-container');
-  if (!confirmation || !formContainer) return;
+  
+  if (!confirmation || !formContainer) {
+    return;
+  }
   
   const service = bookingData.services.find(s => s.id === currentSelection.serviceId);
   const staff = bookingData.staff.find(s => s.id === currentSelection.staffId);
@@ -1435,18 +1741,35 @@ function showBookingConfirmation() {
   // Hide the booking form and show the confirmation
   formContainer.style.display = 'none';
   confirmation.style.display = 'block';
+  
+  // Hide the main close button when showing confirmation
+  const mainCloseButton = document.getElementById('main-close-button');
+  if (mainCloseButton) {
+    mainCloseButton.style.display = 'none';
+  }
 }
 
 function cancelBooking() {
   const confirmation = document.getElementById('booking-confirmation');
   const formContainer = document.getElementById('booking-form-container');
+  const barberModal = document.getElementById('barber-selection-modal');
   
   if (confirmation) {
     confirmation.style.display = 'none';
   }
   
+  if (barberModal) {
+    barberModal.style.display = 'none';
+  }
+  
   if (formContainer) {
     formContainer.style.display = 'block';
+  }
+  
+  // Show the main close button again when returning to calendar
+  const mainCloseButton = document.getElementById('main-close-button');
+  if (mainCloseButton) {
+    mainCloseButton.style.display = 'flex';
   }
   
   // Clear selected time slot
