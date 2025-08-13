@@ -154,6 +154,23 @@
               <!-- Location Selection -->
               <div class="barbershop-location-selection">
                 <h3 style="margin: 20px 0 15px 0; font-size: 18px; color: #333;">Location</h3>
+                
+                <!-- Single location display -->
+                <div id="single-location-display" style="display: none;">
+                  <div style="
+                    padding: 12px;
+                    background: #f8f9fa;
+                    border: 1px solid #e9ecef;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    color: #333;
+                  ">
+                    <div id="single-location-name" style="font-weight: 600; margin-bottom: 4px;"></div>
+                    <div id="single-location-address" style="color: #666;"></div>
+                  </div>
+                </div>
+                
+                <!-- Multiple locations dropdown -->
                 <select id="location-select" required style="
                   width: 100%;
                   padding: 10px;
@@ -162,6 +179,7 @@
                   font-size: 14px;
                   box-sizing: border-box;
                   background: white;
+                  display: none;
                 ">
                   <option value="">Select a location</option>
                 </select>
@@ -879,8 +897,12 @@ function showBookingForm() {
   // Populate service menu
   populateServiceMenu();
   
-  // Populate locations
-  populateLocationDropdown();
+  // Check if we should force single location display
+  // The backend only returns locations with offersServices=true, so if there's only one, show it as plain text
+  const forceMode = (bookingData?.locations?.length === 1) ? 'single' : null;
+  
+  // Populate locations (this function handles single vs multiple location display)
+  populateLocationDropdown(forceMode);
 }
 
 function updateSelectedBarberInfo() {
@@ -919,12 +941,22 @@ function populateServiceMenu() {
   
   container.innerHTML = '';
   
+  let isFirstItem = true;
+  
   bookingData.services.forEach(service => {
     if (service.variants && service.variants.length > 0) {
       service.variants.forEach(variant => {
         const serviceItem = document.createElement('div');
         serviceItem.className = 'barbershop-service-menu-item';
         serviceItem.onclick = () => selectServiceFromMenuVariant(service.id, variant.id);
+        
+        // If this is the first item and we have a pre-selected service/variant that matches, or
+        // if this is the first item and we're in staff-first mode with no service selected yet,
+        // mark it as selected
+        if (isFirstItem && currentSelection.staffId && 
+            (currentSelection.serviceId === service.id && currentSelection.variantId === variant.id)) {
+          serviceItem.classList.add('selected');
+        }
         
         // Format duration for display
         const durationText = variant.duration ? ` • ${variant.duration} minutes` : '';
@@ -937,6 +969,7 @@ function populateServiceMenu() {
         `;
         
         container.appendChild(serviceItem);
+        isFirstItem = false;
       });
     }
   });
@@ -961,22 +994,77 @@ function selectServiceFromMenuVariant(serviceId, variantId) {
 
 
 
-function populateLocationDropdown() {
+function populateLocationDropdown(forceDisplayMode = null) {
   const locationSelect = document.getElementById('location-select');
-  if (!locationSelect || !bookingData) return;
+  const singleLocationDisplay = document.getElementById('single-location-display');
+  const singleLocationName = document.getElementById('single-location-name');
+  const singleLocationAddress = document.getElementById('single-location-address');
   
-  locationSelect.innerHTML = '<option value="">Select a location</option>';
+  if (!locationSelect || !bookingData?.locations) {
+    return;
+  }
   
-  bookingData.locations.forEach(location => {
-    const option = document.createElement('option');
-    option.value = location.id;
-    option.textContent = `${location.name} - ${location.address1}, ${location.city}`;
-    locationSelect.appendChild(option);
+  // Clear existing options
+  locationSelect.innerHTML = '';
+  
+  // The backend should have already filtered to only service locations, but let's be extra safe
+  const serviceLocations = bookingData.locations.filter(location => {
+    // More lenient filtering - only exclude if explicitly set to false
+    return location.offersServices !== false;
   });
   
-  // Auto-select the first available location
-  if (bookingData.locations.length > 0) {
-    const firstLocation = bookingData.locations[0];
+  if (serviceLocations.length === 0) {
+    locationSelect.innerHTML = '<option value="">No locations available for booking</option>';
+    locationSelect.style.display = 'block';
+    if (singleLocationDisplay) singleLocationDisplay.style.display = 'none';
+    return;
+  }
+  
+  // FORCE single location display if there's only one location, regardless of forceDisplayMode
+  const shouldShowAsSingle = serviceLocations.length === 1;
+  
+  if (shouldShowAsSingle) {
+    // Single location - ALWAYS show as plain text
+    const location = serviceLocations[0];
+    currentSelection.locationId = location.id;
+    
+    if (singleLocationName) {
+      singleLocationName.textContent = location.name;
+    }
+    if (singleLocationAddress) {
+      const addressParts = [];
+      if (location.address1) addressParts.push(location.address1);
+      if (location.city) addressParts.push(location.city);
+      if (location.province) addressParts.push(location.province);
+      const fullAddress = addressParts.join(', ');
+      singleLocationAddress.textContent = fullAddress;
+    }
+    
+    // FORCE show single location display, hide dropdown
+    if (singleLocationDisplay) {
+      singleLocationDisplay.style.display = 'block';
+    }
+    locationSelect.style.display = 'none';
+    
+    updateCalendar();
+  } else {
+    // Multiple locations - show dropdown
+    locationSelect.innerHTML = '<option value="">Select a location</option>';
+    serviceLocations.forEach(location => {
+      const option = document.createElement('option');
+      option.value = location.id;
+      option.textContent = `${location.name} - ${location.address1}, ${location.city}`;
+      locationSelect.appendChild(option);
+    });
+    
+    // Show dropdown, hide single location display
+    locationSelect.style.display = 'block';
+    if (singleLocationDisplay) {
+      singleLocationDisplay.style.display = 'none';
+    }
+    
+    // Auto-select the first available location
+    const firstLocation = serviceLocations[0];
     locationSelect.value = firstLocation.id;
     currentSelection.locationId = firstLocation.id;
     updateCalendar();
@@ -1215,7 +1303,6 @@ function isTimeSlotAvailable(time, date) {
   // Check for booking conflicts with existing appointments
   const hasConflict = checkBookingConflicts(date, time, serviceDuration);
   if (hasConflict) {
-    console.log('❌ Time slot', time, 'has booking conflict');
     return false;
   }
   
@@ -1531,7 +1618,17 @@ function selectService(serviceId, variantId) {
 function selectStaff(staffId) {
   currentSelection.type = 'staff';
   currentSelection.staffId = staffId;
-  currentSelection.serviceId = null;
+  
+  // Automatically select the first available service and variant
+  if (bookingData && bookingData.services && bookingData.services.length > 0) {
+    const firstService = bookingData.services[0];
+    if (firstService.variants && firstService.variants.length > 0) {
+      const firstVariant = firstService.variants[0];
+      currentSelection.serviceId = firstService.id;
+      currentSelection.variantId = firstVariant.id;
+    }
+  }
+  
   showBookingForm();
 }
 
@@ -1620,10 +1717,17 @@ async function loadBookingData() {
       throw new Error('Invalid booking data: missing required fields');
     }
     
+    // The backend should have already filtered locations to only include those with offersServices=true
+    // But let's add a safety check
+    if (processedData.locations && Array.isArray(processedData.locations)) {
+      processedData.locations = processedData.locations.filter(location => location.offersServices !== false);
+    }
+    
     // Set the booking data
     bookingData = processedData;
     
   } catch (error) {
+    console.error('Error in loadBookingData:', error);
     throw error;
   }
 }
@@ -1646,7 +1750,6 @@ function populateServiceButtons() {
         
         // Use variant image if available, otherwise fallback to placeholder
         console.log(`Processing variant: ${variant.id} (${variant.title})`);
-        console.log(`Variant image data:`, variant.image);
         
         let imageHtml;
         if (variant.image && variant.image.url && variant.image.url !== 'null') {
@@ -1679,34 +1782,26 @@ function populateServiceButtons() {
 }
 
 function populateStaffButtons() {
-  console.log('👤 Starting populateStaffButtons');
-  
   const container = document.getElementById('staff-selection-buttons');
   if (!container) {
-    console.error('❌ Staff selection buttons container not found');
+    console.error('Staff selection buttons container not found');
     return;
   }
   
   if (!bookingData) {
-    console.error('❌ No booking data available');
+    console.error('No booking data available');
     return;
   }
   
   if (!bookingData.staff || !Array.isArray(bookingData.staff)) {
-    console.error('❌ Invalid staff data:', bookingData.staff);
+    console.error('Invalid staff data:', bookingData.staff);
     return;
   }
   
-  console.log('👤 Found', bookingData.staff.length, 'total staff members');
-  
   // Filter staff to only show those with availability in the next 3 months
   const availableStaff = bookingData.staff.filter(staff => {
-    const hasAvailability = hasStaffAvailabilityInNext3Months(staff.id);
-    console.log(`👤 Staff ${staff.name} (${staff.id}) - Has availability in next 3 months:`, hasAvailability);
-    return hasAvailability;
+    return hasStaffAvailabilityInNext3Months(staff.id);
   });
-  
-  console.log('👤 Found', availableStaff.length, 'staff members with availability in next 3 months');
   
   container.innerHTML = '';
   
@@ -1715,9 +1810,7 @@ function populateStaffButtons() {
     return;
   }
   
-  availableStaff.forEach((staff, index) => {
-    console.log(`👤 Processing available staff ${index + 1}:`, staff);
-    
+  availableStaff.forEach((staff) => {
     const button = document.createElement('button');
     button.className = 'barbershop-selection-btn barbershop-staff-btn';
     button.onclick = () => selectStaff(staff.id);
@@ -1736,8 +1829,6 @@ function populateStaffButtons() {
     
     container.appendChild(button);
   });
-  
-  console.log('✅ Available staff buttons populated');
 }
 
 // Initialize when DOM is loaded

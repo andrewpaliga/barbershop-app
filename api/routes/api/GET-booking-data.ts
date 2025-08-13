@@ -98,10 +98,14 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         }
       }),
       api.shopifyLocation.findMany({
-        filter: { shopId: { equals: shopId }, active: { equals: true } },
+        filter: { 
+          shopId: { equals: shopId }, 
+          active: { equals: true },
+          offersServices: { equals: true }
+        },
         select: {
           id: true, name: true, address1: true, address2: true, city: true,
-          province: true, country: true, zipCode: true, phone: true
+          province: true, country: true, zipCode: true, phone: true, offersServices: true
         }
       }),
       api.staffAvailability.findMany({
@@ -182,7 +186,8 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         province: location.province,
         country: location.country,
         zipCode: location.zipCode,
-        phone: location.phone
+        phone: location.phone,
+        offersServices: location.offersServices
       })),
       staffAvailability: staffAvailability.map(availability => ({
         id: availability.id,
