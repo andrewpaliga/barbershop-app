@@ -163,194 +163,37 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
       }
       
     } else {
-      // Multi duration: create parent product for combined listing
-      const parentProductInput = {
-        title: name,
-        descriptionHtml: description || "",
-        productType: "Service",
-        status: "ACTIVE",
-        combinedListingRole: "PARENT"
-      };
-
-      const createParentProductMutation = `
-        mutation productCreate($product: ProductCreateInput!) {
-          productCreate(product: $product) {
+      // Multi duration: create single product with multiple variants using productSet
+      const setMultiProductMutation = `
+        mutation setProduct($input: ProductSetInput!) {
+          productSet(
+            synchronous: true,
+            input: $input
+          ) {
             product {
               id
               title
               handle
               status
-              combinedListingRole
-            }
-            userErrors {
-              field
-              message
-            }
-          }
-        }
-      `;
-
-      const createParentProductVariables = {
-        product: parentProductInput
-      };
-
-      // Create parent product for combined listing
-      let createParentProductResult;
-      try {
-        const shopify = await connections.shopify.forShopId(shopId);
-        createParentProductResult = await shopify.graphql(createParentProductMutation, createParentProductVariables);
-      } catch (shopifyError: any) {
-        throw new Error(`Failed to call Shopify API for parent product creation: ${shopifyError.message}`);
-      }
-
-      // Handle Shopify API response for parent product creation
-      const parentProductCreateResult = createParentProductResult?.productCreate;
-      
-      if (!parentProductCreateResult) {
-        throw new Error("Invalid response from Shopify API for parent product creation");
-      }
-
-      // Check for user errors in the response
-      if (parentProductCreateResult.userErrors && parentProductCreateResult.userErrors.length > 0) {
-        const errors = parentProductCreateResult.userErrors.map((err: any) => `${err.field}: ${err.message}`).join(', ');
-        throw new Error(`Shopify API errors for parent product creation: ${errors}`);
-      }
-
-      // Check if parent product was created successfully
-      if (!parentProductCreateResult.product) {
-        throw new Error("Parent product creation failed - no product returned from Shopify");
-      }
-
-      createdProduct = parentProductCreateResult.product;
-      const parentProductId = createdProduct.id;
-
-      // Step 2: Create child products for each duration variant using productSet
-      for (const dur of durations!) {
-        try {
-          const priceForDuration = durationPrices![dur] as number;
-          
-          const setChildProductMutation = `
-            mutation setProduct($input: ProductSetInput!) {
-              productSet(
-                synchronous: true,
-                input: $input
-              ) {
-                product {
-                  id
-                  title
-                  handle
-                  status
-                  combinedListingRole
-                  options {
+              options {
+                id
+                name
+                values
+              }
+              variants(first: 10) {
+                edges {
+                  node {
                     id
-                    name
-                    values
-                  }
-                  variants(first: 10) {
-                    edges {
-                      node {
-                        id
-                        selectedOptions {
-                          name
-                          value
-                        }
-                        price
-                      }
+                    selectedOptions {
+                      name
+                      value
                     }
-                  }
-                }
-                userErrors {
-                  field
-                  message
-                }
-              }
-            }
-          `;
-
-          const setChildProductVariables = {
-            input: {
-              title: `${name} - ${dur} minutes`,
-              descriptionHtml: description || "",
-              productType: "Service",
-              status: "ACTIVE",
-              combinedListingRole: "CHILD",
-              productOptions: [
-                {
-                  name: "Duration",
-                  values: [
-                    { name: `${dur} minutes` }
-                  ]
-                }
-              ],
-              variants: [
-                { 
-                  optionValues: [{ optionName: "Duration", name: `${dur} minutes` }], 
-                  price: parseFloat(priceForDuration.toFixed(2))
-                }
-              ]
-            }
-          };
-
-          const shopify = await connections.shopify.forShopId(shopId);
-          const childProductResult = await shopify.graphql(setChildProductMutation, setChildProductVariables);
-          
-          const childProductSetResult = childProductResult?.productSet;
-          
-          if (childProductSetResult?.userErrors && childProductSetResult.userErrors.length > 0) {
-            const errors = childProductSetResult.userErrors.map((err: any) => `${err.field}: ${err.message}`).join(', ');
-            throw new Error(`Failed to create child product with variant: ${errors}`);
-          }
-          
-          if (childProductSetResult?.product) {
-            childProducts.push(childProductSetResult.product);
-          } else {
-            throw new Error("Child product creation failed - no product returned");
-          }
-          
-        } catch (childProductError: any) {
-          throw new Error(`Failed to create child product for ${dur} minutes: ${childProductError.message}`);
-        }
-      }
-
-      // Step 3: Link child products to parent using combinedListingUpdate
-      const combinedListingUpdateMutation = `
-        mutation combinedListingUpdate(
-          $parentProductId: ID!,
-          $productsAdded: [ChildProductRelationInput!]!,
-          $optionsAndValues: [OptionAndValueInput!]!
-        ) {
-          combinedListingUpdate(
-            parentProductId: $parentProductId,
-            productsAdded: $productsAdded,
-            optionsAndValues: $optionsAndValues
-          ) {
-            product {
-              combinedListingRole
-              combinedListing {
-                parentProduct {
-                  id
-                  title
-                  status
-                }
-                combinedListingChildren(first: 25) {
-                  nodes {
-                    product {
-                      id
-                      title
-                    }
-                    parentVariant {
-                      id
-                      selectedOptions {
-                        name
-                        value
-                      }
-                    }
+                    price
                   }
                 }
               }
             }
             userErrors {
-              code
               field
               message
             }
@@ -358,34 +201,45 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
         }
       `;
 
-      const combinedListingUpdateVariables = {
-        parentProductId: parentProductId,
-        productsAdded: childProducts.map(childProduct => ({
-          productId: childProduct.id,
-          optionValues: [childProduct.title.split(' - ')[1]] // Extract duration from title
-        })),
-        optionsAndValues: [
-          {
-            name: "Duration",
-            values: durations!.map(dur => ({ name: `${dur} minutes` }))
-          }
-        ]
+      const setMultiProductVariables = {
+        input: {
+          title: name,
+          descriptionHtml: description || "",
+          productType: "Service",
+          status: "ACTIVE",
+          productOptions: [
+            {
+              name: "Duration",
+              values: durations!.map(dur => ({ name: `${dur} minutes` }))
+            }
+          ],
+          variants: durations!.map(dur => ({
+            optionValues: [{ optionName: "Duration", name: `${dur} minutes` }],
+            price: parseFloat(durationPrices![dur].toFixed(2))
+          }))
+        }
       };
 
-      let combinedListingResult;
+      // Create multi-duration product with variants using productSet
+      let setMultiProductResult;
       try {
         const shopify = await connections.shopify.forShopId(shopId);
-        combinedListingResult = await shopify.graphql(combinedListingUpdateMutation, combinedListingUpdateVariables);
+        setMultiProductResult = await shopify.graphql(setMultiProductMutation, setMultiProductVariables);
       } catch (shopifyError: any) {
-        throw new Error(`Failed to update combined listing: ${shopifyError.message}`);
+        throw new Error(`Failed to create multi-duration product with variants: ${shopifyError.message}`);
       }
 
-      // Handle combined listing response
-      const combinedListingUpdateResult = combinedListingResult?.combinedListingUpdate;
+      const multiProductSetResult = setMultiProductResult?.productSet;
       
-      if (combinedListingUpdateResult?.userErrors && combinedListingUpdateResult.userErrors.length > 0) {
-        const errors = combinedListingUpdateResult.userErrors.map((err: any) => `${err.field}: ${err.message}`).join(', ');
-        throw new Error(`Shopify API errors for combined listing update: ${errors}`);
+      if (multiProductSetResult?.userErrors && multiProductSetResult.userErrors.length > 0) {
+        const errors = multiProductSetResult.userErrors.map((err: any) => `${err.field}: ${err.message}`).join(', ');
+        throw new Error(`Failed to create multi-duration product with variants: ${errors}`);
+      }
+      
+      if (multiProductSetResult?.product) {
+        createdProduct = multiProductSetResult.product;
+      } else {
+        throw new Error("Multi-duration product creation failed - no product returned");
       }
     }
 
@@ -458,19 +312,18 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
     } else {
       return {
         success: true,
-        message: "Multi duration service product created successfully using combined listings model",
+        message: "Multi duration service product created successfully with variants",
         mode,
-        parentProduct: {
+        product: {
           id: createdProduct.id,
           title: createdProduct.title,
           handle: createdProduct.handle,
-          combinedListingRole: createdProduct.combinedListingRole
-        },
-        childProducts: childProducts.map(child => ({
-          id: child.id,
-          title: child.title,
-          price: durationPrices![child.title.split(' - ')[1].replace(' minutes', '')] // Extract duration and get price
-        }))
+          variants: createdProduct.variants.edges.map((edge: any) => ({
+            id: edge.node.id,
+            duration: edge.node.selectedOptions[0]?.value,
+            price: edge.node.price
+          }))
+        }
       };
     }
 
