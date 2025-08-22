@@ -125,84 +125,81 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
         continue;
       }
 
-      // Find matching staff member
-      logger.info(`Searching for staff member for line item ${lineItem.id}`, {
-        searchCriteria: {
-          name: bookingData.barberName,
-          shopId: record.shopId,
-          isActive: true
-        }
-      });
-      
-      const staff = await api.staff.findMany({
-        filter: {
-          name: { equals: bookingData.barberName },
-          shopId: { equals: record.shopId },
-          isActive: { equals: true }
-        },
-        first: 1
-      });
-
-      logger.info(`Staff search results for line item ${lineItem.id}`, {
-        staffFound: staff.length,
-        staffIds: staff.map(s => s.id),
-        staffNames: staff.map(s => s.name)
-      });
-
-      if (staff.length === 0) {
-        logger.error(`Could not find active staff member with name: ${bookingData.barberName}`, {
+      // Find matching staff member by ID
+      if (!bookingData.staffId) {
+        logger.error(`No staff ID provided for line item ${lineItem.id}`, {
           lineItemId: lineItem.id,
-          searchedName: bookingData.barberName,
-          shopId: record.shopId
+          bookingData
         });
         continue;
       }
-
-      // Find matching location
-      logger.info(`Searching for location for line item ${lineItem.id}`, {
-        searchCriteria: {
-          name: bookingData.locationName,
-          shopId: record.shopId,
-          active: true
-        }
+      
+      logger.info(`Looking up staff member by ID for line item ${lineItem.id}`, {
+        staffId: bookingData.staffId,
+        shopId: record.shopId
       });
       
-      const location = await api.shopifyLocation.findMany({
-        filter: {
-          name: { equals: bookingData.locationName },
-          shopId: { equals: record.shopId },
-          active: { equals: true }
-        },
-        select: {
-          id: true,
-          name: true,
-          timeZone: true
-        },
-        first: 1
-      });
-
-      logger.info(`Location search results for line item ${lineItem.id}`, {
-        locationsFound: location.length,
-        locationIds: location.map(l => l.id),
-        locationNames: location.map(l => l.name)
-      });
-
-      if (location.length === 0) {
-        logger.error(`Could not find active location with name: ${bookingData.locationName}`, {
+      const staff = await api.staff.findOne(bookingData.staffId);
+      
+      if (!staff || staff.shopId !== record.shopId || !staff.isActive) {
+        logger.error(`Could not find active staff member with ID: ${bookingData.staffId}`, {
           lineItemId: lineItem.id,
-          searchedName: bookingData.locationName,
-          shopId: record.shopId
+          staffId: bookingData.staffId,
+          shopId: record.shopId,
+          staffFound: !!staff,
+          staffShopId: staff?.shopId,
+          staffIsActive: staff?.isActive
         });
         continue;
       }
+      
+      logger.info(`Staff lookup successful for line item ${lineItem.id}`, {
+        staffId: staff.id,
+        staffName: staff.name,
+        staffShopId: staff.shopId
+      });
+
+      // Find matching location by ID
+      if (!bookingData.locationId) {
+        logger.error(`No location ID provided for line item ${lineItem.id}`, {
+          lineItemId: lineItem.id,
+          bookingData
+        });
+        continue;
+      }
+      
+      logger.info(`Looking up location by ID for line item ${lineItem.id}`, {
+        locationId: bookingData.locationId,
+        shopId: record.shopId
+      });
+      
+      const location = await api.shopifyLocation.findOne(bookingData.locationId);
+      
+      if (!location || location.shopId !== record.shopId || !location.active) {
+        logger.error(`Could not find active location with ID: ${bookingData.locationId}`, {
+          lineItemId: lineItem.id,
+          locationId: bookingData.locationId,
+          shopId: record.shopId,
+          locationFound: !!location,
+          locationShopId: location?.shopId,
+          locationActive: location?.active
+        });
+        continue;
+      }
+      
+      logger.info(`Location lookup successful for line item ${lineItem.id}`, {
+        locationId: location.id,
+        locationName: location.name,
+        locationShopId: location.shopId
+      });
 
       // Get location timezone for proper date handling
-      const locationTimeZone = location[0].timeZone;
+      const locationTimeZone = location.timeZone;
       
       logger.info(`Using location timezone for scheduling`, {
         lineItemId: lineItem.id,
-        locationId: location[0].id,
-        locationName: location[0].name,
+        locationId: location.id,
+        locationName: location.name,
         locationTimeZone: locationTimeZone
       });
 
@@ -232,8 +229,8 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
         scheduledAt: scheduledAt.toISOString(),
         variantId: lineItem.variantId,
         productId: lineItem.variant?.product?.id,
-        staffId: staff[0].id,
-        locationId: location[0].id,
+        staffId: staff.id,
+        locationId: location.id,
         duration: bookingData.duration || 60
       });
 
@@ -260,12 +257,12 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
         scheduledAt,
         variant: { _link: lineItem.variantId },
         totalPrice: totalPrice,
-        staff: { _link: staff[0].id },
+        staff: { _link: staff.id },
         duration: bookingData.duration || 60, // Default to 60 minutes
         status: 'confirmed',
         notes: `Order: ${record.name}\nService: ${lineItem.name}\n${bookingData.notes || ''}`.trim(),
         shop: { _link: record.shopId },
-        location: { _link: location[0].id },
+        location: { _link: location.id },
         order: { _link: record.id }
       };
 
@@ -362,6 +359,18 @@ function extractBookingData(properties: any[], logger?: any): any {
         case 'shop location':
           bookingData.locationName = prop.value;
           if (logger) logger.info(`Extracted location name: ${prop.value}`);
+          break;
+        case 'staff_id':
+        case 'staff id':
+        case 'staffid':
+          bookingData.staffId = prop.value;
+          if (logger) logger.info(`Extracted staff ID: ${prop.value}`);
+          break;
+        case 'location_id':
+        case 'location id':
+        case 'locationid':
+          bookingData.locationId = prop.value;
+          if (logger) logger.info(`Extracted location ID: ${prop.value}`);
           break;
         case 'customer_name':
         case 'customer name':

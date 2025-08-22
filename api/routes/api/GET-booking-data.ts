@@ -89,7 +89,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     }
 
     // Fetch other data
-    const [staff, locations, staffAvailability, staffDateAvailability, existingBookings] = await Promise.all([
+    const [staff, locations, staffAvailability, staffDateAvailability, existingBookings, config] = await Promise.all([
       api.staff.findMany({
         filter: { 
           shopId: { equals: shopId }, 
@@ -132,8 +132,43 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
           staffId: true, locationId: true, variantId: true, totalPrice: true,
           customerName: true, customerEmail: true, notes: true, arrived: true
         }
+      }),
+      api.config.maybeFindFirst({
+        filter: { shopId: { equals: shopId } },
+        select: {
+          id: true, timeSlotInterval: true
+        }
       })
     ]);
+
+    // Log detailed booking information for debugging
+    logger.info(`=== BOOKING DATA DEBUG INFO ===`);
+    logger.info(`Shop ID used for query: ${shopId}`);
+    logger.info(`Current server time: ${new Date().toISOString()}`);
+    logger.info(`Current server timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
+    logger.info(`Total existing bookings found: ${existingBookings.length}`);
+    
+    if (existingBookings.length > 0) {
+      logger.info(`=== EXISTING BOOKINGS DETAILS ===`);
+      existingBookings.forEach((booking, index) => {
+        logger.info(`Booking ${index + 1}:`);
+        logger.info(`  - ID: ${booking.id}`);
+        logger.info(`  - Staff ID: ${booking.staffId}`);
+        logger.info(`  - Location ID: ${booking.locationId}`);
+        logger.info(`  - Variant ID: ${booking.variantId}`);
+        logger.info(`  - Scheduled At: ${booking.scheduledAt} (${new Date(booking.scheduledAt).toISOString()})`);
+        logger.info(`  - Duration: ${booking.duration} minutes`);
+        logger.info(`  - Status: ${booking.status}`);
+        logger.info(`  - Total Price: ${booking.totalPrice}`);
+        logger.info(`  - Customer: ${booking.customerName} (${booking.customerEmail})`);
+        logger.info(`  - Arrived: ${booking.arrived}`);
+        logger.info(`  - Notes: ${booking.notes || 'None'}`);
+        logger.info(`  ---`);
+      });
+    } else {
+      logger.info(`No existing bookings found for shop ${shopId}`);
+    }
+    logger.info(`=== END BOOKING DEBUG INFO ===`);
 
     // Helper function to parse duration
     const parseDuration = (text: string): number | null => {
@@ -144,6 +179,9 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
       if (hourMatch) return parseInt(hourMatch[1], 10) * 60;
       return null;
     };
+
+    // Get timeSlotInterval with fallback to default of 15 minutes
+    const timeSlotInterval = config?.timeSlotInterval || 15;
 
     // Build response
     const responseData = {
@@ -223,10 +261,11 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         customerEmail: booking.customerEmail,
         notes: booking.notes,
         arrived: booking.arrived
-      }))
+      })),
+      timeSlotInterval: timeSlotInterval
     };
 
-    logger.info(`Successfully fetched booking data for shop ${shopId}: ${services.length} services, ${staff.length} staff, ${locations.length} locations`);
+    logger.info(`Successfully fetched booking data for shop ${shopId}: ${services.length} services, ${staff.length} staff, ${locations.length} locations, timeSlotInterval: ${timeSlotInterval}min`);
 
     await reply.code(200).send({ success: true, data: responseData });
 

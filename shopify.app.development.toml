@@ -14,13 +14,19 @@ redirect_urls = [
   "https://barbershop--development.gadget.app/api/connections/auth/shopify/callback"
 ]
 
+[access_scopes]
+# For product management (creating services)
+scopes = "write_products,read_products,write_inventory,read_inventory,write_orders,read_orders,write_customers,read_customers"
+
+[app_proxy]
+url = "https://barbershop--development.gadget.app"
+subpath = "apps-barbershop"
+prefix = "apps"
+
 [pos]
 embedded = false
 
 [build]
 include_config_on_deploy = true
 
-[proxy]
-name = "barbershop"
-url_prefix = "/apps/barbershop"
-proxy_url = "https://barbershop--development.gadget.app"
+

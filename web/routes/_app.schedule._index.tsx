@@ -281,7 +281,10 @@ export default function SchedulePage() {
 
   // Fetch locations
   const [{ data: locations }] = useFindMany(api.shopifyLocation, {
-    filter: { active: { equals: true } },
+    filter: { 
+      active: { equals: true },
+      offersServices: { equals: true }
+    },
     select: {
       id: true,
       name: true,
@@ -378,6 +381,10 @@ export default function SchedulePage() {
   const handleTimeSlotClick = useCallback((date: Date, hour: number, minute: number) => {
     const slotBookings = getBookingsForSlot(date, hour, minute);
     if (slotBookings.length === 0) {
+      // Reset customer state when opening new booking modal
+      setCustomerSearch("");
+      setShowCustomerSuggestions(false);
+      setSelectedCustomer(null);
       setSelectedTimeSlot({ date, hour, minute });
       setShowBookingModal(true);
     }
@@ -715,13 +722,33 @@ export default function SchedulePage() {
     }
   }, [services, formData.productId, handleServiceChange]);
 
+  // Auto-select single location when modal opens
+  useEffect(() => {
+    if (locations && locations.length === 1 && !formData.locationId && showBookingModal) {
+      handleFormChange("locationId", locations[0].id);
+    }
+  }, [locations, formData.locationId, showBookingModal, handleFormChange]);
+
+  // Auto-select single staff when modal opens
+  useEffect(() => {
+    if (staff && staff.length === 1 && !formData.staffId && showBookingModal) {
+      handleFormChange("staffId", staff[0].id);
+    }
+  }, [staff, formData.staffId, showBookingModal, handleFormChange]);
+
   return (
     <Page
       title="Schedule"
       primaryAction={{
         content: "New Booking",
         icon: PlusIcon,
-        onAction: () => setShowBookingModal(true),
+        onAction: () => {
+          // Reset customer state when opening new booking modal
+          setCustomerSearch("");
+          setShowCustomerSuggestions(false);
+          setSelectedCustomer(null);
+          setShowBookingModal(true);
+        },
       }}
     >
       <Layout>
@@ -1039,7 +1066,7 @@ export default function SchedulePage() {
                       top: "100%",
                       left: 0,
                       right: 0,
-                      zIndex: 10,
+                      zIndex: 1000,
                       backgroundColor: "white",
                       border: "1px solid #ccc",
                       borderRadius: "4px",

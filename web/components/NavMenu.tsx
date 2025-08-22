@@ -1,5 +1,6 @@
 import { Link } from "@remix-run/react";
 import { NavMenu as AppBridgeNavMenu } from "@shopify/app-bridge-react";
+import { SettingsIcon } from "@shopify/polaris-icons";
 
 export function NavMenu() {
   return (
@@ -18,6 +19,9 @@ export function NavMenu() {
       </Link>
       <Link to="/schedule">
         Schedule
+      </Link>
+      <Link to="/settings">
+        Settings
       </Link>
     </AppBridgeNavMenu>
   );

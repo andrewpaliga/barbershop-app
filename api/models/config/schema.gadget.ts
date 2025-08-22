@@ -56,6 +56,13 @@ export const schema: GadgetModel = {
       default: false,
       storageKey: "iWIn1etHeIAk",
     },
+    timeSlotInterval: {
+      type: "number",
+      default: 30,
+      decimals: 0,
+      validations: { run: ["validateTimeSlotInterval.js"] },
+      storageKey: "3__H4mm5ceUp",
+    },
     timeZone: { type: "string", storageKey: "9beWnDT1REwD" },
     workingHours: { type: "json", storageKey: "WJuH7NRCuORb" },
   },

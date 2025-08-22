@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { Page, Card, Tabs, Text, Checkbox, BlockStack, InlineStack, Banner } from "@shopify/polaris";
+import { Page, Card, Tabs, Text, Checkbox, BlockStack, InlineStack, Banner, Button } from "@shopify/polaris";
 import { AutoTable } from "@gadgetinc/react/auto/polaris";
 import { useAction, useFindMany } from "@gadgetinc/react";
+import { useNavigate } from "@remix-run/react";
 import { api } from "../api";
 
 export default function ProductsIndex() {
   const [selectedTab, setSelectedTab] = useState(0);
   const [hasProviderError, setHasProviderError] = useState(false);
   const [{ data, fetching, error }, updateProduct] = useAction(api.shopifyProduct.update);
+  const navigate = useNavigate();
   
   // Fallback data fetching in case AutoTable fails
   const tableFilter = selectedTab === 1 
@@ -137,7 +139,17 @@ export default function ProductsIndex() {
 
   return (
     <Page title="Products" subtitle="Manage your products and services">
-      <Card>
+      <BlockStack gap="400">
+        <InlineStack gap="400" align="end">
+          <Button
+            variant="primary"
+            onClick={() => navigate('/products/services/new')}
+          >
+            Add Service
+          </Button>
+        </InlineStack>
+        
+        <Card>
         <BlockStack gap="400">
           <Tabs
             tabs={tabs}
@@ -156,6 +168,7 @@ export default function ProductsIndex() {
           {hasProviderError ? <FallbackTable /> : <AutoTableWithFallback />}
         </BlockStack>
       </Card>
+      </BlockStack>
     </Page>
   );
 }

@@ -211,7 +211,13 @@ function CombinedAvailabilityTable({
           records.push({
             ...record,
             type: 'date',
-            displayDate: record.date ? new Date(record.date).toLocaleDateString() : ''
+            displayDate: record.date ? (() => {
+              // Extract just the date part from the ISO string to avoid timezone issues
+              const isoString = new Date(record.date).toISOString();
+              const datePart = isoString.split('T')[0]; // Gets YYYY-MM-DD
+              const [year, month, day] = datePart.split('-');
+              return `${parseInt(month)}/${parseInt(day)}/${year}`;
+            })() : ''
           });
         }
       });
@@ -490,7 +496,12 @@ function CalendarView({ staffId, weeklyData, dateData, currentWeekStart }: Calen
     if (dateData && Array.isArray(dateData)) {
       dateData.forEach(record => {
         if (record && record.isAvailable) {
-          const recordDate = new Date(record.date);
+          // Extract date parts safely to avoid timezone issues
+          const isoString = new Date(record.date).toISOString();
+          const datePart = isoString.split('T')[0]; // Gets YYYY-MM-DD
+          const [year, month, day] = datePart.split('-').map(Number);
+          const recordDate = new Date(year, month - 1, day); // Create date in local timezone
+          
           const weekStart = new Date(currentWeekStart);
           const weekEnd = new Date(currentWeekStart);
           weekEnd.setDate(weekStart.getDate() + 6);
@@ -722,8 +733,26 @@ export default function StaffEdit() {
     }
   }, [refreshTrigger]);
 
+  const [{ data: locationsData }] = useFindMany(api.shopifyLocation, {
+    filter: { offersServices: { equals: true } },
+    select: {
+      id: true,
+      name: true
+    }
+  });
+
   const handleRefreshAvailability = () => {
     setRefreshTrigger(prev => prev + 1);
+  };
+
+  const getLocationDisplay = () => {
+    if (!locationsData || locationsData.length === 0) {
+      return { type: 'none', message: 'No locations available' };
+    }
+    if (locationsData.length === 1) {
+      return { type: 'hidden', location: locationsData[0] };
+    }
+    return { type: 'dropdown', locations: locationsData };
   };
 
   const timeOptions = generateTimeOptions();
@@ -1190,7 +1219,23 @@ export default function StaffEdit() {
                         <AutoHiddenInput field="endTime" value={endTime} />
                         <AutoHiddenInput field="isAvailable" value={true} />
 
-                        <AutoInput field="location" />
+                        {(() => {
+                          const locationDisplay = getLocationDisplay();
+                          if (locationDisplay.type === 'none') {
+                            return (
+                              <div>
+                                <Text as="label" variant="bodyMd">Location</Text>
+                                <Text as="p" variant="bodyMd" tone="subdued">{locationDisplay.message}</Text>
+                              </div>
+                            );
+                          } else if (locationDisplay.type === 'hidden') {
+                            return (
+                              <AutoHiddenInput field="location" value={locationDisplay.location.id} />
+                            );
+                          } else {
+                            return <AutoInput field="location" />;
+                          }
+                        })()}
                       </BlockStack>
 
                       <SubmitResultBanner />
@@ -1260,7 +1305,23 @@ export default function StaffEdit() {
                         <AutoHiddenInput field="endTime" value={dateEndTime} />
                         <AutoHiddenInput field="isAvailable" value={true} />
 
-                        <AutoInput field="location" />
+                        {(() => {
+                          const locationDisplay = getLocationDisplay();
+                          if (locationDisplay.type === 'none') {
+                            return (
+                              <div>
+                                <Text as="label" variant="bodyMd">Location</Text>
+                                <Text as="p" variant="bodyMd" tone="subdued">{locationDisplay.message}</Text>
+                              </div>
+                            );
+                          } else if (locationDisplay.type === 'hidden') {
+                            return (
+                              <AutoHiddenInput field="location" value={locationDisplay.location.id} />
+                            );
+                          } else {
+                            return <AutoInput field="location" />;
+                          }
+                        })()}
                         <AutoInput field="notes" />
                       </BlockStack>
 

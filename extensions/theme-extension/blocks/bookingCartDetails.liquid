@@ -18,7 +18,56 @@
     display: none !important;
   }
   
-  /* Styles for injected booking details in product column */
+  /* Hide Shopify's default property display for technical metadata */
+  .cart__item-properties,
+  .cart-item__properties,
+  .line-item__properties,
+  [data-cart-item-properties] {
+    display: none !important;
+  }
+  
+  /* Hide specific technical properties by their labels */
+  .cart__item-property,
+  .cart-item__property,
+  .line-item__property,
+  [data-cart-item-property] {
+    display: none !important;
+  }
+  
+  /* Hide specific technical metadata properties by their content */
+  .cart__item-property:has(dt:contains("Service ID")),
+  .cart__item-property:has(dt:contains("Variant ID")),
+  .cart__item-property:has(dt:contains("Staff ID")),
+  .cart__item-property:has(dt:contains("Location ID")),
+  .cart__item-property:has(dt:contains("Scheduled At")),
+  .cart__item-property:has(dt:contains("Location")),
+  .cart__item-property:has(dt:contains("Duration")) {
+    display: none !important;
+  }
+  
+  /* Alternative approach: Hide properties containing technical metadata */
+  .cart__item-property dt:contains("Service ID"),
+  .cart__item-property dt:contains("Variant ID"),
+  .cart__item-property dt:contains("Staff ID"),
+  .cart__item-property dt:contains("Location ID"),
+  .cart__item-property dt:contains("Scheduled At"),
+  .cart__item-property dt:contains("Location"),
+  .cart__item-property dt:contains("Duration") {
+    display: none !important;
+  }
+  
+  /* Hide technical metadata properties by targeting their text content */
+  .cart__item-property:has(dt:contains("Service ID")),
+  .cart__item-property:has(dt:contains("Variant ID")),
+  .cart__item-property:has(dt:contains("Staff ID")),
+  .cart__item-property:has(dt:contains("Location ID")),
+  .cart__item-property:has(dt:contains("Scheduled At")),
+  .cart__item-property:has(dt:contains("Location")),
+  .cart__item-property:has(dt:contains("Duration")) {
+    display: none !important;
+  }
+  
+  /* Show only our injected booking details */
   .injected-booking-details {
     margin-top: 0.5rem;
     font-size: 1.1rem;
@@ -214,8 +263,111 @@
     return false;
   }
   
+  // Function to hide unwanted technical metadata properties
+  console.log('📝 Function hideTechnicalMetadataProperties defined');
+  
+  function hideTechnicalMetadataProperties() {
+    const unwantedProperties = [
+      'Service ID', 'Variant ID', 'Staff ID', 'Location ID', 
+      'Scheduled At', 'Location', 'Duration'
+    ];
+    
+    console.log('🔍 Attempting to hide technical metadata...');
+    
+    // More comprehensive selectors for different theme variations
+    const allSelectors = [
+      '.cart__item-property', '.cart-item__property', '.line-item__property', 
+      '[data-cart-item-property]', '.property', '.properties',
+      '.cart__item-properties', '.cart-item__properties', '.line-item__properties',
+      '[data-cart-item-properties]', '.cart-item__details .property',
+      '.cart__item-details .property', '.line-item__details .property'
+    ];
+    
+    let totalHidden = 0;
+    
+    allSelectors.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      console.log(`🔍 Found ${elements.length} elements with selector: ${selector}`);
+      
+      elements.forEach(element => {
+        // Check if this element contains unwanted text
+        const hasUnwantedText = unwantedProperties.some(unwanted => 
+          element.textContent.includes(unwanted)
+        );
+        
+        if (hasUnwantedText) {
+          console.log(`🚫 Hiding element containing: ${element.textContent.trim().substring(0, 50)}...`);
+          element.style.display = 'none';
+          element.style.visibility = 'hidden';
+          element.style.opacity = '0';
+          totalHidden++;
+        }
+      });
+    });
+    
+    // Also try to hide any text nodes containing unwanted content
+    const walker = document.createTreeWalker(
+      document.body,
+      NodeFilter.SHOW_TEXT,
+      null,
+      false
+    );
+    
+    let textNode;
+    while (textNode = walker.nextNode()) {
+      const hasUnwantedText = unwantedProperties.some(unwanted => 
+        textNode.textContent.includes(unwanted)
+      );
+      
+      if (hasUnwantedText) {
+        const parent = textNode.parentElement;
+        if (parent && !parent.classList.contains('injected-booking-details')) {
+          console.log(`🚫 Hiding parent element containing: ${textNode.textContent.trim().substring(0, 50)}...`);
+          parent.style.display = 'none';
+          totalHidden++;
+        }
+      }
+    }
+    
+    console.log(`✅ Total elements hidden: ${totalHidden}`);
+    
+    // If nothing was hidden, try a more aggressive approach
+    if (totalHidden === 0) {
+      console.log('⚠️ No elements hidden, trying aggressive approach...');
+      
+      // Hide any element containing the unwanted text
+      const allElements = document.querySelectorAll('*');
+      allElements.forEach(element => {
+        if (element.children.length === 0 && element.textContent) {
+          const hasUnwantedText = unwantedProperties.some(unwanted => 
+            element.textContent.includes(unwanted)
+          );
+          
+          if (hasUnwantedText) {
+            const parent = element.closest('div, span, p, td, li');
+            if (parent && !parent.classList.contains('injected-booking-details')) {
+              parent.style.display = 'none';
+              totalHidden++;
+            }
+          }
+        }
+      });
+      
+      console.log(`✅ Aggressive approach hidden: ${totalHidden} elements`);
+    }
+  }
+
   // Wait for the HTML document to be fully loaded and parsed
   document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 Cart extension loaded!');
+    console.log('⚙️ Extension settings:', {
+      showDateTime: {{ show_date_time | json }},
+      showStaff: {{ show_staff | json }},
+      showLocation: {{ show_location | json }},
+      showNotes: {{ show_notes | json }},
+      hideTechnicalMetadata: {{ hide_technical_metadata | json }}
+    });
+    
     // Initialize the Gadget API client
     window.api = new BarbershopClient();
     
@@ -223,6 +375,7 @@
     const showStaff = {{ show_staff | json }};
     const showLocation = {{ show_location | json }};
     const showNotes = {{ show_notes | json }};
+    const hideTechnicalMetadata = {{ hide_technical_metadata | json }};
     
     try {
       // Get cart data from Shopify
@@ -239,11 +392,12 @@
         // Look for booking properties in line item properties
         if (item.properties) {
           for (const [key, value] of Object.entries(item.properties)) {
-            if (key.toLowerCase().includes('booking')) {
+            // Map our new property names to the display logic
+            if (['Booking Date', 'Booking Time', 'Barber', 'Duration', 'Notes'].includes(key)) {
               hasBookingData = true;
               bookingData[key] = value;
             }
-            // Common booking property names (including underscore-prefixed versions)
+            // Also check for legacy property names for backward compatibility
             if (['staff_id', 'staffId', '_staff_id', 'location_id', 'locationId', '_location_id', 'booking_date', '_booking_date', 'booking_time', '_booking_time', 'booking_notes', '_booking_notes'].includes(key)) {
               hasBookingData = true;
               bookingData[key] = value;
@@ -288,9 +442,9 @@
             let bookingDetailsHtml = '<div class="injected-booking-details">';
             
             // Show date and time
-            if (showDateTime && (bookingItem.bookingData.booking_date || bookingItem.bookingData._booking_date || bookingItem.bookingData.booking_time || bookingItem.bookingData._booking_time)) {
-              const date = bookingItem.bookingData.booking_date || bookingItem.bookingData._booking_date || bookingItem.bookingData.date;
-              const time = bookingItem.bookingData.booking_time || bookingItem.bookingData._booking_time || bookingItem.bookingData.time;
+            if (showDateTime && (bookingItem.bookingData['Booking Date'] || bookingItem.bookingData['booking_date'] || bookingItem.bookingData._booking_date)) {
+              const date = bookingItem.bookingData['Booking Date'] || bookingItem.bookingData['booking_date'] || bookingItem.bookingData._booking_date;
+              const time = bookingItem.bookingData['Booking Time'] || bookingItem.bookingData['booking_time'] || bookingItem.bookingData._booking_time;
               
               if (date || time) {
                 const formatted = window.formatBookingDateTime(date, time);
@@ -301,25 +455,25 @@
               }
             }
             
-            // Show staff
-            if (showStaff && (bookingItem.bookingData.staff_id || bookingItem.bookingData._staff_id || bookingItem.bookingData.staffId)) {
+            // Show barber
+            if (showStaff && bookingItem.bookingData['Barber']) {
               bookingDetailsHtml += `<div class="injected-booking-detail">`;
-              bookingDetailsHtml += `<span class="injected-booking-detail__label">Staff: </span>`;
-              bookingDetailsHtml += `<span class="injected-booking-detail__value">Staff Member</span>`;
+              bookingDetailsHtml += `<span class="injected-booking-detail__label">Barber: </span>`;
+              bookingDetailsHtml += `<span class="injected-booking-detail__value">${bookingItem.bookingData['Barber']}</span>`;
               bookingDetailsHtml += `</div>`;
             }
             
-            // Show location
-            if (showLocation && (bookingItem.bookingData.location_id || bookingItem.bookingData._location_id || bookingItem.bookingData.locationId)) {
+            // Show duration
+            if (showLocation && bookingItem.bookingData['Duration']) {
               bookingDetailsHtml += `<div class="injected-booking-detail">`;
-              bookingDetailsHtml += `<span class="injected-booking-detail__label">Location: </span>`;
-              bookingDetailsHtml += `<span class="injected-booking-detail__value">Location</span>`;
+              bookingDetailsHtml += `<span class="injected-booking-detail__label">Length: </span>`;
+              bookingDetailsHtml += `<span class="injected-booking-detail__value">${bookingItem.bookingData['Duration']}</span>`;
               bookingDetailsHtml += `</div>`;
             }
             
             // Show notes
-            if (showNotes && (bookingItem.bookingData.booking_notes || bookingItem.bookingData._booking_notes || bookingItem.bookingData.notes)) {
-              const notes = bookingItem.bookingData.booking_notes || bookingItem.bookingData._booking_notes || bookingItem.bookingData.notes;
+            if (showNotes && bookingItem.bookingData['Notes']) {
+              const notes = bookingItem.bookingData['Notes'];
               if (notes && notes.trim()) {
                 bookingDetailsHtml += `<div class="injected-booking-detail">`;
                 bookingDetailsHtml += `<span class="injected-booking-detail__label">Notes: </span>`;
@@ -335,6 +489,14 @@
             break; // Found and injected, move to next booking item
           }
         }
+      }
+      
+      // Hide unwanted technical metadata properties if setting is enabled
+      if (hideTechnicalMetadata) {
+        console.log('🔧 Setting enabled, calling hideTechnicalMetadataProperties()...');
+        hideTechnicalMetadataProperties();
+      } else {
+        console.log('🔧 Setting disabled, skipping metadata hiding');
       }
       
     } catch (error) {
@@ -356,9 +518,10 @@
       "default": true
     },
     { "type": "checkbox", "label": "Show date and time", "id": "show_date_time", "default": true },
-    { "type": "checkbox", "label": "Show staff name", "id": "show_staff", "default": true },
-    { "type": "checkbox", "label": "Show location", "id": "show_location", "default": true },
+    { "type": "checkbox", "label": "Show barber name", "id": "show_staff", "default": true },
+    { "type": "checkbox", "label": "Show service duration", "id": "show_location", "default": true },
     { "type": "checkbox", "label": "Show booking notes", "id": "show_notes", "default": true },
+    { "type": "checkbox", "label": "Hide technical metadata", "id": "hide_technical_metadata", "default": false, "info": "Hide Service ID, Variant ID, Staff ID, Location ID, Scheduled At, and other technical details from cart display" },
     { "type": "text", "label": "Date format", "id": "date_format", "default": "%B %d, %Y" },
     { "type": "text", "label": "Time format", "id": "time_format", "default": "%I:%M %p" },
     {

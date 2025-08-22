@@ -184,6 +184,7 @@ export const permissions: GadgetPermissions = {
         },
       },
       actions: {
+        createService: true,
         saveLocationHours: true,
       },
     },
