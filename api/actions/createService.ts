@@ -79,27 +79,33 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
     let childProducts = [];
     
     if (mode === "single") {
-      // Single duration: create one simple product without variants field
-      const singleProductInput = {
-        title: name,
-        descriptionHtml: description || "",
-        productType: "Service",
-        status: "ACTIVE"
-        // No variants field! Shopify will create default variant automatically
-      };
-
-      const createSingleProductMutation = `
-        mutation productCreate($product: ProductCreateInput!) {
-          productCreate(product: $product) {
+      // Single duration: use productSet to create product with duration option and variant
+      const setSingleProductMutation = `
+        mutation setProduct($input: ProductSetInput!) {
+          productSet(
+            synchronous: true,
+            input: $input
+          ) {
             product {
               id
               title
               handle
               status
-              variants(first: 1) {
-                nodes {
-                  id
-                  price
+              options {
+                id
+                name
+                values
+              }
+              variants(first: 10) {
+                edges {
+                  node {
+                    id
+                    selectedOptions {
+                      name
+                      value
+                    }
+                    price
+                  }
                 }
               }
             }
@@ -111,71 +117,50 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
         }
       `;
 
-      const createSingleProductVariables = {
-        product: singleProductInput
+      const setSingleProductVariables = {
+        input: {
+          title: name,
+          descriptionHtml: description || "",
+          productType: "Service",
+          status: "ACTIVE",
+          productOptions: [
+            {
+              name: "Duration",
+              values: [
+                { name: `${duration} minutes` }
+              ]
+            }
+          ],
+          variants: [
+            { 
+              optionValues: [{ optionName: "Duration", name: `${duration} minutes` }], 
+              price: parseFloat(price!.toFixed(2))
+            }
+          ]
+        }
       };
 
-      // Create single product
-      let createSingleProductResult;
+      // Create single product with variant using productSet
+      let setSingleProductResult;
       try {
         const shopify = await connections.shopify.forShopId(shopId);
-        createSingleProductResult = await shopify.graphql(createSingleProductMutation, createSingleProductVariables);
+        setSingleProductResult = await shopify.graphql(setSingleProductMutation, setSingleProductVariables);
       } catch (shopifyError: any) {
-        throw new Error(`Failed to create single product: ${shopifyError.message}`);
+        throw new Error(`Failed to create single product with variant: ${shopifyError.message}`);
       }
 
-      const singleProductCreateResult = createSingleProductResult?.productCreate;
+      const singleProductSetResult = setSingleProductResult?.productSet;
       
-      if (singleProductCreateResult?.userErrors && singleProductCreateResult.userErrors.length > 0) {
-        const errors = singleProductCreateResult.userErrors.map((err: any) => `${err.field}: ${err.message}`).join(', ');
-        throw new Error(`Failed to create single product: ${errors}`);
+      if (singleProductSetResult?.userErrors && singleProductSetResult.userErrors.length > 0) {
+        const errors = singleProductSetResult.userErrors.map((err: any) => `${err.field}: ${err.message}`).join(', ');
+        throw new Error(`Failed to create single product with variant: ${errors}`);
       }
       
-      if (singleProductCreateResult?.product) {
-        createdProduct = singleProductCreateResult.product;
+      if (singleProductSetResult?.product) {
+        createdProduct = singleProductSetResult.product;
       } else {
         throw new Error("Single product creation failed - no product returned");
       }
-
-      // Now update the default variant's price using productVariantUpdate
-      // const defaultVariantId = createdProduct.variants.nodes[0].id;
-      
-      // const updateVariantMutation = `
-      //   mutation productVariantUpdate($input: ProductVariantInput!) {
-      //     productVariantUpdate(input: $input) {
-      //       productVariant {
-      //         id
-      //         price
-      //       }
-      //       userErrors {
-      //         field
-      //         message
-      //       }
-      //     }
-      //   }
-      // `;
-
-      // const updateVariantVariables = {
-      //   input: {
-      //     id: defaultVariantId,
-      //     price: price!.toFixed(2)
-      //   }
-      // };
-
-      // let updateVariantResult;
-      // try {
-      //   const shopify = await connections.shopify.forShopId(shopId);
-      //   updateVariantResult = await shopify.graphql(updateVariantMutation, updateVariantVariables);
-      // } catch (variantError: any) {
-      //   throw new Error(`Failed to update variant price: ${variantError.message}`);
-      // }
-
-      // const variantUpdateResult = updateVariantResult?.productVariantUpdate;
-      
-      // if (variantUpdateResult?.userErrors && variantUpdateResult.userErrors.length > 0) {
-      //   const errors = variantUpdateResult.userErrors.map((err: any) => `${err.field}: ${err.message}`).join(', ');
-      //   throw new Error(`Failed to update variant price: ${errors}`);
-      // }
       
     } else {
       // Multi duration: create parent product for combined listing
@@ -239,32 +224,38 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
       createdProduct = parentProductCreateResult.product;
       const parentProductId = createdProduct.id;
 
-      // Step 2: Create child products for each duration variant
+      // Step 2: Create child products for each duration variant using productSet
       for (const dur of durations!) {
         try {
           const priceForDuration = durationPrices![dur] as number;
-          const childProductInput = {
-            title: `${name} - ${dur} minutes`,
-            descriptionHtml: description || "",
-            productType: "Service",
-            status: "ACTIVE",
-            combinedListingRole: "CHILD"
-            // No variants field! Set price at product creation if supported
-          };
-
-          const createChildProductMutation = `
-            mutation productCreate($product: ProductCreateInput!) {
-              productCreate(product: $product) {
+          
+          const setChildProductMutation = `
+            mutation setProduct($input: ProductSetInput!) {
+              productSet(
+                synchronous: true,
+                input: $input
+              ) {
                 product {
                   id
                   title
                   handle
                   status
                   combinedListingRole
-                  variants(first: 1) {
-                    nodes {
-                      id
-                      price
+                  options {
+                    id
+                    name
+                    values
+                  }
+                  variants(first: 10) {
+                    edges {
+                      node {
+                        id
+                        selectedOptions {
+                          name
+                          value
+                        }
+                        price
+                      }
                     }
                   }
                 }
@@ -276,64 +267,42 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
             }
           `;
 
-          const createChildProductVariables = {
-            product: childProductInput
+          const setChildProductVariables = {
+            input: {
+              title: `${name} - ${dur} minutes`,
+              descriptionHtml: description || "",
+              productType: "Service",
+              status: "ACTIVE",
+              combinedListingRole: "CHILD",
+              productOptions: [
+                {
+                  name: "Duration",
+                  values: [
+                    { name: `${dur} minutes` }
+                  ]
+                }
+              ],
+              variants: [
+                { 
+                  optionValues: [{ optionName: "Duration", name: `${dur} minutes` }], 
+                  price: parseFloat(priceForDuration.toFixed(2))
+                }
+              ]
+            }
           };
 
           const shopify = await connections.shopify.forShopId(shopId);
-          const childProductResult = await shopify.graphql(createChildProductMutation, createChildProductVariables);
+          const childProductResult = await shopify.graphql(setChildProductMutation, setChildProductVariables);
           
-          const childProductCreateResult = childProductResult?.productCreate;
+          const childProductSetResult = childProductResult?.productSet;
           
-          if (childProductCreateResult?.userErrors && childProductCreateResult.userErrors.length > 0) {
-            const errors = childProductCreateResult.userErrors.map((err: any) => `${err.field}: ${err.message}`).join(', ');
-            throw new Error(`Failed to create child product: ${errors}`);
+          if (childProductSetResult?.userErrors && childProductSetResult.userErrors.length > 0) {
+            const errors = childProductSetResult.userErrors.map((err: any) => `${err.field}: ${err.message}`).join(', ');
+            throw new Error(`Failed to create child product with variant: ${errors}`);
           }
           
-          if (childProductCreateResult?.product) {
-            const childProduct = childProductCreateResult.product;
-            
-            // Update the default variant's price for this child product
-            // const childVariantId = childProduct.variants.nodes[0].id;
-            
-            // const updateChildVariantMutation = `
-            //   mutation productVariantUpdate($input: ProductVariantInput!) {
-            //     productVariantUpdate(input: $input) {
-            //       productVariant {
-            //         id
-            //         price
-            //       }
-            //       userErrors {
-            //         field
-            //         message
-            //       }
-            //     }
-            //   }
-            // `;
-
-            // const updateChildVariantVariables = {
-            //   input: {
-            //     id: childVariantId,
-            //     price: priceForDuration.toFixed(2)
-            //   }
-            // };
-
-            // let updateChildVariantResult;
-            // try {
-            //   const shopify = await connections.shopify.forShopId(shopId);
-            //   updateChildVariantResult = await shopify.graphql(updateChildVariantMutation, updateChildVariantVariables);
-            // } catch (childVariantError: any) {
-            //   throw new Error(`Failed to update child variant price: ${childVariantError.message}`);
-            // }
-
-            // const childVariantUpdateResult = updateChildVariantResult?.productVariantUpdate;
-            
-            // if (childVariantUpdateResult?.userErrors && childVariantUpdateResult.userErrors.length > 0) {
-            //   const errors = childVariantUpdateResult.userErrors.map((err: any) => `${err.field}: ${err.message}`).join(', ');
-            //   throw new Error(`Failed to update child variant price: ${errors}`);
-            // }
-            
-            childProducts.push(childProduct);
+          if (childProductSetResult?.product) {
+            childProducts.push(childProductSetResult.product);
           } else {
             throw new Error("Child product creation failed - no product returned");
           }
