@@ -99,7 +99,6 @@ export const schema: GadgetModel = {
       "subtotalPriceSet",
       "tags",
       "taxExempt",
-      "taxLines",
       "taxesIncluded",
       "test",
       "token",

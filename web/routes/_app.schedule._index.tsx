@@ -261,9 +261,13 @@ export default function SchedulePage() {
     },
   });
 
-  // Fetch services (products marked as barber services)
+  // Fetch services (products with productType "Service")
   const [{ data: services }] = useFindMany(api.shopifyProduct, {
-    filter: { isBarberService: { equals: true } },
+    filter: { 
+      productType: { 
+        in: ["Service", "service", "SERVICE"] 
+      } 
+    },
     select: {
       id: true,
       title: true,

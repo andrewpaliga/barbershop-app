@@ -281,7 +281,7 @@ const route: RouteHandler = async ({ request, reply, api, connections }) => {
       query {
         shopifyProducts(filter: { 
           shopId: { equals: "\${SHOP_ID}" },
-          isBarberService: { equals: true }
+          productType: { in: ["Service", "service", "SERVICE"] }
         }) {
           edges {
             node {

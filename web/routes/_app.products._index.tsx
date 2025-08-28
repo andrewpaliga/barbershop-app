@@ -1,20 +1,21 @@
 import { useState } from "react";
-import { Page, Card, Tabs, Text, Checkbox, BlockStack, InlineStack, Banner, Button } from "@shopify/polaris";
+import { Page, Card, Text, BlockStack, InlineStack, Banner, Button } from "@shopify/polaris";
 import { AutoTable } from "@gadgetinc/react/auto/polaris";
 import { useAction, useFindMany } from "@gadgetinc/react";
 import { useNavigate } from "@remix-run/react";
 import { api } from "../api";
 
 export default function ProductsIndex() {
-  const [selectedTab, setSelectedTab] = useState(0);
   const [hasProviderError, setHasProviderError] = useState(false);
-  const [{ data, fetching, error }, updateProduct] = useAction(api.shopifyProduct.update);
   const navigate = useNavigate();
   
-  // Fallback data fetching in case AutoTable fails
-  const tableFilter = selectedTab === 1 
-    ? { isBarberService: { equals: true } }
-    : undefined;
+  // Only show services - using productType instead of isBarberService
+  const tableFilter = { 
+    productType: { 
+      in: ["Service", "service", "SERVICE"] 
+    },
+    status: { equals: "active" }
+  };
     
   const [{ data: products, fetching: fetchingProducts, error: productsError }] = useFindMany(
     api.shopifyProduct,
@@ -23,43 +24,31 @@ export default function ProductsIndex() {
       select: {
         id: true,
         title: true,
-        status: true,
-        productType: true,
-        isBarberService: true
+        handle: true,
+        variants: {
+          edges: {
+            node: {
+              id: true,
+              price: true
+            }
+          }
+        }
       }
     }
   );
 
-  const handleServiceToggle = async (productId: string, currentValue: boolean) => {
-    try {
-      await updateProduct({
-        id: productId,
-        isBarberService: !currentValue
-      });
-      // Show success message if shopify global is available
-      if (typeof shopify !== 'undefined') {
-        shopify.toast.show(
-          `Product ${!currentValue ? 'marked as service' : 'unmarked as service'}`
-        );
-      }
-    } catch (error) {
-      if (typeof shopify !== 'undefined') {
-        shopify.toast.show('Failed to update product', { isError: true });
-      }
-      console.error('Failed to update product:', error);
-    }
-  };
-
-  const tabs = [
-    {
-      id: 'all-products',
-      content: 'All Products',
-    },
-    {
-      id: 'services-only',
-      content: 'Services Only',
-    },
-  ];
+  // Debug: Log what we're getting to see the actual data structure
+  console.log('Products filter:', tableFilter);
+  console.log('Products returned:', products);
+  console.log('First product structure:', products?.[0]);
+  console.log('First product keys:', products?.[0] ? Object.keys(products[0]) : 'No products');
+  console.log('Fetching state:', fetchingProducts);
+  console.log('Products error:', productsError);
+  console.log('Products error details:', productsError ? {
+    message: productsError.message,
+    name: productsError.name,
+    stack: productsError.stack
+  } : 'No error');
 
   // Error boundary component for AutoTable
   const AutoTableWithFallback = () => {
@@ -69,18 +58,36 @@ export default function ProductsIndex() {
           model={api.shopifyProduct}
           filter={tableFilter}
           columns={[
-            "title",
-            "status", 
-            "productType",
             {
-              header: "Service Status",
+              header: "Title",
               render: ({ record }) => (
-                <Checkbox
-                  checked={record.isBarberService || false}
-                  onChange={() => handleServiceToggle(record.id, record.isBarberService || false)}
-                  disabled={fetching}
-                  label={record.isBarberService ? "Service" : "Product"}
-                />
+                <a 
+                  href={`https://paliga-test-store.myshopify.com/admin/products/${record.id}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: 'none', color: 'inherit' }}
+                >
+                  {record.title}
+                </a>
+              )
+            },
+            {
+              header: "Price",
+              render: ({ record }) => {
+                const firstVariant = record.variants?.edges?.[0]?.node;
+                return (
+                  <Text as="p" variant="bodyMd">
+                    {firstVariant?.price ? `$${firstVariant.price}` : 'N/A'}
+                  </Text>
+                );
+              }
+            },
+            {
+              header: "# of Variants",
+              render: ({ record }) => (
+                <Text as="p" variant="bodyMd">
+                  {record.variants?.edges?.length || 0}
+                </Text>
               )
             }
           ]}
@@ -121,15 +128,17 @@ export default function ProductsIndex() {
               <BlockStack gap="200">
                 <Text as="h3" variant="headingSm">{product.title}</Text>
                 <Text as="p" variant="bodyMd" tone="subdued">
-                  {product.status} • {product.productType || 'No type'}
+                  {product.variants?.edges?.length || 0} variants
                 </Text>
               </BlockStack>
-              <Checkbox
-                checked={product.isBarberService || false}
-                onChange={() => handleServiceToggle(product.id, product.isBarberService || false)}
-                disabled={fetching}
-                label={product.isBarberService ? "Service" : "Product"}
-              />
+              <InlineStack gap="400" align="end">
+                <Text as="p" variant="bodyMd">
+                  {product.variants?.edges?.[0]?.node?.price ? `$${product.variants.edges[0].node.price}` : 'N/A'}
+                </Text>
+                <Text as="p" variant="bodyMd">
+                  {product.variants?.edges?.length || 0}
+                </Text>
+              </InlineStack>
             </InlineStack>
           </Card>
         ))}
@@ -138,7 +147,7 @@ export default function ProductsIndex() {
   };
 
   return (
-    <Page title="Products" subtitle="Manage your products and services">
+    <Page title="Services" subtitle="Manage your barber services">
       <BlockStack gap="400">
         <InlineStack gap="400" align="end">
           <Button
@@ -151,12 +160,6 @@ export default function ProductsIndex() {
         
         <Card>
         <BlockStack gap="400">
-          <Tabs
-            tabs={tabs}
-            selected={selectedTab}
-            onSelect={setSelectedTab}
-          />
-          
           {hasProviderError && (
             <Banner status="warning">
               <Text as="p" variant="bodyMd">

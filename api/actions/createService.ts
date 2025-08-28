@@ -265,13 +265,6 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
       metafields: [
         {
           ownerId: createdProduct.id,
-          namespace: "barbershop",
-          key: "is_barber_service",
-          value: "true",
-          type: "boolean"
-        },
-        {
-          ownerId: createdProduct.id,
           namespace: "booking",
           key: "service_type",
           value: "appointment",

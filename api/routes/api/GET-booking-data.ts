@@ -45,7 +45,9 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     const services = await api.shopifyProduct.findMany({
       filter: {
         shopId: { equals: shopId },
-        isBarberService: { equals: true },
+        productType: { 
+          in: ["Service", "service", "SERVICE"] 
+        },
         status: { equals: "active" }
       },
               select: {

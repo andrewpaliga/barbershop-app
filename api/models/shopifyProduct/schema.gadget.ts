@@ -6,20 +6,7 @@ import type { GadgetModel } from "gadget-server";
 export const schema: GadgetModel = {
   type: "gadget/model-schema/v1",
   storageKey: "DataModel-Shopify-Product",
-  fields: {
-    isBarberService: {
-      type: "boolean",
-      shopifyMetafield: {
-        privateMetafield: false,
-        namespace: "barbershop",
-        key: "is_barber_service",
-        metafieldType: "boolean",
-        allowMultipleEntries: false,
-      },
-      default: false,
-      storageKey: "k6PJH9isNDiK",
-    },
-  },
+  fields: {},
   shopify: {
     fields: [
       "body",

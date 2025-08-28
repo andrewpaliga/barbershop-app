@@ -61,7 +61,7 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
         product: {
           id: true,
           title: true,
-          isBarberService: true
+          productType: true
         }
       }
     }
@@ -87,11 +87,21 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
       });
 
       // Check if this line item represents a barber service
-      const isBarberService = lineItem.variant?.product?.isBarberService === true;
+      const productType = lineItem.variant?.product?.productType;
+      const isBarberService = productType && (
+        productType === "Service" || 
+        productType === "service" || 
+        productType === "SERVICE"
+      );
       
       logger.info(`Line item ${lineItem.id} barber service check`, {
         isBarberService,
-        productIsBarberService: lineItem.variant?.product?.isBarberService
+        productProductType: productType,
+        productTypeMatches: {
+          exact: productType === "Service",
+          lowercase: productType === "service",
+          uppercase: productType === "SERVICE"
+        }
       });
       
       if (!isBarberService) {
@@ -429,21 +439,81 @@ function createScheduledAtInLocationTimezone(
       locationTimeZone: locationTimeZone
     });
 
-    // Parse MM/DD/YYYY format and convert to YYYY-MM-DD
-    const dateParts = dateStr.split('/');
-    if (dateParts.length !== 3) {
-      logger.error(`Invalid date format for line item ${lineItemId}`, {
+    // Parse multiple date formats: MM/DD/YYYY and "Month DD, YYYY"
+    let year: number, month: number, day: number;
+    
+    if (dateStr.includes('/')) {
+      // Handle MM/DD/YYYY format
+      const dateParts = dateStr.split('/');
+      if (dateParts.length !== 3) {
+        logger.error(`Invalid MM/DD/YYYY date format for line item ${lineItemId}`, {
+          lineItemId: lineItemId,
+          dateValue: dateStr,
+          expectedFormat: 'MM/DD/YYYY'
+        });
+        return null;
+      }
+      
+      month = parseInt(dateParts[0]);
+      day = parseInt(dateParts[1]);
+      year = parseInt(dateParts[2]);
+      
+      logger.info(`Parsed MM/DD/YYYY format for line item ${lineItemId}`, {
         lineItemId: lineItemId,
-        dateValue: dateStr,
-        expectedFormat: 'MM/DD/YYYY'
+        originalDate: dateStr,
+        parsedMonth: month,
+        parsedDay: day,
+        parsedYear: year
+      });
+      
+    } else {
+      // Handle "Month DD, YYYY" format (e.g., "August 28, 2025")
+      try {
+        const parsedDate = new Date(dateStr);
+        
+        if (isNaN(parsedDate.getTime())) {
+          logger.error(`Invalid date string for line item ${lineItemId}`, {
+            lineItemId: lineItemId,
+            dateValue: dateStr,
+            supportedFormats: ['MM/DD/YYYY', 'Month DD, YYYY']
+          });
+          return null;
+        }
+        
+        year = parsedDate.getFullYear();
+        month = parsedDate.getMonth() + 1; // getMonth() returns 0-11, so add 1
+        day = parsedDate.getDate();
+        
+        logger.info(`Parsed Month DD, YYYY format for line item ${lineItemId}`, {
+          lineItemId: lineItemId,
+          originalDate: dateStr,
+          parsedMonth: month,
+          parsedDay: day,
+          parsedYear: year
+        });
+        
+      } catch (parseError) {
+        logger.error(`Failed to parse date string for line item ${lineItemId}`, {
+          lineItemId: lineItemId,
+          dateValue: dateStr,
+          parseError: parseError.message,
+          supportedFormats: ['MM/DD/YYYY', 'Month DD, YYYY']
+        });
+        return null;
+      }
+    }
+    
+    // Validate parsed date components
+    if (!year || !month || !day || month < 1 || month > 12 || day < 1 || day > 31) {
+      logger.error(`Invalid parsed date components for line item ${lineItemId}`, {
+        lineItemId: lineItemId,
+        originalDate: dateStr,
+        year: year,
+        month: month,
+        day: day
       });
       return null;
     }
-    
-    const month = dateParts[0].padStart(2, '0');
-    const day = dateParts[1].padStart(2, '0');
-    const year = dateParts[2];
-    const formattedDate = `${year}-${month}-${day}`;
     
     // Parse time (assume HH:MM format, handle 12-hour format if needed)
     let parsedTime = timeStr;
@@ -474,9 +544,9 @@ function createScheduledAtInLocationTimezone(
     
     logger.info(`Parsed date/time components`, {
       lineItemId: lineItemId,
-      year: parseInt(year),
-      month: parseInt(month),
-      day: parseInt(day),
+      year: year,
+      month: month,
+      day: day,
       hours: hours,
       minutes: minutes,
       timezone: timezone
@@ -491,7 +561,7 @@ function createScheduledAtInLocationTimezone(
     try {
       // Create a date object representing the local time in the location's timezone
       // We need to calculate the timezone offset for the specific date to handle DST
-      const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hours, minutes, 0, 0);
+      const localDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
       
       logger.info(`Created local date object`, {
         lineItemId: lineItemId,
@@ -527,16 +597,16 @@ function createScheduledAtInLocationTimezone(
       });
       
       // Fallback: Create UTC date directly (less accurate for DST)
-      scheduledAtUTC = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), hours, minutes, 0, 0));
+      scheduledAtUTC = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
     }
     
     // Validate the resulting date
     if (isNaN(scheduledAtUTC.getTime())) {
       logger.error(`Invalid date created for line item ${lineItemId}`, {
         lineItemId: lineItemId,
-        year: parseInt(year),
-        month: parseInt(month),
-        day: parseInt(day),
+        year: year,
+        month: month,
+        day: day,
         hours: hours,
         minutes: minutes,
         resultingDate: scheduledAtUTC

@@ -966,17 +966,17 @@ async function confirmBooking() {
         id: shopifyVariantId,
         quantity: 1,
         properties: {
-          'Booking Date': currentSelection.selectedDate.toLocaleDateString('en-US', {
+          'booking_date': currentSelection.selectedDate.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
           }),
-          'Booking Time': formatTime12Hour(currentSelection.selectedTime),
-          'Barber': staff.name,
-          'Location': location.name,
-          'Notes': notes || '',
-          'Staff ID': currentSelection.staffId,
-          'Location ID': currentSelection.locationId
+          'booking_time': formatTime12Hour(currentSelection.selectedTime),
+          'barber_name': staff.name,
+          'location_name': location.name,
+          'notes': notes || '',
+          'staff_id': currentSelection.staffId,
+          'location_id': currentSelection.locationId
         }
       };
       
