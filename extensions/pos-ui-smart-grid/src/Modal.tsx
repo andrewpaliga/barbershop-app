@@ -403,49 +403,6 @@ const Modal = () => {
           {currentScreen === 'list' ? (
             <>
 
-              <Section title="Recent Appointments">
-                {recentAppointments.length > 0 ? (
-                  recentAppointments.map(appointment => {
-                    const { dateStr, timeStr } = formatDateTime(appointment.scheduledAt);
-                    return (
-                      <Selectable key={appointment.id} onPress={() => handleAppointmentSelect(appointment)}>
-                        <Stack direction="vertical" paddingHorizontal="Small" paddingVertical="Small">
-                          <Stack
-                            direction="inline"
-                            gap="400"
-                            justifyContent="space-between"
-                            alignItems="center"
-                            alignContent="center"
-                          >
-                            <Stack direction="block" gap="200">
-                              <Stack direction="horizontal" gap="200">
-                                <Text variant="headingSmall">{appointment.customerName}</Text>
-                                <Badge
-                                  text={getPaymentStatusBadge(appointment).text}
-                                  variant={getPaymentStatusBadge(appointment).variant}
-                                />
-                                <Badge
-                                  text={getArrivalStatusBadge(appointment).text}
-                                  variant={getArrivalStatusBadge(appointment).variant}
-                                />
-                              </Stack>
-                              <Text variant="body">{dateStr} at {timeStr}</Text>
-                              <Text variant="body">Service: {appointment.serviceName}</Text>
-                              <Text variant="body">👤 Barber: {appointment.staffName}</Text>
-                            </Stack>
-                            <Icon name="chevron-right" />
-                          </Stack>
-                        </Stack>
-                      </Selectable>
-                    );
-                  })
-                ) : (
-                  <Box padding="400">
-                    <Text>No recent appointments found</Text>
-                  </Box>
-                )}
-              </Section>
-
               <Section title="Upcoming Appointments">
                 {upcomingAppointments.length > 0 ? (
                   upcomingAppointments.map(appointment => {
@@ -455,13 +412,14 @@ const Modal = () => {
                         <Stack direction="vertical" paddingHorizontal="Small" paddingVertical="Small">
                           <Stack
                             direction="inline"
-                            gap="400"
+                            gap="200"
                             justifyContent="space-between"
                             alignItems="center"
                             alignContent="center"
+                            wrap="nowrap"
                           >
-                            <Stack direction="block" gap="200">
-                              <Stack direction="horizontal" gap="200">
+                            <Stack direction="block" gap="200" inlineSize="80%">
+                              <Stack direction="horizontal" gap="200" wrap="nowrap">
                                 <Text variant="headingSmall">{appointment.customerName}</Text>
                                 <Badge
                                   text={getPaymentStatusBadge(appointment).text}
@@ -488,23 +446,66 @@ const Modal = () => {
                   </Box>
                 )}
               </Section>
+
+              <Section title="Recent Appointments">
+                {recentAppointments.length > 0 ? (
+                  recentAppointments.map(appointment => {
+                    const { dateStr, timeStr } = formatDateTime(appointment.scheduledAt);
+                    return (
+                      <Selectable key={appointment.id} onPress={() => handleAppointmentSelect(appointment)}>
+                        <Stack direction="vertical" paddingHorizontal="Small" paddingVertical="Small">
+                          <Stack
+                            direction="inline"
+                            gap="200"
+                            justifyContent="space-between"
+                            alignItems="center"
+                            alignContent="center"
+                            wrap="nowrap"
+                          >
+                            <Stack direction="block" gap="200" inlineSize="80%">
+                              <Stack direction="horizontal" gap="200" wrap="nowrap">
+                                <Text variant="headingSmall">{appointment.customerName}</Text>
+                                <Badge
+                                  text={getPaymentStatusBadge(appointment).text}
+                                  variant={getPaymentStatusBadge(appointment).variant}
+                                />
+                                <Badge
+                                  text={getArrivalStatusBadge(appointment).text}
+                                  variant={getArrivalStatusBadge(appointment).variant}
+                                />
+                              </Stack>
+                              <Text variant="body">{dateStr} at {timeStr}</Text>
+                              <Text variant="body">Service: {appointment.serviceName}</Text>
+                              <Text variant="body">👤 Barber: {appointment.staffName}</Text>
+                            </Stack>
+                            <Icon name="chevron-right" />
+                          </Stack>
+                        </Stack>
+                      </Selectable>
+                    );
+                  })
+                ) : (
+                  <Box padding="400">
+                    <Text>No recent appointments found</Text>
+                  </Box>
+                )}
+              </Section>
             </>
           ) : (
             selectedAppointment && (
               <>
-                <Box padding="400">
+                <Box padding="200">
                   <Selectable onPress={handleBackToList}>
                     <Stack
                       direction="inline"
-                      gap="200"
+                      gap="300"
                       alignItems="center"
                       alignContent="center"
-                      paddingInline="200"
-                      paddingBlock="300"
-                      inlineSize="20%"
+                      paddingInline="400"
+                      paddingBlock="400"
                     >
                       <Icon name="chevron-left" />
-                      <Text>Back</Text>
+                      <Text variant="body">Back</Text>
                     </Stack>
                   </Selectable>
                 </Box>
