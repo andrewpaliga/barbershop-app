@@ -22,7 +22,13 @@ export default function Index() {
 
   // Check completion status with API calls
   const [{ data: staffData }] = useFindMany(api.staff);
-  const [{ data: servicesData }] = useFindMany(api.staffProduct);
+  const [{ data: servicesData }] = useFindMany(api.shopifyProduct, {
+    filter: {
+      productType: {
+        in: ["service", "Service", "SERVICE"]
+      }
+    }
+  });
   const [{ data: bookingsData }] = useFindMany(api.booking, {
     filter: {
       scheduledAt: {
@@ -73,7 +79,7 @@ export default function Index() {
       title: "Add a service",
       description: "Create services and assign them to staff members",
       completed: (servicesData?.length || 0) > 0,
-      action: () => navigate("/services/new"),
+      action: () => navigate("/services"),
       buttonText: "Add Service"
     },
     {
