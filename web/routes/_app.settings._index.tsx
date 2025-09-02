@@ -187,6 +187,106 @@ export default function Settings() {
             </BlockStack>
           </div>
         </Card>
+        
+        <Card>
+          <div style={{ padding: "20px" }}>
+            <div style={{ marginBottom: "20px" }}>
+              <Text as="h2" variant="headingMd">
+                Extension Usage Tracking
+              </Text>
+              <div style={{ marginTop: "8px" }}>
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  Track which extensions have been used and reset for testing
+                </Text>
+              </div>
+            </div>
+
+            <BlockStack gap="300">
+              <InlineStack align="space-between" blockAlign="center">
+                <BlockStack gap="100">
+                  <Text as="p" variant="bodyMd">
+                    Theme Extension (Booking Widget)
+                  </Text>
+                  <Text as="p" variant="bodyMd" tone="subdued">
+                    {config?.themeExtensionUsed ? "Extension has been used" : "Extension not yet used"}
+                  </Text>
+                </BlockStack>
+                <InlineStack gap="200" blockAlign="center">
+                  <Badge tone={config?.themeExtensionUsed ? "success" : "warning"}>
+                    {config?.themeExtensionUsed ? "Used" : "Not Used"}
+                  </Badge>
+                  {config?.themeExtensionUsed && (
+                    <Button
+                      variant="secondary"
+                      size="slim"
+                      loading={isSaving}
+                      onClick={async () => {
+                        setIsSaving(true);
+                        try {
+                          await api.config.update(config.id, {
+                            themeExtensionUsed: false
+                          });
+                          setShowSuccess(true);
+                          setTimeout(() => setShowSuccess(false), 3000);
+                        } catch (error) {
+                          console.error('Failed to reset theme extension tracking:', error);
+                        } finally {
+                          setIsSaving(false);
+                        }
+                      }}
+                    >
+                      Reset
+                    </Button>
+                  )}
+                </InlineStack>
+              </InlineStack>
+              
+              <InlineStack align="space-between" blockAlign="center">
+                <BlockStack gap="100">
+                  <Text as="p" variant="bodyMd">
+                    POS Extension
+                  </Text>
+                  <Text as="p" variant="bodyMd" tone="subdued">
+                    {config?.posExtensionUsed ? "Extension has been used" : "Extension not yet used"}
+                  </Text>
+                </BlockStack>
+                <InlineStack gap="200" blockAlign="center">
+                  <Badge tone={config?.posExtensionUsed ? "success" : "warning"}>
+                    {config?.posExtensionUsed ? "Used" : "Not Used"}
+                  </Badge>
+                  {config?.posExtensionUsed && (
+                    <Button
+                      variant="secondary"
+                      size="slim"
+                      loading={isSaving}
+                      onClick={async () => {
+                        setIsSaving(true);
+                        try {
+                          await api.config.update(config.id, {
+                            posExtensionUsed: false
+                          });
+                          setShowSuccess(true);
+                          setTimeout(() => setShowSuccess(false), 3000);
+                        } catch (error) {
+                          console.error('Failed to reset POS extension tracking:', error);
+                        } finally {
+                          setIsSaving(false);
+                        }
+                      }}
+                    >
+                      Reset
+                    </Button>
+                  )}
+                </InlineStack>
+              </InlineStack>
+              
+              <Text as="p" variant="bodySm" tone="subdued">
+                These flags are automatically set to true when the respective extensions make their first API call. 
+                You can reset them for testing purposes.
+              </Text>
+            </BlockStack>
+          </div>
+        </Card>
       </div>
       
       {showSuccess && (

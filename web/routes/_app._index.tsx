@@ -92,14 +92,14 @@ export default function Index() {
     {
       title: "Enable booking button",
       description: "Add the booking widget to your storefront",
-      completed: (bookingsData?.length || 0) > 0,
+      completed: config?.themeExtensionUsed || false,
       action: () => window.open("https://help.shopify.com/en/manual/online-store/themes/theme-structure/extend/apps", "_blank"),
       buttonText: "Setup Widget"
     },
     {
       title: "Enable POS extension",
       description: "Allow staff to manage bookings from Shopify POS",
-      completed: false, // This would need specific logic to detect POS usage
+      completed: config?.posExtensionUsed || false,
       action: () => window.open("https://help.shopify.com/en/manual/pos", "_blank"),
       buttonText: "Setup POS"
     }

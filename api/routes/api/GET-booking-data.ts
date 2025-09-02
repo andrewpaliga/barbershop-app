@@ -269,6 +269,24 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
 
     logger.info(`Successfully fetched booking data for shop ${shopId}: ${services.length} services, ${staff.length} staff, ${locations.length} locations, timeSlotInterval: ${timeSlotInterval}min`);
 
+    // Track theme extension usage
+    try {
+      const currentConfig = await api.config.findFirst({
+        filter: { shopId: { equals: shopId } },
+        select: { id: true, themeExtensionUsed: true }
+      });
+
+      if (currentConfig && !currentConfig.themeExtensionUsed) {
+        await api.config.update(currentConfig.id, {
+          themeExtensionUsed: true
+        });
+        logger.info(`Theme extension usage tracked for shop ${shopId}`);
+      }
+    } catch (error) {
+      logger.error("Failed to track theme extension usage:", error);
+      // Don't fail the request if tracking fails
+    }
+
     await reply.code(200).send({ success: true, data: responseData });
 
   } catch (error) {

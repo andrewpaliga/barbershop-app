@@ -277,6 +277,24 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
       upcomingCount: upcomingBookings.length 
     }, "Successfully processed booking data");
 
+    // Track POS extension usage
+    try {
+      const currentConfig = await api.config.findFirst({
+        filter: { shopId: { equals: shopId } },
+        select: { id: true, posExtensionUsed: true }
+      });
+
+      if (currentConfig && !currentConfig.posExtensionUsed) {
+        await api.config.update(currentConfig.id, {
+          posExtensionUsed: true
+        });
+        logger.info(`POS extension usage tracked for shop ${shopId}`);
+      }
+    } catch (error) {
+      logger.error("Failed to track POS extension usage:", error);
+      // Don't fail the request if tracking fails
+    }
+
     await reply.send({
       recentBookings,
       upcomingBookings

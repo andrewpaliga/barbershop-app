@@ -46,6 +46,11 @@ export const schema: GadgetModel = {
       default: false,
       storageKey: "LPFwxzZcBylS",
     },
+    posExtensionUsed: {
+      type: "boolean",
+      default: false,
+      storageKey: "POSExtensionUsed",
+    },
     requireCustomerInfo: {
       type: "boolean",
       storageKey: "435MC9FLDysN",
@@ -60,6 +65,11 @@ export const schema: GadgetModel = {
       type: "boolean",
       default: false,
       storageKey: "iWIn1etHeIAk",
+    },
+    themeExtensionUsed: {
+      type: "boolean",
+      default: false,
+      storageKey: "ThemeExtensionUsed",
     },
     timeSlotInterval: {
       type: "number",
