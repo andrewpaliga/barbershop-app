@@ -5,13 +5,17 @@ import {
   Text,
   Select,
   Button,
+  BlockStack,
+  InlineStack,
+  Badge,
 } from "@shopify/polaris";
-import { useFindFirst } from "@gadgetinc/react";
+import { useFindFirst, useAction } from "@gadgetinc/react";
 import { api } from "../api";
 import { useState } from "react";
 
 export default function Settings() {
   const [{ data: config, fetching, error }] = useFindFirst(api.config);
+  const [{ fetching: updatingOnboarding }, updateConfig] = useAction(api.config.update);
   const [selectedInterval, setSelectedInterval] = useState<number>(30);
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -126,6 +130,63 @@ export default function Settings() {
             </div>
           </div>
         </Card>
+        
+        <Card>
+          <div style={{ padding: "20px" }}>
+            <div style={{ marginBottom: "20px" }}>
+              <Text as="h2" variant="headingMd">
+                Onboarding Settings
+              </Text>
+              <div style={{ marginTop: "8px" }}>
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  Manage your app setup and onboarding experience
+                </Text>
+              </div>
+            </div>
+
+            <BlockStack gap="300">
+              <InlineStack align="space-between" blockAlign="center">
+                <BlockStack gap="100">
+                  <Text as="p" variant="bodyMd">
+                    Setup Onboarding
+                  </Text>
+                  <Text as="p" variant="bodyMd" tone="subdued">
+                    {config?.onboardingSkipped ? "Onboarding was skipped" : "Onboarding is active"}
+                  </Text>
+                </BlockStack>
+                <InlineStack gap="200" blockAlign="center">
+                  <Badge tone={config?.onboardingSkipped ? "critical" : "success"}>
+                    {config?.onboardingSkipped ? "Skipped" : "Active"}
+                  </Badge>
+                  {config?.onboardingSkipped && (
+                    <Button
+                      variant="primary"
+                      size="slim"
+                      loading={updatingOnboarding}
+                      onClick={async () => {
+                        setIsSaving(true);
+                        try {
+                          await updateConfig({ id: config.id, onboardingSkipped: false });
+                          setShowSuccess(true);
+                          setTimeout(() => setShowSuccess(false), 3000);
+                        } catch (error) {
+                          console.error('Failed to reset onboarding:', error);
+                        } finally {
+                          setIsSaving(false);
+                        }
+                      }}
+                    >
+                      Show Onboarding
+                    </Button>
+                  )}
+                </InlineStack>
+              </InlineStack>
+              <Text as="p" variant="bodySm" tone="subdued">
+                The onboarding helps you get started with setting up services, staff, and booking features. You can re-enable it anytime.
+              </Text>
+            </BlockStack>
+          </div>
+        </Card>
       </div>
       
       {showSuccess && (
@@ -142,7 +203,7 @@ export default function Settings() {
           animation: 'slideIn 0.3s ease-out'
         }}>
           <Text variant="bodyMd">
-            ✅ Time slot interval saved successfully!
+            ✅ Your changes have been saved!
           </Text>
         </div>
       )}

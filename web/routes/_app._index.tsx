@@ -1,68 +1,394 @@
-import { AutoTable } from "@gadgetinc/react/auto/polaris";
-import {
-  Banner,
-  BlockStack,
-  Box,
-  Card,
-  Layout,
-  Link,
-  Page,
-  Text,
-} from "@shopify/polaris";
+import { useEffect } from "react";
+import { Page, Card, Text, BlockStack, InlineStack, Banner, Button, ProgressBar, Icon, Badge, Layout, Box } from "@shopify/polaris";
+import { CheckIcon } from "@shopify/polaris-icons";
+import { useFindMany, useFindFirst, useAction } from "@gadgetinc/react";
+import { useNavigate } from "@remix-run/react";
 import { api } from "../api";
 
 export default function Index() {
+  const navigate = useNavigate();
+
+  // Get config data and update action
+  const [{ data: config, fetching: fetchingConfig, error: configError }, refetchConfig] = useFindFirst(api.config);
+  const [{ fetching: updatingConfig }, updateConfig] = useAction(api.config.update);
+
+  // Define dates first
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const nextWeek = new Date(today);
+  nextWeek.setDate(nextWeek.getDate() + 7);
+
+  // Check completion status with API calls
+  const [{ data: staffData }] = useFindMany(api.staff);
+  const [{ data: servicesData }] = useFindMany(api.staffProduct);
+  const [{ data: bookingsData }] = useFindMany(api.booking, {
+    filter: {
+      scheduledAt: {
+        greaterThanOrEqual: tomorrow.toISOString()
+      }
+    }
+  });
+
+  const [{ data: todaysBookings }] = useFindMany(api.booking, { 
+    first: 10,
+    filter: {
+      scheduledAt: {
+        greaterThanOrEqual: today.toISOString(),
+        lessThan: tomorrow.toISOString()
+      }
+    },
+    sort: { scheduledAt: "Ascending" },
+    select: {
+      id: true,
+      customerName: true,
+      scheduledAt: true,
+      status: true,
+      staff: { name: true }
+    }
+  });
+
+  const [{ data: upcomingBookings }] = useFindMany(api.booking, { 
+    first: 10,
+    filter: {
+      scheduledAt: {
+        greaterThanOrEqual: tomorrow.toISOString(),
+        lessThan: nextWeek.toISOString()
+      }
+    },
+    sort: { scheduledAt: "Ascending" },
+    select: {
+      id: true,
+      customerName: true,
+      scheduledAt: true,
+      status: true,
+      staff: { name: true }
+    }
+  });
+
+  // Calculate completion status
+  const steps = [
+    {
+      title: "Add a service",
+      description: "Create services and assign them to staff members",
+      completed: (servicesData?.length || 0) > 0,
+      action: () => navigate("/services/new"),
+      buttonText: "Add Service"
+    },
+    {
+      title: "Add a staff member",
+      description: "Add team members who can provide services",
+      completed: (staffData?.length || 0) > 0,
+      action: () => navigate("/staff/new"),
+      buttonText: "Add Staff"
+    },
+    {
+      title: "Enable booking button",
+      description: "Add the booking widget to your storefront",
+      completed: (bookingsData?.length || 0) > 0,
+      action: () => window.open("https://help.shopify.com/en/manual/online-store/themes/theme-structure/extend/apps", "_blank"),
+      buttonText: "Setup Widget"
+    },
+    {
+      title: "Enable POS extension",
+      description: "Allow staff to manage bookings from Shopify POS",
+      completed: false, // This would need specific logic to detect POS usage
+      action: () => window.open("https://help.shopify.com/en/manual/pos", "_blank"),
+      buttonText: "Setup POS"
+    }
+  ];
+
+  // Auto-dismiss onboarding if complete
+  useEffect(() => {
+    const completedSteps = steps.filter(step => step.completed).length;
+    const isOnboardingComplete = completedSteps === steps.length;
+    const isDismissed = config?.onboardingSkipped || false;
+    
+    if (isOnboardingComplete && !isDismissed) {
+      const timer = setTimeout(async () => {
+        try {
+          if (config?.id) {
+            await updateConfig({ id: config.id, onboardingSkipped: true });
+          } else {
+            await api.config.create({ onboardingSkipped: true });
+          }
+          // Refetch config to get updated data
+          await refetchConfig();
+        } catch (error) {
+          console.error('Failed to auto-dismiss onboarding:', error);
+        }
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [config, updateConfig, refetchConfig]);
+
+  // Show loading spinner while config is being fetched
+  if (fetchingConfig) {
+    return (
+      <Page title="Dashboard">
+        <Layout>
+          <Layout.Section>
+            <Card>
+              <div style={{ padding: "40px", textAlign: "center" }}>
+                <Text variant="bodyMd" as="p">Loading dashboard...</Text>
+              </div>
+            </Card>
+          </Layout.Section>
+        </Layout>
+      </Page>
+    );
+  }
+
+  const completedSteps = steps.filter(step => step.completed).length;
+  const progressPercentage = (completedSteps / steps.length) * 100;
+  const isOnboardingComplete = completedSteps === steps.length;
+  const isDismissed = config?.onboardingSkipped || false;
+
+
+
+  // Skip setup handler
+  const handleSkipSetup = async () => {
+    try {
+      if (config?.id) {
+        await updateConfig({ id: config.id, onboardingSkipped: true });
+      } else {
+        await api.config.create({ onboardingSkipped: true });
+      }
+      await refetchConfig();
+    } catch (error) {
+      console.error('Failed to skip onboarding:', error);
+    }
+  };
+
+
+
+  const welcomeMessage = completedSteps === 0 
+    ? "Welcome to your Barbershop booking app! Let's get you set up."
+    : completedSteps === steps.length
+    ? "🎉 Congratulations! Your barbershop app is fully configured and ready to take bookings."
+    : `Great progress! You've completed ${completedSteps} of ${steps.length} setup steps.`;
+
   return (
-    <Page title="App">
+    <Page title="Dashboard">
       <Layout>
-        <Layout.Section>
-          <Banner tone="success">
-            <Text variant="bodyMd" as="p">
-              Successfully connected your Gadget app to Shopify
-            </Text>
-          </Banner>
-        </Layout.Section>
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="200" inlineAlign="center">
-              <gadget-sparkle-button onClick={() => window.open(`/edit/preview?openShopifyOnboarding=true`, '_top')} style={{ width: "300px", marginTop: "32px", marginBottom: "32px" }}>
-                Start building your app
-              </gadget-sparkle-button>
-              <Text variant="bodyMd" as="p" alignment="center">
-                or edit this page's code directly:&nbsp;
-                <Link
-                  url={`/edit/files/web/routes/_app._index.tsx?openShopifyOnboarding=true`}
-                  target="_blank"
-                  removeUnderline
-                >
-                  web/routes/_app._index.tsx
-                </Link>
+        {/* Welcome Banner */}
+        {(!isOnboardingComplete && !isDismissed) && (
+          <Layout.Section>
+            <Banner 
+              tone={completedSteps === 0 ? "info" : completedSteps === steps.length ? "success" : "warning"}
+              onDismiss={isOnboardingComplete ? handleSkipSetup : undefined}
+            >
+              <Text variant="bodyMd" as="p">
+                {welcomeMessage}
               </Text>
-            </BlockStack>
-          </Card>
-        </Layout.Section>
-        <Layout.Section>
-          <Card padding="0">
-            {/* use Autocomponents to build UI quickly: https://docs.gadget.dev/guides/frontend/autocomponents  */}
-            <AutoTable
-              //@ts-ignore
-              model={api.shopifyShop}
-              columns={["name", "countryName", "currency", "customerEmail"]}
-            />
-            <Box padding="400">
-              <Text variant="headingMd" as="h6">
-                Shop records fetched from:{" "}
-                <Link
-                  url={`/edit/model/DataModel-Shopify-Shop/data`}
-                  target="_blank"
-                  removeUnderline
-                >
-                  api/models/shopifyShop/data
-                </Link>
-              </Text>
-            </Box>
-          </Card>
-        </Layout.Section>
+            </Banner>
+          </Layout.Section>
+        )}
+
+        {/* Onboarding Section */}
+        {(!isOnboardingComplete && !isDismissed) && (
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="400">
+                <InlineStack align="space-between" blockAlign="center">
+                  <Text variant="headingLg" as="h2">
+                    Setup Progress
+                  </Text>
+                  <InlineStack gap="200" blockAlign="center">
+                    <Badge tone={isOnboardingComplete ? "success" : "attention"}>
+                      {completedSteps}/{steps.length} Complete
+                    </Badge>
+                    <Button 
+                      variant="plain" 
+                      size="slim" 
+                      loading={updatingConfig}
+                      onClick={handleSkipSetup}
+                    >
+                      Skip setup
+                    </Button>
+                  </InlineStack>
+                </InlineStack>
+                
+                <ProgressBar progress={progressPercentage} size="small" />
+                
+                <BlockStack gap="300">
+                  {steps.map((step, index) => (
+                    <Card key={index} background={step.completed ? "bg-surface-success" : "bg-surface"}>
+                      <InlineStack align="space-between" blockAlign="center">
+                        <InlineStack gap="300" blockAlign="center">
+                          {step.completed && <Icon source={CheckIcon} tone="success" />}
+                          {!step.completed && <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '2px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}></div>}
+                          <BlockStack gap="100">
+                            <Text variant="headingMd" as="h3">
+                              {step.title}
+                            </Text>
+                            <Text variant="bodyMd" as="p" tone="subdued">
+                              {step.description}
+                            </Text>
+                          </BlockStack>
+                        </InlineStack>
+                        {!step.completed && (
+                          <Button onClick={step.action} variant="primary">
+                            {step.buttonText}
+                          </Button>
+                        )}
+                      </InlineStack>
+                    </Card>
+                  ))}
+                </BlockStack>
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+        )}
+
+        {/* Dashboard Section */}
+        {(isOnboardingComplete || isDismissed) && (
+          <>
+            <Layout.Section>
+              <InlineStack gap="400">
+                <Card>
+                  <BlockStack gap="200">
+                    <Text variant="headingMd" as="h3">
+                      Total Staff
+                    </Text>
+                    <Text variant="heading2xl" as="p">
+                      {staffData?.length || 0}
+                    </Text>
+                    <Button onClick={() => navigate("/staff")} variant="plain">
+                      Manage Staff
+                    </Button>
+                  </BlockStack>
+                </Card>
+                
+                <Card>
+                  <BlockStack gap="200">
+                    <Text variant="headingMd" as="h3">
+                      Active Services
+                    </Text>
+                    <Text variant="heading2xl" as="p">
+                      {servicesData?.length || 0}
+                    </Text>
+                    <Button onClick={() => navigate("/services")} variant="plain">
+                      Manage Services
+                    </Button>
+                  </BlockStack>
+                </Card>
+                
+                <Card>
+                  <BlockStack gap="200">
+                    <Text variant="headingMd" as="h3">
+                      Upcoming Bookings
+                    </Text>
+                    <Text variant="heading2xl" as="p">
+                      {bookingsData?.length || 0}
+                    </Text>
+                    <Button onClick={() => navigate("/schedule")} variant="plain">
+                      View Schedule
+                    </Button>
+                  </BlockStack>
+                </Card>
+              </InlineStack>
+            </Layout.Section>
+
+            {/* Today's Bookings */}
+            <Layout.Section>
+              <Card>
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text variant="headingLg" as="h2">
+                      Today's Bookings
+                    </Text>
+                    <Button onClick={() => navigate("/schedule")} variant="primary">
+                      View Schedule
+                    </Button>
+                  </InlineStack>
+                  {todaysBookings && todaysBookings.length > 0 ? (
+                    <BlockStack gap="300">
+                      {todaysBookings.map((booking) => (
+                        <Box key={booking.id} padding="300" background="bg-surface-secondary">
+                          <InlineStack align="space-between" blockAlign="center">
+                            <BlockStack gap="100">
+                              <Text variant="bodyMd" as="p">
+                                {booking.customerName || "Walk-in Customer"}
+                              </Text>
+                              <Text variant="bodySm" as="p" tone="subdued">
+                                with {booking.staff?.name} • {new Date(booking.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </Text>
+                            </BlockStack>
+                            <Badge tone={
+                              booking.status === "completed" ? "success" :
+                              booking.status === "cancelled" ? "critical" :
+                              booking.status === "pending" ? "attention" : "info"
+                            }>
+                              {booking.status}
+                            </Badge>
+                          </InlineStack>
+                        </Box>
+                      ))}
+                    </BlockStack>
+                  ) : (
+                    <Box padding="400" background="bg-surface-secondary">
+                      <Text variant="bodyMd" as="p" alignment="center" tone="subdued">
+                        No bookings scheduled for today
+                      </Text>
+                    </Box>
+                  )}
+                </BlockStack>
+              </Card>
+            </Layout.Section>
+
+            {/* Upcoming Bookings */}
+            <Layout.Section>
+              <Card>
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text variant="headingLg" as="h2">
+                      Upcoming Bookings
+                    </Text>
+                    <Button onClick={() => navigate("/schedule/new")} variant="primary">
+                      New Booking
+                    </Button>
+                  </InlineStack>
+                  {upcomingBookings && upcomingBookings.length > 0 ? (
+                    <BlockStack gap="300">
+                      {upcomingBookings.map((booking) => (
+                        <Box key={booking.id} padding="300" background="bg-surface-secondary">
+                          <InlineStack align="space-between" blockAlign="center">
+                            <BlockStack gap="100">
+                              <Text variant="bodyMd" as="p">
+                                {booking.customerName || "Walk-in Customer"}
+                              </Text>
+                              <Text variant="bodySm" as="p" tone="subdued">
+                                with {booking.staff?.name} • {new Date(booking.scheduledAt).toLocaleDateString()} at {new Date(booking.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </Text>
+                            </BlockStack>
+                            <Badge tone={
+                              booking.status === "completed" ? "success" :
+                              booking.status === "cancelled" ? "critical" :
+                              booking.status === "pending" ? "attention" : "info"
+                            }>
+                              {booking.status}
+                            </Badge>
+                          </InlineStack>
+                        </Box>
+                      ))}
+                    </BlockStack>
+                  ) : (
+                    <Box padding="400" background="bg-surface-secondary">
+                      <Text variant="bodyMd" as="p" alignment="center" tone="subdued">
+                        No upcoming bookings in the next 7 days
+                      </Text>
+                    </Box>
+                  )}
+                  <Button onClick={() => navigate("/schedule")} variant="plain">
+                    View All Bookings
+                  </Button>
+                </BlockStack>
+              </Card>
+            </Layout.Section>
+          </>
+        )}
       </Layout>
     </Page>
   );

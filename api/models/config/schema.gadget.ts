@@ -41,6 +41,11 @@ export const schema: GadgetModel = {
       default: true,
       storageKey: "ucmDC_5CNbS6",
     },
+    onboardingSkipped: {
+      type: "boolean",
+      default: false,
+      storageKey: "LPFwxzZcBylS",
+    },
     requireCustomerInfo: {
       type: "boolean",
       storageKey: "435MC9FLDysN",
