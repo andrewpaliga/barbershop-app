@@ -121,6 +121,15 @@ const Modal = () => {
       : { text: 'Not Arrived', variant: 'neutral' as const };
   };
 
+  const isBookingPaid = (booking: Appointment) => {
+    // Check order financial status first if available
+    if (booking.orderFinancialStatus) {
+      return booking.orderFinancialStatus === 'paid';
+    }
+    // Fall back to booking status
+    return booking.status === 'paid';
+  };
+
   useEffect(() => {
     const fetchBookingsData = async () => {
       try {
@@ -416,10 +425,9 @@ const Modal = () => {
                             justifyContent="space-between"
                             alignItems="center"
                             alignContent="center"
-                            wrap="nowrap"
                           >
                             <Stack direction="block" gap="200" inlineSize="80%">
-                              <Stack direction="horizontal" gap="200" wrap="nowrap">
+                              <Stack direction="horizontal" gap="200">
                                 <Text variant="headingSmall">{appointment.customerName}</Text>
                                 <Badge
                                   text={getPaymentStatusBadge(appointment).text}
@@ -460,10 +468,9 @@ const Modal = () => {
                             justifyContent="space-between"
                             alignItems="center"
                             alignContent="center"
-                            wrap="nowrap"
                           >
                             <Stack direction="block" gap="200" inlineSize="80%">
-                              <Stack direction="horizontal" gap="200" wrap="nowrap">
+                              <Stack direction="horizontal" gap="200">
                                 <Text variant="headingSmall">{appointment.customerName}</Text>
                                 <Badge
                                   text={getPaymentStatusBadge(appointment).text}
@@ -583,12 +590,14 @@ const Modal = () => {
                         isDisabled={updatingArrival}
                       />
                     )}
-                    <Button
-                      title={addingToCart ? "Adding to Cart..." : "Add to Cart"}
-                      onPress={() => handleAddToCart(selectedAppointment)}
-                      isDisabled={addingToCart}
-                      type={selectedAppointment.arrived ? "primary" : undefined}
-                    />
+                    {!isBookingPaid(selectedAppointment) && (
+                      <Button
+                        title={addingToCart ? "Adding to Cart..." : "Add to Cart"}
+                        onPress={() => handleAddToCart(selectedAppointment)}
+                        isDisabled={addingToCart}
+                        type={selectedAppointment.arrived ? "primary" : undefined}
+                      />
+                    )}
                   </Stack>
                 </Box>
               </>
