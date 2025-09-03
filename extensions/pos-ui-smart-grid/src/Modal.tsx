@@ -28,6 +28,7 @@ type Appointment = {
   arrived: boolean;
   customerId?: string;
   variantId?: string;
+  orderId?: string;
   lineItems?: Array<{
     id: string;
     title: string;
@@ -48,6 +49,7 @@ const Modal = () => {
   const [arrivalError, setArrivalError] = useState<string | null>(null);
   const [addingToCart, setAddingToCart] = useState(false);
   const [addToCartError, setAddToCartError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   const api = useApi();
 
@@ -82,7 +84,7 @@ const Modal = () => {
     if (booking.orderFinancialStatus) {
       switch (booking.orderFinancialStatus) {
         case 'paid':
-          return { text: 'Paid', variant: 'success' as const };
+          return { text: 'PAID', variant: 'neutral' as const };
         case 'partially_paid':
           return { text: 'Partially Paid', variant: 'warning' as const };
         case 'refunded':
@@ -103,7 +105,7 @@ const Modal = () => {
     // Fall back to booking status if no order financial status
     switch (booking.status) {
       case 'paid':
-        return { text: 'Paid', variant: 'success' as const };
+        return { text: 'PAID', variant: 'neutral' as const };
       case 'pending':
         return { text: 'Pending', variant: 'warning' as const };
       case 'not_paid':
@@ -164,6 +166,7 @@ const Modal = () => {
           arrived: booking.arrived,
           customerId: booking.customerId,
           variantId: booking.variantId,
+          orderId: booking.orderId,
           lineItems: booking.lineItems,
         }));
 
@@ -180,6 +183,7 @@ const Modal = () => {
           arrived: booking.arrived,
           customerId: booking.customerId,
           variantId: booking.variantId,
+          orderId: booking.orderId,
           lineItems: booking.lineItems,
         }));
 
@@ -306,6 +310,36 @@ const Modal = () => {
         }
       }
 
+      // Pass the original order ID as cart properties (will become order note attributes)
+      const debugMsg1 = `DEBUG: appointment.orderId = ${appointment.orderId}`;
+      setDebugInfo(debugMsg1);
+      console.log(debugMsg1);
+      
+      if (appointment.orderId) {
+        try {
+          const debugMsg2 = `DEBUG: Attempting to set cart property original_order_id = ${appointment.orderId}`;
+          setDebugInfo(debugMsg2);
+          console.log(debugMsg2);
+          
+          await api.cart.addCartProperties([
+            { name: "original_order_id", value: appointment.orderId }
+          ]);
+          
+          const successMsg = `SUCCESS: Set original order ID: ${appointment.orderId} as cart property`;
+          setDebugInfo(successMsg);
+          console.log(successMsg);
+        } catch (error) {
+          const errorMsg = `ERROR: Failed to set cart property: ${error instanceof Error ? error.message : String(error)}`;
+          setDebugInfo(errorMsg);
+          console.error(errorMsg, error);
+          // Continue with adding items even if property setting fails
+        }
+      } else {
+        const warningMsg = `WARNING: No appointment.orderId available to set as cart property`;
+        setDebugInfo(warningMsg);
+        console.warn(warningMsg);
+      }
+
       let itemsAdded = 0;
       let itemsSkipped = 0;
 
@@ -326,6 +360,7 @@ const Modal = () => {
             // Ensure quantity is an integer
             const quantity = parseInt(lineItem.quantity.toString(), 10);
             
+            // Add line item to cart (original order ID is set as cart property above)
             await api.cart.addLineItem(variantIdNumber, quantity);
             itemsAdded++;
           } else {
@@ -346,6 +381,7 @@ const Modal = () => {
             // Ensure quantity is an integer
             const quantity = 1; // Hardcoded to 1 for manually created bookings
             
+            // Add line item to cart (original order ID is set as cart property above)
             await api.cart.addLineItem(variantIdNumber, quantity);
             itemsAdded = 1;
           }
@@ -364,6 +400,13 @@ const Modal = () => {
       } else if (itemsAdded > 0) {
         // Success case - items were added
         console.log(`Successfully added ${itemsAdded} item(s) to cart`);
+        
+        // Dismiss the modal after successful cart addition
+        try {
+          await api.navigation.dismiss();
+        } catch (dismissError) {
+          console.warn('Failed to dismiss modal:', dismissError);
+        }
       }
       
     } catch (err) {
@@ -571,6 +614,12 @@ const Modal = () => {
                 {addToCartError && (
                   <Box padding="200">
                     <Text variant="body">{addToCartError}</Text>
+                  </Box>
+                )}
+
+                {debugInfo && (
+                  <Box padding="200">
+                    <Text variant="body">Debug: {debugInfo}</Text>
                   </Box>
                 )}
 

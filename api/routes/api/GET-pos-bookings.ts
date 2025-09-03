@@ -71,7 +71,10 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     const recentBookingsData = await api.booking.findMany({
       filter: {
         shopId: { equals: shopId },
-        scheduledAt: { lessThan: now.toISOString() }
+        scheduledAt: { lessThan: now.toISOString() },
+        order: {
+          financialStatus: { notEquals: "voided" }
+        }
       },
       sort: { scheduledAt: "Descending" },
       first: 5,
@@ -147,7 +150,10 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
       filter: {
         shopId: { equals: shopId },
         scheduledAt: { greaterThanOrEqual: now.toISOString() },
-        status: { notEquals: "cancelled" }
+        status: { notEquals: "cancelled" },
+        order: {
+          financialStatus: { notEquals: "voided" }
+        }
       },
       sort: { scheduledAt: "Ascending" },
       first: 5,
@@ -235,6 +241,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
       arrived: booking.arrived,
       source: booking.order ? 'web' : 'manual',
       orderFinancialStatus: booking.order?.financialStatus,
+      orderId: booking.shopifyOrderId || booking.order,
       variantId: booking.variantId,
       lineItems: booking.order?.lineItems?.edges?.map(edge => ({
         id: edge.node.id,
@@ -262,6 +269,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
       arrived: booking.arrived,
       source: booking.order ? 'web' : 'manual',
       orderFinancialStatus: booking.order?.financialStatus,
+      orderId: booking.shopifyOrderId || booking.order,
       variantId: booking.variantId,
       lineItems: booking.order?.lineItems?.edges?.map(edge => ({
         id: edge.node.id,

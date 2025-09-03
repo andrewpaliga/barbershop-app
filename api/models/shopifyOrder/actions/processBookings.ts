@@ -20,6 +20,88 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
 
   logger.info(`Processing order ${record.id} regardless of financial status`);
 
+  // Check if this is a POS order that should cancel an original order
+  // Look for the original_order_id in the order's note attributes (from cart properties)
+  if (record.financialStatus === 'paid') {
+    logger.info(`Checking for original order to cancel for paid POS order ${record.id} (name: ${record.name})`);
+
+    try {
+      // Log all note attributes for debugging
+      if (record.noteAttributes && record.noteAttributes.length > 0) {
+        logger.info(`Note attributes for order ${record.id}:`, record.noteAttributes.map(attr => `${attr.name}=${attr.value}`).join(', '));
+      } else {
+        logger.info(`No note attributes found for order ${record.id}`);
+      }
+
+      // Check if this order has the original_order_id in note attributes
+      const originalOrderId = record.noteAttributes?.find(attr => attr.name === 'original_order_id')?.value;
+      
+      if (originalOrderId) {
+        logger.info(`Found original order ID: ${originalOrderId} in POS order ${record.id}`);
+        
+        // Additional safety check: verify the original order exists and is pending
+        try {
+          const originalOrder = await api.shopifyOrder.findFirst({
+            filter: {
+              id: { equals: originalOrderId },
+              financialStatus: { equals: 'pending' }
+            },
+            select: {
+              id: true,
+              name: true,
+              financialStatus: true,
+              customerId: true
+            }
+          });
+
+          if (!originalOrder) {
+            logger.warn(`Original order ${originalOrderId} not found or not pending - skipping cancellation`);
+            return;
+          }
+
+          logger.info(`Verified original order ${originalOrderId} (${originalOrder.name}) is pending - proceeding with cancellation`);
+          
+          // Cancel the original order using the proper GraphQL mutation
+          await api.graphql(`
+            mutation orderCancel($input: OrderCancelInput!) {
+              orderCancel(input: $input) {
+                order {
+                  id
+                  cancelledAt
+                }
+                userErrors {
+                  field
+                  message
+                }
+              }
+            }
+          `, {
+            input: {
+              id: `gid://shopify/Order/${originalOrderId}`,
+              reason: "DUPLICATE_ORDER_PREVENTION"
+            }
+          });
+          
+          logger.info(`Successfully cancelled original order ${originalOrderId} (${originalOrder.name}) due to POS payment`);
+        } catch (cancelError) {
+          logger.error(`Failed to cancel order ${originalOrderId}:`, cancelError);
+          // Don't fail the entire process if cancellation fails
+        }
+      } else {
+        logger.info(`No original_order_id found in note attributes for POS order ${record.id} - no cancellation needed`);
+      }
+    } catch (error) {
+      logger.error(`Failed to check/cancel original order:`, error);
+      // Don't fail the entire process if we can't cancel the original order
+    }
+  }
+
+  // Skip booking creation for POS orders - they represent completed services
+  if (record.sourceName === 'pos') {
+    logger.info(`Order ${record.id} is from POS source - skipping booking creation as this represents a completed service`);
+    return;
+  }
+
   // Check if this order has already been processed to avoid duplicates
   logger.info(`Checking for existing bookings for order ${record.id} with name ${record.name}`);
   
@@ -273,7 +355,8 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
         notes: `Order: ${record.name}\nService: ${lineItem.name}\n${bookingData.notes || ''}`.trim(),
         shop: { _link: record.shopId },
         location: { _link: location.id },
-        order: { _link: record.id }
+        order: { _link: record.id },
+        shopifyOrderId: record.legacyResourceId
       };
 
       // Only set customer relationship if customerId exists, otherwise fall back to email/name

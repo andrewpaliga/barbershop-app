@@ -51,6 +51,7 @@ export const schema: GadgetModel = {
       parent: { model: "shopifyShop" },
       storageKey: "sbYv-1em1jSK",
     },
+    shopifyOrderId: { type: "string", storageKey: "shopifyOrderId" },
     staff: {
       type: "belongsTo",
       validations: { required: true },
