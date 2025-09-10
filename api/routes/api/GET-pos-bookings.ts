@@ -23,12 +23,12 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     let shopId: string | null = null;
 
     // First, try to get shop ID from the current authenticated shop
-    shopId = connections.shopify.currentShopId;
+    shopId = connections.shopify.currentShopId?.toString() || null;
     logger.info({ shopId }, "Attempted to get shop ID from current authenticated shop");
 
     // If no shop ID found, try to get it from query parameters
     if (!shopId) {
-      const shopDomain = request.query?.shop as string;
+      const shopDomain = (request.query as any)?.shop as string;
       logger.info({ shopDomain }, "No authenticated shop found, trying to get shop from query params");
       
       if (shopDomain) {
@@ -72,6 +72,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
       filter: {
         shopId: { equals: shopId },
         scheduledAt: { lessThan: now.toISOString() },
+        status: { notEquals: "cancelled" },
         order: {
           financialStatus: { notEquals: "voided" }
         }
@@ -85,6 +86,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         status: true,
         arrived: true,
         variantId: true,
+        shopifyOrderId: true,
         customer: {
           id: true,
           displayName: true,
@@ -164,6 +166,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         status: true,
         arrived: true,
         variantId: true,
+        shopifyOrderId: true,
         customer: {
           id: true,
           displayName: true,
@@ -299,7 +302,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         logger.info(`POS extension usage tracked for shop ${shopId}`);
       }
     } catch (error) {
-      logger.error("Failed to track POS extension usage:", error);
+      logger.error("Failed to track POS extension usage:", error as any);
       // Don't fail the request if tracking fails
     }
 

@@ -11,7 +11,7 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
   applyParams(params, record);
   await preventCrossShopDataAccess(params, record);
   await save(record);
-
+  
   // Process order regardless of financial status
 
   // Check if this is a POS order that should cancel an original order
@@ -163,6 +163,42 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
           }
           
           logger.info(`Successfully cancelled original order ${originalOrderId} due to POS payment`);
+          
+          // Now mark the original booking as paid since the service was completed via POS
+          logger.info(`Marking original booking as paid for cancelled order ${originalOrderId}`);
+          
+          try {
+            // Find the booking associated with the original order
+            const originalBooking = await api.booking.findFirst({
+              filter: {
+                shopId: { equals: record.shopId },
+                order: { _link: originalOrderId }
+              },
+              select: {
+                id: true,
+                status: true,
+                order: {
+                  id: true,
+                  name: true
+                }
+              }
+            });
+            
+            if (originalBooking) {
+              logger.info(`Found original booking ${originalBooking.id} for order ${originalOrderId}, updating status to paid`);
+              
+              await api.booking.update(originalBooking.id, {
+                status: "paid"
+              });
+              
+              logger.info(`Successfully marked booking ${originalBooking.id} as paid`);
+            } else {
+              logger.warn(`No booking found for original order ${originalOrderId} - this may be expected if the booking was created manually`);
+            }
+          } catch (bookingUpdateError) {
+            logger.error(`Failed to update original booking status: ${bookingUpdateError?.message}`);
+            // Don't fail the entire process if booking update fails
+          }
           
         } catch (cancelError) {
           logger.error(`Failed to cancel order ${originalOrderId}: ${cancelError?.message}`);

@@ -803,21 +803,24 @@ export default function SchedulePage() {
                     <div style={{ width: "80px", backgroundColor: "white", padding: "8px", fontWeight: "bold" }}>
                       Time
                     </div>
-                    {weekDates.map((date) => (
-                      <div
-                        key={date.toDateString()}
-                        style={{
-                          flex: 1,
-                          backgroundColor: "white",
-                          padding: "8px",
-                          textAlign: "center",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        <div>{mounted ? date.toLocaleDateString("en-US", { weekday: "short" }) : 'Loading...'}</div>
-                        <div style={{ fontSize: "0.9em", color: "#666" }}>{mounted ? date.getDate().toString() : '...'}</div>
-                      </div>
-                    ))}
+                    <div style={{ display: "flex", flex: 1, gap: "1px" }}>
+                      {weekDates.map((date) => (
+                        <div
+                          key={date.toDateString()}
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            backgroundColor: "white",
+                            padding: "8px",
+                            textAlign: "center",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          <div>{mounted ? date.toLocaleDateString("en-US", { weekday: "short" }) : 'Loading...'}</div>
+                          <div style={{ fontSize: "0.9em", color: "#666" }}>{mounted ? date.getDate().toString() : '...'}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Main calendar body */}
@@ -914,48 +917,69 @@ export default function SchedulePage() {
 
                               // Only render if this is where the booking starts
                               if (startingBookings.length > 0) {
-                                const primaryBooking = startingBookings[0];
-                                const duration = primaryBooking.duration || 60;
-                                const slotsSpanned = Math.ceil(duration / 30);
-                                const height = (slotsSpanned * 50) + (slotsSpanned - 1);
+                                // Calculate the maximum height needed for all bookings
+                                const maxDuration = Math.max(...startingBookings.map(booking => booking.duration || 60));
+                                const maxSlotsSpanned = Math.ceil(maxDuration / 30);
+                                const height = (maxSlotsSpanned * 50) + (maxSlotsSpanned - 1);
 
                                 daySlots.push(
                                   <div
                                     key={`${date.toDateString()}-${hour}-${minute}`}
                                     style={{
                                       height: `${height}px`,
-                                      backgroundColor: "#e3f2fd",
-                                      border: "1px solid #0070f3",
-                                      borderRadius: "4px",
-                                      cursor: "pointer",
-                                      overflow: "hidden",
+                                      display: "flex",
+                                      gap: "2px",
                                       boxSizing: "border-box",
+                                      overflow: "hidden",
                                     }}
-                                    onClick={() => handleBookingClick(primaryBooking)}
-                                    title={`${date.toDateString()} ${formatTime(hour, minute)} - ${primaryBooking?.variant?.product?.title} (${primaryBooking?.duration}min)`}
                                   >
-                                    <Box padding="50">
-                                      <BlockStack gap="25">
-                                        <Badge tone={getStatusColor(primaryBooking.status) as any}>
-                                          {primaryBooking.status}
-                                        </Badge>
-                                        <Text as="p" variant="bodyXs" fontWeight="bold">
-                                          {primaryBooking.variant?.product?.title}
-                                        </Text>
-                                        <Text as="p" variant="bodyXs">
-                                          {primaryBooking.customer?.displayName || 
-                                           (primaryBooking.customer?.firstName && primaryBooking.customer?.lastName ? 
-                                            `${primaryBooking.customer.firstName} ${primaryBooking.customer.lastName}` : '') || 
-                                           primaryBooking.customerName || 'No customer'}
-                                        </Text>
-                                        <Text as="p" variant="bodyXs" tone="subdued">
-                                          {primaryBooking.staff?.name}
-                                        </Text>
-                                        <Text as="p" variant="bodyXs" tone="subdued">
-                                          {primaryBooking.duration}min
-                                        </Text>
-                                      </BlockStack>
-                                    </Box>
+                                    {startingBookings.map((booking, index) => {
+                                      const bookingDuration = booking.duration || 60;
+                                      const bookingSlotsSpanned = Math.ceil(bookingDuration / 30);
+                                      const bookingHeight = (bookingSlotsSpanned * 50) + (bookingSlotsSpanned - 1);
+                                      
+                                      return (
+                                        <div
+                                          key={`${booking.id}-${index}`}
+                                          style={{
+                                            height: `${bookingHeight}px`,
+                                            backgroundColor: "#e3f2fd",
+                                            border: "1px solid #0070f3",
+                                            borderRadius: "4px",
+                                            cursor: "pointer",
+                                            overflow: "hidden",
+                                            boxSizing: "border-box",
+                                            flex: 1,
+                                            minWidth: 0,
+                                          }}
+                                          onClick={() => handleBookingClick(booking)}
+                                          title={`${date.toDateString()} ${formatTime(hour, minute)} - ${booking?.variant?.product?.title} (${booking?.duration}min)`}
+                                        >
+                                          <Box padding="50">
+                                            <BlockStack gap="25">
+                                              <Badge tone={getStatusColor(booking.status) as any}>
+                                                {booking.status}
+                                              </Badge>
+                                              <Text as="p" variant="bodyXs" fontWeight="bold">
+                                                {booking.variant?.product?.title}
+                                              </Text>
+                                              <Text as="p" variant="bodyXs">
+                                                {booking.customer?.displayName || 
+                                                 (booking.customer?.firstName && booking.customer?.lastName ? 
+                                                  `${booking.customer.firstName} ${booking.customer.lastName}` : '') || 
+                                                 booking.customerName || 'No customer'}
+                                              </Text>
+                                              <Text as="p" variant="bodyXs" tone="subdued">
+                                                {booking.staff?.name}
+                                              </Text>
+                                              <Text as="p" variant="bodyXs" tone="subdued">
+                                                {booking.duration}min
+                                              </Text>
+                                            </BlockStack>
+                                          </Box>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 );
                               }
@@ -986,9 +1010,11 @@ export default function SchedulePage() {
                             key={date.toDateString()}
                             style={{
                               flex: 1,
+                              minWidth: 0,
                               display: "flex",
                               flexDirection: "column",
                               gap: "1px",
+                              overflow: "hidden",
                             }}
                           >
                             {renderDaySlots()}

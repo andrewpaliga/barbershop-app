@@ -84,7 +84,7 @@ const Modal = () => {
     if (booking.orderFinancialStatus) {
       switch (booking.orderFinancialStatus) {
         case 'paid':
-          return { text: 'PAID', variant: 'neutral' as const };
+          return { text: 'Paid', variant: 'neutral' as const };
         case 'partially_paid':
           return { text: 'Partially Paid', variant: 'warning' as const };
         case 'refunded':
@@ -105,7 +105,7 @@ const Modal = () => {
     // Fall back to booking status if no order financial status
     switch (booking.status) {
       case 'paid':
-        return { text: 'PAID', variant: 'neutral' as const };
+        return { text: 'Paid', variant: 'neutral' as const };
       case 'pending':
         return { text: 'Pending', variant: 'warning' as const };
       case 'not_paid':
