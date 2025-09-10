@@ -165,14 +165,18 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
           logger.info(`Successfully cancelled original order ${originalOrderId} due to POS payment`);
           
           // Now mark the original booking as paid since the service was completed via POS
-          logger.info(`Marking original booking as paid for cancelled order ${originalOrderId}`);
+          logger.info(`Marking original booking as paid for cancelled order ${originalOrderId}`, {
+            originalOrderId: originalOrderId,
+            shopId: record.shopId,
+            searchingForBookingWithOrderId: originalOrderId
+          });
           
           try {
             // Find the booking associated with the original order
             const originalBooking = await api.booking.findFirst({
               filter: {
                 shopId: { equals: record.shopId },
-                order: { _link: originalOrderId }
+                order: { legacyResourceId: { equals: originalOrderId } }
               },
               select: {
                 id: true,

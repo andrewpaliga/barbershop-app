@@ -80,11 +80,16 @@ const Modal = () => {
   };
 
   const getPaymentStatusBadge = (booking: Appointment) => {
-    // Prioritize order financial status if it exists
+    // Prioritize booking status if it's "paid" - this handles POS payments that mark bookings as paid
+    if (booking.status === 'paid') {
+      return { text: 'Paid', variant: 'success' as const };
+    }
+
+    // For other cases, use order financial status if it exists
     if (booking.orderFinancialStatus) {
       switch (booking.orderFinancialStatus) {
         case 'paid':
-          return { text: 'Paid', variant: 'neutral' as const };
+          return { text: 'Paid', variant: 'success' as const };
         case 'partially_paid':
           return { text: 'Partially Paid', variant: 'warning' as const };
         case 'refunded':
@@ -98,14 +103,14 @@ const Modal = () => {
         case 'voided':
           return { text: 'Voided', variant: 'critical' as const };
         default:
-          return { text: booking.orderFinancialStatus, variant: 'neutral' as const };
+          return { text: 'Pending', variant: 'warning' as const };
       }
     }
 
-    // Fall back to booking status if no order financial status
+    // Fall back to booking status for other cases
     switch (booking.status) {
       case 'paid':
-        return { text: 'Paid', variant: 'neutral' as const };
+        return { text: 'Paid', variant: 'success' as const };
       case 'pending':
         return { text: 'Pending', variant: 'warning' as const };
       case 'not_paid':
@@ -113,7 +118,7 @@ const Modal = () => {
       case 'completed':
         return { text: 'Completed', variant: 'highlight' as const };
       default:
-        return { text: booking.status, variant: 'neutral' as const };
+        return { text: 'Pending', variant: 'warning' as const };
     }
   };
 
@@ -124,7 +129,11 @@ const Modal = () => {
   };
 
   const isBookingPaid = (booking: Appointment) => {
-    // Check order financial status first if available
+    // Prioritize booking status if it's "paid" - this handles POS payments that mark bookings as paid
+    if (booking.status === 'paid') {
+      return true;
+    }
+    // Check order financial status if booking status is not "paid"
     if (booking.orderFinancialStatus) {
       return booking.orderFinancialStatus === 'paid';
     }
