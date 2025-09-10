@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { Page, Card, Text, BlockStack, InlineStack, Banner, Button, Collapsible, List } from "@shopify/polaris";
-import { AutoTable } from "@gadgetinc/react/auto/polaris";
-import { useFindOne } from "@gadgetinc/react";
+import { Page, Card, Text, BlockStack, InlineStack, Banner, Button, Collapsible, List, DataTable, Spinner, EmptyState } from "@shopify/polaris";
+import { useFindMany, useFindOne } from "@gadgetinc/react";
 import { useNavigate } from "@remix-run/react";
 import { api } from "../api";
 
 export default function ProductsIndex() {
-  const [hasProviderError, setHasProviderError] = useState(false);
   const [helpSectionOpen, setHelpSectionOpen] = useState(false);
   const navigate = useNavigate();
   
@@ -21,86 +19,93 @@ export default function ProductsIndex() {
     status: { equals: "active" }
   };
 
+  // Fetch products using useFindMany
+  const [{ data: products, fetching, error }, refetch] = useFindMany(api.shopifyProduct, {
+    filter: tableFilter,
+    select: {
+      id: true,
+      title: true,
+      handle: true,
+      variants: {
+        edges: {
+          node: {
+            id: true,
+            price: true
+          }
+        }
+      }
+    }
+  });
+
   // Debug: Log filter configuration
   console.log('Products filter:', tableFilter);
+  console.log('Products data:', products);
 
-  // Error boundary component for AutoTable
-  const AutoTableWithFallback = () => {
-    try {
+  // Prepare table rows
+  const tableRows = products ? products.map((product) => {
+    const firstVariant = product.variants?.edges?.[0]?.node;
+    const shopifyAdminUrl = `https://${currentShop?.myshopifyDomain || 'admin.shopify.com'}/admin/products/${product.id}`;
+    
+    return [
+      <Text as="p" variant="bodyMd">
+        <a href={shopifyAdminUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline', color: '#0066cc' }}>
+          {product.title}
+        </a>
+      </Text>,
+      <Text as="p" variant="bodyMd">
+        {firstVariant?.price ? `$${firstVariant.price}` : 'N/A'}
+      </Text>,
+      <Text as="p" variant="bodyMd">
+        {product.variants?.edges?.length || 0}
+      </Text>
+    ];
+  }) : [];
+
+  const ServicesTable = () => {
+    if (fetching) {
       return (
-        <AutoTable
-          model={api.shopifyProduct}
-          filter={tableFilter}
-          select={{
-            id: true,
-            title: true,
-            handle: true,
-            variants: {
-              edges: {
-                node: {
-                  id: true,
-                  price: true
-                }
-              }
-            }
-          }}
-          columns={[
-            {
-              header: "Title",
-              render: ({ record }) => {
-                // Use the globally fetched shop domain
-                const shopifyAdminUrl = `https://${currentShop?.myshopifyDomain || 'admin.shopify.com'}/admin/products/${record.id}`;
-                
-                return (
-                  <Text as="p" variant="bodyMd">
-                    <a href={shopifyAdminUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline', color: '#0066cc' }}>
-                      {record.title}
-                    </a>
-                  </Text>
-                );
-              }
-            },
-            {
-              header: "Price",
-              render: ({ record }) => {
-                console.log('Record in Price render:', record);
-                const firstVariant = record.variants?.edges?.[0]?.node;
-                return (
-                  <Text as="p" variant="bodyMd">
-                    {firstVariant?.price ? `$${firstVariant.price}` : 'N/A'}
-                  </Text>
-                );
-              }
-            },
-            {
-              header: "# of Variants",
-              render: ({ record }) => {
-                console.log('Record in Variants render:', record);
-                return (
-                  <Text as="p" variant="bodyMd">
-                    {record.variants?.edges?.length || 0}
-                  </Text>
-                );
-              }
-            }
-          ]}
-        />
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+          <Spinner size="large" />
+        </div>
       );
-    } catch (error) {
-      console.error('AutoTable error:', error);
-      setHasProviderError(true);
-      return null;
     }
-  };
 
-  // Fallback table rendering
-  const FallbackTable = () => {
+    if (error) {
+      return (
+        <Banner status="critical">
+          <Text as="p" variant="bodyMd">
+            Error loading services: {error.toString()}
+          </Text>
+          <Button variant="plain" onClick={() => refetch()}>
+            Try Again
+          </Button>
+        </Banner>
+      );
+    }
+
+    if (!products || products.length === 0) {
+      return (
+        <EmptyState
+          heading="No services found"
+          action={{
+            content: 'Add Service',
+            onAction: () => navigate('/services/new')
+          }}
+          image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+        >
+          <Text as="p" variant="bodyMd">
+            Create your first bookable service by adding a product with Type "Service" in your Shopify store.
+          </Text>
+        </EmptyState>
+      );
+    }
+
     return (
-      <Banner status="info">
-        <Text as="p" variant="bodyMd">
-          AutoTable encountered an error. Please refresh the page or contact support if the issue persists.
-        </Text>
-      </Banner>
+      <DataTable
+        columnContentTypes={['text', 'text', 'numeric']}
+        headings={['Title', 'Price', '# of Variants']}
+        rows={tableRows}
+      />
     );
   };
 
@@ -177,18 +182,8 @@ export default function ProductsIndex() {
         </InlineStack>
         
         <Card>
-        <BlockStack gap="400">
-          {hasProviderError && (
-            <Banner status="warning">
-              <Text as="p" variant="bodyMd">
-                Using fallback table view due to provider issues.
-              </Text>
-            </Banner>
-          )}
-          
-          {hasProviderError ? <FallbackTable /> : <AutoTableWithFallback />}
-        </BlockStack>
-      </Card>
+          <ServicesTable />
+        </Card>
       </BlockStack>
     </Page>
   );

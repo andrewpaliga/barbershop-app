@@ -43,9 +43,20 @@ export const meta = () => [
 ];
 
 export const loader = async ({ context }: LoaderFunctionArgs) => {
-  return json({
-    gadgetConfig: context.gadgetConfig,
-  });
+  try {
+    return json({
+      gadgetConfig: context.gadgetConfig,
+    });
+  } catch (error) {
+    console.error('Error in loader:', error);
+    // Return a minimal config to prevent complete failure
+    return json({
+      gadgetConfig: {
+        apiKeys: { shopify: "" },
+        shopifyInstallState: undefined,
+      },
+    });
+  }
 };
 
 export const Layout = ({ children }: { children: React.ReactNode; }) => {
@@ -68,13 +79,25 @@ export const Layout = ({ children }: { children: React.ReactNode; }) => {
 };
 
 export default function App() {
-  const { gadgetConfig } = useLoaderData<typeof loader>();
+  const loaderData = useLoaderData<typeof loader>();
+  const { gadgetConfig } = loaderData || {};
   const location = useLocation();
+
+  // Show loading spinner if gadgetConfig is not available yet
+  if (!gadgetConfig) {
+    return <FullPageSpinner />;
+  }
+
+  // Ensure we have the required configuration
+  const shopifyApiKey = gadgetConfig?.apiKeys?.shopify;
+  if (!shopifyApiKey) {
+    console.error('Missing Shopify API key in gadgetConfig');
+  }
 
   return (
     <GadgetProvider
       type={AppType.Embedded}
-      shopifyApiKey={gadgetConfig?.apiKeys?.shopify ?? ""}
+      shopifyApiKey={shopifyApiKey ?? ""}
       api={api}
       location={location}
       shopifyInstallState={gadgetConfig?.shopifyInstallState}
@@ -104,6 +127,11 @@ class CustomErrorBoundary extends Component<
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Error caught by boundary:', error, errorInfo);
+    
+    // Log specific provider context errors
+    if (error.message?.includes('useContext') || error.message?.includes('Provider')) {
+      console.error('Provider context error detected:', error.message);
+    }
   }
 
   render() {
@@ -122,8 +150,28 @@ class CustomErrorBoundary extends Component<
               <summary>Error details</summary>
               <pre style={{ marginTop: '0.5rem', background: '#f5f5f5', padding: '1rem', borderRadius: '4px', overflow: 'auto' }}>
                 {this.state.error?.toString()}
+                {this.state.error?.stack && (
+                  <>
+                    {'\n\nStack trace:\n'}
+                    {this.state.error.stack}
+                  </>
+                )}
               </pre>
             </details>
+            <button 
+              onClick={() => window.location.reload()} 
+              style={{ 
+                marginTop: '1rem', 
+                padding: '0.5rem 1rem', 
+                background: '#007acc', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '4px', 
+                cursor: 'pointer' 
+              }}
+            >
+              Refresh Page
+            </button>
           </body>
         </html>
       );

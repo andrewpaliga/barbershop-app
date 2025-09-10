@@ -2,23 +2,17 @@ import { applyParams, save, ActionOptions } from "gadget-server";
 import { preventCrossShopDataAccess } from "gadget-server/shopify";
 
 export const run: ActionRun = async ({ params, record, logger, api, connections }) => {
+  // Log action start
+  logger.info(`Processing order ${record.id} (${record.name})`, {
+    financialStatus: record.financialStatus,
+    sourceName: record.sourceName
+  });
+
   applyParams(params, record);
   await preventCrossShopDataAccess(params, record);
   await save(record);
 
-  // Log order details at start
-  logger.info(`Starting processBookings for order ${record.id}`, {
-    orderId: record.id,
-    orderName: record.name,
-    financialStatus: record.financialStatus,
-    shopId: record.shopId,
-    customerId: record.customerId,
-    email: record.email,
-    totalPrice: record.totalPrice,
-    currency: record.currency
-  });
-
-  logger.info(`Processing order ${record.id} regardless of financial status`);
+  // Process order regardless of financial status
 
   // Check if this is a POS order that should cancel an original order
   // Look for the original_order_id in the order's note attributes (from cart properties)
@@ -26,11 +20,9 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
     logger.info(`Checking for original order to cancel for paid POS order ${record.id} (name: ${record.name})`);
 
     try {
-      // Log all note attributes for debugging
+      // Log note attributes for debugging
       if (record.noteAttributes && record.noteAttributes.length > 0) {
-        logger.info(`Note attributes for order ${record.id}:`, record.noteAttributes.map(attr => `${attr.name}=${attr.value}`).join(', '));
-      } else {
-        logger.info(`No note attributes found for order ${record.id}`);
+        logger.info(`Note attributes: ${record.noteAttributes.map(attr => `${attr.name}=${attr.value}`).join(', ')}`);
       }
 
       // Check if this order has the original_order_id in note attributes
@@ -39,35 +31,57 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
       if (originalOrderId) {
         logger.info(`Found original order ID: ${originalOrderId} in POS order ${record.id}`);
         
-        // Additional safety check: verify the original order exists and is pending
-        try {
-          const originalOrder = await api.shopifyOrder.findFirst({
-            filter: {
-              id: { equals: originalOrderId },
-              financialStatus: { equals: 'pending' }
-            },
-            select: {
-              id: true,
-              name: true,
-              financialStatus: true,
-              customerId: true
+          try {
+            // Get Shopify client for the specific shop
+            const shopifyClient = await connections.shopify.forShopId(record.shopId);
+            if (!shopifyClient) {
+              logger.error(`Shopify client not available for order cancellation ${originalOrderId}`);
+              return;
             }
+          
+          // Verify Shopify client is available
+          logger.info(`Shopify client available: ${!!shopifyClient}, GraphQL: ${typeof shopifyClient.graphql === 'function'}, REST: ${!!shopifyClient.rest}`);
+          
+          logger.info(`Starting order cancellation process for original order ${originalOrderId}`);
+          
+          // Now query the order to check its current state (simplified query with accessible fields)
+          const orderQuery = `
+            query getOrder($id: ID!) {
+              order(id: $id) {
+                id
+                name
+                displayFinancialStatus
+                displayFulfillmentStatus
+                cancelledAt
+                cancelReason
+                tags
+              }
+            }
+          `;
+          
+          const orderQueryResult = await shopifyClient.graphql(orderQuery, {
+            id: `gid://shopify/Order/${originalOrderId}`
           });
-
-          if (!originalOrder) {
-            logger.warn(`Original order ${originalOrderId} not found or not pending - skipping cancellation`);
+          
+          const order = orderQueryResult?.order;
+          if (!order) {
+            logger.error(`Order not found: ${originalOrderId}`);
             return;
           }
-
-          logger.info(`Verified original order ${originalOrderId} (${originalOrder.name}) is pending - proceeding with cancellation`);
           
-          // Cancel the original order using the proper GraphQL mutation
-          await api.graphql(`
-            mutation orderCancel($input: OrderCancelInput!) {
-              orderCancel(input: $input) {
+          logger.info(`Order found: ${order.name} (${order.displayFinancialStatus})`);
+          
+          // Try GraphQL order cancellation first
+          logger.info(`Attempting GraphQL order cancellation for ${originalOrderId}`);
+          
+          const mutation = `
+            mutation orderCancel($id: ID!, $reason: OrderCancelReason, $refund: Boolean, $restock: Boolean) {
+              orderCancel(input: {id: $id, reason: $reason, refund: $refund, restock: $restock}) {
                 order {
                   id
+                  cancelled
                   cancelledAt
+                  cancelReason
                 }
                 userErrors {
                   field
@@ -75,23 +89,90 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
                 }
               }
             }
-          `, {
-            input: {
-              id: `gid://shopify/Order/${originalOrderId}`,
-              reason: "DUPLICATE_ORDER_PREVENTION"
-            }
-          });
+          `;
           
-          logger.info(`Successfully cancelled original order ${originalOrderId} (${originalOrder.name}) due to POS payment`);
+          const variables = {
+            id: `gid://shopify/Order/${originalOrderId}`,
+            reason: "OTHER",
+            refund: true,
+            restock: true
+          };
+          
+          try {
+            const graphqlResult = await shopifyClient.graphql(mutation, variables);
+            
+            if (graphqlResult?.orderCancel?.userErrors?.length > 0) {
+              logger.error(`GraphQL cancellation failed: ${JSON.stringify(graphqlResult.orderCancel.userErrors)}`);
+              throw new Error(`GraphQL cancellation failed: ${JSON.stringify(graphqlResult.orderCancel.userErrors)}`);
+            }
+            
+            logger.info(`GraphQL cancellation successful: ${graphqlResult?.orderCancel?.order?.cancelled ? 'cancelled' : 'not cancelled'}`);
+            
+          } catch (graphqlError) {
+            logger.warn(`GraphQL cancellation failed: ${graphqlError.message}, trying REST API`);
+            
+            // Fallback to REST API
+            logger.info(`Attempting REST API order cancellation for ${originalOrderId}`);
+            
+            // Use numeric order ID for REST API calls
+            const numericOrderId = originalOrderId.replace(/[^\d]/g, '');
+            const restOrderId = numericOrderId || originalOrderId;
+            
+            let restResult = null;
+            
+            // Try different REST API approaches
+            if (shopifyClient.rest && typeof shopifyClient.rest.post === 'function') {
+              restResult = await shopifyClient.rest.post(`/admin/api/2024-10/orders/${restOrderId}/cancel.json`, {
+                reason: "other",
+                refund: true,
+                restock: true
+              });
+            } else if (shopifyClient.order && typeof shopifyClient.order.cancel === 'function') {
+              restResult = await shopifyClient.order.cancel(restOrderId, {
+                reason: "other",
+                refund: true,
+                restock: true
+              });
+            } else if (shopifyClient.accessToken && (shopifyClient.myshopifyDomain || shopifyClient.domain)) {
+              // Try direct API call
+              const domain = shopifyClient.myshopifyDomain || shopifyClient.domain;
+              const response = await fetch(`https://${domain}/admin/api/2024-10/orders/${restOrderId}/cancel.json`, {
+                method: 'POST',
+                headers: {
+                  'X-Shopify-Access-Token': shopifyClient.accessToken,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  reason: 'other',
+                  refund: true,
+                  restock: true
+                })
+              });
+              
+              if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`REST API call failed: ${response.status} ${response.statusText} - ${errorText}`);
+              }
+              
+              restResult = await response.json();
+            } else {
+              throw new Error("No suitable REST API method found");
+            }
+            
+            logger.info(`REST cancellation successful`);
+          }
+          
+          logger.info(`Successfully cancelled original order ${originalOrderId} due to POS payment`);
+          
         } catch (cancelError) {
-          logger.error(`Failed to cancel order ${originalOrderId}:`, cancelError);
+          logger.error(`Failed to cancel order ${originalOrderId}: ${cancelError?.message}`);
           // Don't fail the entire process if cancellation fails
         }
       } else {
         logger.info(`No original_order_id found in note attributes for POS order ${record.id} - no cancellation needed`);
       }
     } catch (error) {
-      logger.error(`Failed to check/cancel original order:`, error);
+      logger.error(`Failed to check/cancel original order: ${error?.message}`);
       // Don't fail the entire process if we can't cancel the original order
     }
   }
@@ -828,7 +909,7 @@ function formatDateInTimezone(date: Date, timezone: string): string {
 }
 
 export const options: ActionOptions = {
-  actionType: "custom",
+  actionType: "background",
   triggers: {
     api: true
   }

@@ -19,8 +19,13 @@ export const settings: GadgetSettings = {
         scopes: [
           "read_locations",
           "write_customers",
+          "write_inventory",
           "write_orders",
           "write_products",
+          "read_customers",
+          "read_inventory",
+          "read_orders",
+          "read_products",
         ],
       },
     },

@@ -2,21 +2,21 @@
 
 client_id = "f4d55cc55fa99d6584734e84e04efa01"
 name = "barbershop-development"
-handle = "barbershop-development"
 application_url = "https://barbershop--development.gadget.app/api/shopify/install-or-render"
 embedded = true
+handle = "barbershop-development"
 
 [webhooks]
 api_version = "2025-04"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_customers,read_inventory,read_locations,read_orders,read_products,write_customers,write_inventory,write_orders,write_products"
 
 [auth]
 redirect_urls = [
   "https://barbershop--development.gadget.app/api/connections/auth/shopify/callback"
 ]
-
-[access_scopes]
-# For product management (creating services)
-scopes = "write_products,read_products,write_inventory,read_inventory,write_orders,read_orders,write_customers,read_customers"
 
 [app_proxy]
 url = "https://barbershop--development.gadget.app"
@@ -25,8 +25,3 @@ prefix = "apps"
 
 [pos]
 embedded = false
-
-[build]
-include_config_on_deploy = true
-
-

@@ -153,39 +153,55 @@ const Modal = () => {
         const data = await response.json();
 
         // Map the data directly from the backend response
-        const recentBookings = data.recentBookings.map((booking: any) => ({
-          id: booking.id,
-          customerName: booking.customerName,
-          scheduledAt: booking.scheduledAt,
-          serviceName: booking.serviceName,
-          price: booking.price,
-          staffName: booking.staffName,
-          status: booking.status,
-          source: booking.source,
-          orderFinancialStatus: booking.orderFinancialStatus,
-          arrived: booking.arrived,
-          customerId: booking.customerId,
-          variantId: booking.variantId,
-          orderId: booking.orderId,
-          lineItems: booking.lineItems,
-        }));
+        const recentBookings = data.recentBookings.map((booking: any) => {
+          console.log(`DEBUG: Recent booking data:`, {
+            id: booking.id,
+            orderId: booking.orderId,
+            source: booking.source,
+            orderFinancialStatus: booking.orderFinancialStatus
+          });
+          return {
+            id: booking.id,
+            customerName: booking.customerName,
+            scheduledAt: booking.scheduledAt,
+            serviceName: booking.serviceName,
+            price: booking.price,
+            staffName: booking.staffName,
+            status: booking.status,
+            source: booking.source,
+            orderFinancialStatus: booking.orderFinancialStatus,
+            arrived: booking.arrived,
+            customerId: booking.customerId,
+            variantId: booking.variantId,
+            orderId: booking.orderId,
+            lineItems: booking.lineItems,
+          };
+        });
 
-        const upcomingBookings = data.upcomingBookings.map((booking: any) => ({
-          id: booking.id,
-          customerName: booking.customerName,
-          scheduledAt: booking.scheduledAt,
-          serviceName: booking.serviceName,
-          price: booking.price,
-          staffName: booking.staffName,
-          status: booking.status,
-          source: booking.source,
-          orderFinancialStatus: booking.orderFinancialStatus,
-          arrived: booking.arrived,
-          customerId: booking.customerId,
-          variantId: booking.variantId,
-          orderId: booking.orderId,
-          lineItems: booking.lineItems,
-        }));
+        const upcomingBookings = data.upcomingBookings.map((booking: any) => {
+          console.log(`DEBUG: Upcoming booking data:`, {
+            id: booking.id,
+            orderId: booking.orderId,
+            source: booking.source,
+            orderFinancialStatus: booking.orderFinancialStatus
+          });
+          return {
+            id: booking.id,
+            customerName: booking.customerName,
+            scheduledAt: booking.scheduledAt,
+            serviceName: booking.serviceName,
+            price: booking.price,
+            staffName: booking.staffName,
+            status: booking.status,
+            source: booking.source,
+            orderFinancialStatus: booking.orderFinancialStatus,
+            arrived: booking.arrived,
+            customerId: booking.customerId,
+            variantId: booking.variantId,
+            orderId: booking.orderId,
+            lineItems: booking.lineItems,
+          };
+        });
 
         setRecentAppointments(recentBookings);
         setUpcomingAppointments(upcomingBookings);
@@ -321,9 +337,9 @@ const Modal = () => {
           setDebugInfo(debugMsg2);
           console.log(debugMsg2);
           
-          await api.cart.addCartProperties([
-            { name: "original_order_id", value: appointment.orderId }
-          ]);
+          await api.cart.addCartProperties({
+            original_order_id: String(appointment.orderId)
+          });
           
           const successMsg = `SUCCESS: Set original order ID: ${appointment.orderId} as cart property`;
           setDebugInfo(successMsg);
@@ -622,6 +638,19 @@ const Modal = () => {
                     <Text variant="body">Debug: {debugInfo}</Text>
                   </Box>
                 )}
+
+                <Box padding="200">
+                  <Text variant="headingSmall">Debug Info</Text>
+                  <Text variant="body">• Order ID: {selectedAppointment.orderId || 'null/undefined'}</Text>
+                  <Text variant="body">• Order ID Type: {typeof selectedAppointment.orderId}</Text>
+                  <Text variant="body">• Order ID Is Null: {selectedAppointment.orderId === null ? 'true' : 'false'}</Text>
+                  <Text variant="body">• Order ID Is Undefined: {selectedAppointment.orderId === undefined ? 'true' : 'false'}</Text>
+                  <Text variant="body">• Order ID Truthy: {selectedAppointment.orderId ? 'true' : 'false'}</Text>
+                  <Text variant="body">• Source: {selectedAppointment.source}</Text>
+                  <Text variant="body">• Variant ID: {selectedAppointment.variantId || 'null/undefined'}</Text>
+                  <Text variant="body">• Customer ID: {selectedAppointment.customerId || 'null/undefined'}</Text>
+                  <Text variant="body">• Line Items Count: {selectedAppointment.lineItems?.length || 0}</Text>
+                </Box>
 
                 <Box padding="400">
                   <Stack direction="inline" gap="200" flexChildren>
