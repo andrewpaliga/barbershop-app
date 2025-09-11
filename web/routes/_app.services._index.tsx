@@ -57,7 +57,24 @@ export default function ProductsIndex() {
       </Text>,
       <Text as="p" variant="bodyMd">
         {product.variants?.edges?.length || 0}
-      </Text>
+      </Text>,
+      <Button
+        tone="critical"
+        variant="plain"
+        onClick={async () => {
+          const confirmed = window.confirm(`Remove Service type from "${product.title}"? It will remain as a normal product.`);
+          if (!confirmed) return;
+          try {
+            await api.shopifyProduct.update(product.id, { productType: "" });
+            await refetch();
+          } catch (err) {
+            console.error("Failed to remove Service type", err);
+            alert("Failed to update product. Please try again.");
+          }
+        }}
+      >
+        Remove Service
+      </Button>
     ];
   }) : [];
 
@@ -101,11 +118,11 @@ export default function ProductsIndex() {
     }
 
     return (
-      <DataTable
-        columnContentTypes={['text', 'text', 'numeric']}
-        headings={['Title', 'Price', '# of Variants']}
-        rows={tableRows}
-      />
+        <DataTable
+          columnContentTypes={['text', 'text', 'text', 'text']}
+          headings={['Title', 'Price', 'Durations', 'Actions']}
+          rows={tableRows}
+        />
     );
   };
 
