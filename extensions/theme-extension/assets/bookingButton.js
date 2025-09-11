@@ -44,13 +44,8 @@ function hideMessage(type) {
 // "Default Title" or the title doesn't contain a duration, fall back
 // to the parsed duration minutes.
 function getVariantDisplayTitle(service, variant) {
-  const hasMinutesInTitle = typeof variant.title === 'string' && /\b\d+\s*min\b/i.test(variant.title);
-  const isDefaultTitle = variant.title === 'Default Title';
-  const minutes = variant && variant.duration ? variant.duration : (bookingData?.timeSlotInterval || 60);
-  if (isDefaultTitle || !hasMinutesInTitle) {
-    return `${service.title} - ${minutes} min`;
-  }
-  return `${service.title} - ${variant.title}`;
+  // Always show just the service title. Duration appears in the subtitle.
+  return service.title;
 }
 
 function showMessage(type, message) {
@@ -1252,9 +1247,9 @@ function populateServiceButtons() {
         
         let imageHtml;
         if (variant.image && variant.image.url && variant.image.url !== 'null') {
-          imageHtml = `<img src="${variant.image.url}" alt="${service.title} - ${variant.title}" class="barbershop-service-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="barbershop-service-image barbershop-service-placeholder" style="display: none;">${service.title.charAt(0)}</div>`;
+          imageHtml = `<img src="${variant.image.url}" alt="${service.title} - ${variant.title}" class="barbershop-service-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="barbershop-service-image barbershop-service-placeholder" style="display: none;"><div class="barbershop-placeholder-icon">${service.title.charAt(0).toUpperCase()}</div></div>`;
         } else {
-          imageHtml = `<div class="barbershop-service-image barbershop-service-placeholder">${service.title.charAt(0)}</div>`;
+          imageHtml = `<div class="barbershop-service-image barbershop-service-placeholder"><div class="barbershop-placeholder-icon">${service.title.charAt(0).toUpperCase()}</div></div>`;
         }
         
         const durationText = variant.duration ? `${variant.duration} minutes` : '';

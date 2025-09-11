@@ -11,7 +11,7 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
   applyParams(params, record);
   await preventCrossShopDataAccess(params, record);
   await save(record);
-  
+
   // Process order regardless of financial status
 
   // Check if this is a POS order that should cancel an original order
@@ -167,7 +167,7 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
           // Now mark the original booking as paid since the service was completed via POS
           logger.info(`Marking original booking as paid for cancelled order ${originalOrderId}`, {
             originalOrderId: originalOrderId,
-            shopId: record.shopId,
+    shopId: record.shopId,
             searchingForBookingWithOrderId: originalOrderId
           });
           
@@ -649,16 +649,16 @@ function createScheduledAtInLocationTimezone(
     
     if (dateStr.includes('/')) {
       // Handle MM/DD/YYYY format
-      const dateParts = dateStr.split('/');
-      if (dateParts.length !== 3) {
+    const dateParts = dateStr.split('/');
+    if (dateParts.length !== 3) {
         logger.error(`Invalid MM/DD/YYYY date format for line item ${lineItemId}`, {
-          lineItemId: lineItemId,
-          dateValue: dateStr,
-          expectedFormat: 'MM/DD/YYYY'
-        });
-        return null;
-      }
-      
+        lineItemId: lineItemId,
+        dateValue: dateStr,
+        expectedFormat: 'MM/DD/YYYY'
+      });
+      return null;
+    }
+    
       month = parseInt(dateParts[0]);
       day = parseInt(dateParts[1]);
       year = parseInt(dateParts[2]);
