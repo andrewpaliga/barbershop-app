@@ -195,15 +195,19 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         productType: service.productType,
         vendor: service.vendor,
         variants: service.variants?.edges?.map(edge => {
-          const duration = parseDuration(edge.node.option1 || '') || parseDuration(edge.node.title || '');
-          
+          const parsedDuration =
+            parseDuration(edge.node.option1 || '') || parseDuration(edge.node.title || '');
+
+          // Fallback: if variant has no parseable duration, default to configured timeSlotInterval
+          const effectiveDuration = parsedDuration != null ? parsedDuration : timeSlotInterval;
+
           return {
             id: edge.node.id,
             title: edge.node.title,
             price: edge.node.price,
             compareAtPrice: edge.node.compareAtPrice,
             shopifyVariantId: edge.node.id,
-            duration: duration,
+            duration: effectiveDuration,
             sku: edge.node.sku,
             image: variantImages.get(edge.node.id) || null
           };

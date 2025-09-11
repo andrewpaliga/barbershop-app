@@ -476,8 +476,7 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
         notes: `Order: ${record.name}\nService: ${lineItem.name}\n${bookingData.notes || ''}`.trim(),
         shop: { _link: record.shopId },
         location: { _link: location.id },
-        order: { _link: record.id },
-        shopifyOrderId: record.legacyResourceId
+        order: { _link: record.id }
       };
 
       // Only set customer relationship if customerId exists, otherwise fall back to email/name
@@ -577,12 +576,14 @@ function extractBookingData(properties: any[], logger?: any): any {
         case 'staff_id':
         case 'staff id':
         case 'staffid':
+        case '_staff_id':
           bookingData.staffId = prop.value;
           if (logger) logger.info(`Extracted staff ID: ${prop.value}`);
           break;
         case 'location_id':
         case 'location id':
         case 'locationid':
+        case '_location_id':
           bookingData.locationId = prop.value;
           if (logger) logger.info(`Extracted location ID: ${prop.value}`);
           break;

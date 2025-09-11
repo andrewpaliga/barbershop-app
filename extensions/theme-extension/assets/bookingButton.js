@@ -40,6 +40,19 @@ function hideMessage(type) {
   }
 }
 
+// Compute a user-facing title for a variant. If Shopify uses
+// "Default Title" or the title doesn't contain a duration, fall back
+// to the parsed duration minutes.
+function getVariantDisplayTitle(service, variant) {
+  const hasMinutesInTitle = typeof variant.title === 'string' && /\b\d+\s*min\b/i.test(variant.title);
+  const isDefaultTitle = variant.title === 'Default Title';
+  const minutes = variant && variant.duration ? variant.duration : (bookingData?.timeSlotInterval || 60);
+  if (isDefaultTitle || !hasMinutesInTitle) {
+    return `${service.title} - ${minutes} min`;
+  }
+  return `${service.title} - ${variant.title}`;
+}
+
 function showMessage(type, message) {
   const messageElement = document.getElementById(`booking-${type}`);
   if (messageElement) {
@@ -170,7 +183,7 @@ function updateSelectedBarberInfo() {
   } else if (currentSelection.serviceId) {
     const service = bookingData.services.find(s => s.id === currentSelection.serviceId);
     const variant = service?.variants.find(v => v.id === currentSelection.variantId);
-    const serviceName = service && variant ? `${service.title} - ${variant.title}` : 'this service';
+    const serviceName = service && variant ? getVariantDisplayTitle(service, variant) : 'this service';
     
     container.innerHTML = `
       <div style="text-align: center; color: #666; padding: 20px;">
@@ -204,11 +217,11 @@ function populateServiceMenu() {
           serviceItem.classList.add('selected');
         }
         
-        const durationText = variant.duration ? ` • ${variant.duration} minutes` : '';
+        const durationText = (variant && variant.duration) ? ` • ${variant.duration} minutes` : ` • ${(bookingData?.timeSlotInterval || 60)} minutes`;
         const priceHtml = variant.price ? `<div class="price">$${variant.price}</div>` : '';
         
         serviceItem.innerHTML = `
-          <h4>${service.title} - ${variant.title}</h4>
+          <h4>${getVariantDisplayTitle(service, variant)}</h4>
           <p>${service.body || 'Professional service'}${durationText}</p>
           ${priceHtml}
         `;
@@ -662,16 +675,16 @@ function isTimeSlotAvailableForStaff(time, date, staffId) {
 }
 
 function getServiceDuration() {
-  if (!currentSelection.serviceId || !bookingData) return 60;
+  if (!currentSelection.serviceId || !bookingData) return bookingData.timeSlotInterval || 60;
   
   const service = bookingData.services.find(s => s.id === currentSelection.serviceId);
-  if (!service || !service.variants || service.variants.length === 0) return 60;
+  if (!service || !service.variants || service.variants.length === 0) return bookingData.timeSlotInterval || 60;
   
   const variant = currentSelection.variantId 
     ? service.variants.find(v => v.id === currentSelection.variantId)
     : service.variants[0];
   
-  return variant?.duration || 60;
+  return (variant && variant.duration) ? variant.duration : (bookingData.timeSlotInterval || 60);
 }
 
 function getQualifiedStaffForService(serviceId) {
@@ -975,8 +988,9 @@ async function confirmBooking() {
           'barber_name': staff.name,
           'location_name': location.name,
           'notes': notes || '',
-          'staff_id': currentSelection.staffId,
-          'location_id': currentSelection.locationId
+          // hidden private metadata so it doesn't render in cart
+          '_staff_id': currentSelection.staffId,
+          '_location_id': currentSelection.locationId
         }
       };
       
@@ -1251,7 +1265,7 @@ function populateServiceButtons() {
         button.innerHTML = `
           ${imageHtml}
           <div class="barbershop-service-info">
-            <div class="barbershop-selection-title">${service.title} - ${variant.title}</div>
+            <div class="barbershop-selection-title">${getVariantDisplayTitle(service, variant)}</div>
             ${subtitleText ? `<div class="barbershop-selection-subtitle">${subtitleText}</div>` : ''}
             ${priceHtml}
           </div>

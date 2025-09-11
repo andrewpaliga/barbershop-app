@@ -86,7 +86,6 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         status: true,
         arrived: true,
         variantId: true,
-        shopifyOrderId: true,
         customer: {
           id: true,
           displayName: true,
@@ -166,7 +165,6 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         status: true,
         arrived: true,
         variantId: true,
-        shopifyOrderId: true,
         customer: {
           id: true,
           displayName: true,
@@ -244,7 +242,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
       arrived: booking.arrived,
       source: booking.order ? 'web' : 'manual',
       orderFinancialStatus: booking.order?.financialStatus,
-      orderId: booking.shopifyOrderId || booking.order?.id,
+      orderId: booking.order?.id,
       variantId: booking.variantId,
       lineItems: booking.order?.lineItems?.edges?.map(edge => ({
         id: edge.node.id,
@@ -272,7 +270,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
       arrived: booking.arrived,
       source: booking.order ? 'web' : 'manual',
       orderFinancialStatus: booking.order?.financialStatus,
-      orderId: booking.shopifyOrderId || booking.order?.id,
+      orderId: booking.order?.id,
       variantId: booking.variantId,
       lineItems: booking.order?.lineItems?.edges?.map(edge => ({
         id: edge.node.id,

@@ -44,6 +44,23 @@ Allows merchants to control which booking properties are visible in cart
       const cleanText = text.replace(/\s+/g, ' ').trim(); // Remove extra whitespace and newlines
       console.log(`🔍 Processing element: "${cleanText}"`);
       
+      // Friendly label replacements for customer-facing metadata
+      // booking_date -> Booking Date, booking_time -> Booking Time
+      if (/^booking_date\s*:/i.test(cleanText)) {
+        element.textContent = cleanText.replace(/^booking_date\s*:/i, 'Booking Date:');
+      }
+      if (/^booking_time\s*:/i.test(cleanText)) {
+        element.textContent = cleanText.replace(/^booking_time\s*:/i, 'Booking Time:');
+      }
+      // barber_name -> Barber
+      if (/^barber_name\s*:/i.test(cleanText)) {
+        element.textContent = cleanText.replace(/^barber_name\s*:/i, 'Barber:');
+      }
+      // location_name -> Location
+      if (/^location_name\s*:/i.test(cleanText)) {
+        element.textContent = cleanText.replace(/^location_name\s*:/i, 'Location:');
+      }
+      
       // Hide metadata based on settings
       if (settings.hideStaffId && cleanText.includes('Staff ID:')) {
         console.log(`🚫 Hiding Staff ID: "${cleanText}"`);
