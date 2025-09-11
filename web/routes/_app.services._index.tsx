@@ -6,10 +6,14 @@ import { api } from "../api";
 
 export default function ProductsIndex() {
   const [helpSectionOpen, setHelpSectionOpen] = useState(false);
+  const [isAddingEssentials, setIsAddingEssentials] = useState(false);
   const navigate = useNavigate();
   
   // Get the current shop's domain once for all product links
   const [{ data: currentShop }] = useFindOne(api.shopifyShop, "current");
+  
+  // Get config to access timeSlotInterval
+  const [{ data: config, fetching: configFetching }] = useFindOne(api.config, "current");
   
   // Only show services - using productType instead of isBarberService
   const tableFilter = { 
@@ -40,6 +44,66 @@ export default function ProductsIndex() {
   // Debug: Log filter configuration
   console.log('Products filter:', tableFilter);
   console.log('Products data:', products);
+
+  // Function to add barber essentials
+  const addBarberEssentials = async () => {
+    setIsAddingEssentials(true);
+    const timeSlotInterval = config?.timeSlotInterval || 30;
+    
+    const essentials = [
+      {
+        name: "Haircut",
+        description: "Professional haircut service",
+        price: 45,
+        duration: timeSlotInterval * 2, // 2 slots
+        mode: "single"
+      },
+      {
+        name: "Beard Trim", 
+        description: "Precise beard trimming and shaping",
+        price: 25,
+        duration: timeSlotInterval * 1, // 1 slot
+        mode: "single"
+      },
+      {
+        name: "Haircut + Beard",
+        description: "Complete grooming package", 
+        price: 60,
+        duration: timeSlotInterval * 3, // 3 slots
+        mode: "single"
+      },
+      {
+        name: "Hair Wash & Style",
+        description: "Wash, cut, and style service",
+        price: 35,
+        duration: timeSlotInterval * 1.5, // 1.5 slots
+        mode: "single"
+      }
+    ];
+
+    try {
+      for (const service of essentials) {
+        // Use the existing createService action
+        await api.createService({
+          name: service.name,
+          description: service.description,
+          price: service.price,
+          duration: service.duration,
+          mode: service.mode
+        });
+        
+        console.log(`Created service: ${service.name}`);
+      }
+      
+      await refetch();
+      alert("Barber essentials added successfully! You can now customize prices and durations.");
+    } catch (error) {
+      console.error("Failed to add barber essentials:", error);
+      alert("Failed to add barber essentials. Please try again.");
+    } finally {
+      setIsAddingEssentials(false);
+    }
+  };
 
   // Prepare table rows
   const tableRows = products ? products.map((product) => {
@@ -105,13 +169,18 @@ export default function ProductsIndex() {
         <EmptyState
           heading="No services found"
           action={{
+            content: isAddingEssentials ? 'Adding Essentials...' : 'Add Barber Essentials',
+            onAction: addBarberEssentials,
+            disabled: isAddingEssentials
+          }}
+          secondaryAction={{
             content: 'Add Service',
             onAction: () => navigate('/services/new')
           }}
           image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
         >
           <Text as="p" variant="bodyMd">
-            Create your first bookable service by adding a product with Type "Service" in your Shopify store.
+            Get started quickly with our barber essentials, or create your own custom service by adding a product with Type "Service" in your Shopify store.
           </Text>
         </EmptyState>
       );
