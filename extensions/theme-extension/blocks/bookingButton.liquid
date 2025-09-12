@@ -1,6 +1,6 @@
 {% assign button_text = block.settings.button_text | default: "Book Now" %}
 {% assign show_staff_selection = block.settings.show_staff_selection | default: true %}
-{% assign button_color = block.settings.button_color | default: "#0066cc" %}
+{% assign button_color = block.settings.button_color | default: "#111111" %}
 {% assign button_text_color = block.settings.button_text_color | default: "#FFFFFF" %}
 {% assign button_padding = block.settings.button_padding | default: 10 %}
 {% assign button_radius = block.settings.button_radius | default: 4 %}
@@ -9,10 +9,10 @@
 {% comment %} Theme color customization {% endcomment %}
 {% assign primary_color = block.settings.primary_color | default: "#0066cc" %}
 {% assign secondary_color = block.settings.secondary_color | default: "#f8f9fa" %}
-{% assign accent_color = block.settings.accent_color | default: "#28a745" %}
 {% assign text_color = block.settings.text_color | default: "#333333" %}
 {% assign border_color = block.settings.border_color | default: "#e1e5e9" %}
 {% assign background_color = block.settings.background_color | default: "#ffffff" %}
+{% assign modal_background_color = block.settings.modal_background_color | default: "#ffffff" %}
 {% assign custom_css = block.settings.custom_css | default: "" %}
 
 <!-- Load CSS first, then override with custom properties -->
@@ -20,25 +20,27 @@
 
 <div class="barbershop-booking-container">
   <!-- Booking Button -->
-  <button 
-    class="barbershop-booking-btn" 
-    id="barbershop-booking-btn"
-    style="
-      background-color: {{ button_color }};
-      color: {{ button_text_color }};
-      padding: {{ button_padding }}px {{ button_padding | times: 1.5 }}px;
-      border-radius: {{ button_radius }}px;
-      border: none;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: 600;
-      width: 100%;
-      max-width: 300px;
-      transition: opacity 0.2s ease, transform 0.1s ease;
-    "
-    onclick="openBookingModal()">
-    {{ button_text }}
-  </button>
+  <div style="display: flex; justify-content: center; width: 100%;">
+    <button 
+      class="barbershop-booking-btn" 
+      id="barbershop-booking-btn"
+      style="
+        background-color: {{ button_color }};
+        color: {{ button_text_color }};
+        padding: {{ button_padding }}px {{ button_padding | times: 1.5 }}px;
+        border-radius: {{ button_radius }}px;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        width: 100%;
+        max-width: 300px;
+        transition: opacity 0.2s ease, transform 0.1s ease;
+      "
+      onclick="openBookingModal()">
+      {{ button_text }}
+    </button>
+  </div>
 
   <!-- Booking Modal -->
   <div class="barbershop-modal" id="barbershop-modal" style="
@@ -53,7 +55,7 @@
     background-color: rgba(0,0,0,0.7);
   ">
     <div class="barbershop-modal-content" style="
-      background-color: #fefefe;
+      background-color: {{ modal_background_color }};
       margin: 0;
       padding: 30px;
       border: none;
@@ -382,10 +384,10 @@
 :root {
   --barbershop-primary: {{ primary_color }};
   --barbershop-secondary: {{ secondary_color }};
-  --barbershop-accent: {{ accent_color }};
   --barbershop-text: {{ text_color }};
   --barbershop-border: {{ border_color }};
   --barbershop-background: {{ background_color }};
+  --barbershop-modal-background: {{ modal_background_color }};
   --barbershop-button: {{ button_color }};
   --barbershop-button-text: {{ button_text_color }};
 }
@@ -418,7 +420,7 @@
       "type": "color",
       "id": "button_color",
       "label": "Button Background",
-      "default": "#0066cc",
+      "default": "#000000",
       "info": "Background color of the main booking button"
     },
     {
@@ -457,23 +459,16 @@
     {
       "type": "color",
       "id": "primary_color",
-      "label": "Service Selection Buttons",
+      "label": "Button Borders",
       "default": "#0066cc",
-      "info": "Background color of service selection buttons in the modal"
+      "info": "Border color of buttons in the modal"
     },
     {
       "type": "color",
       "id": "secondary_color",
-      "label": "Modal Background",
+      "label": "Secondary Color",
       "default": "#f8f9fa",
-      "info": "Background color of the booking modal and sidebar"
-    },
-    {
-      "type": "color",
-      "id": "accent_color",
-      "label": "Success & Confirmation",
-      "default": "#28a745",
-      "info": "Color for success messages and confirmation elements"
+      "info": "Secondary color for the booking modal"
     },
     {
       "type": "color",
@@ -492,9 +487,16 @@
     {
       "type": "color",
       "id": "background_color",
-      "label": "Modal Content Background",
+      "label": "Modal Button Backgrounds",
       "default": "#ffffff",
       "info": "Background color for modal content areas and cards"
+    },
+    {
+      "type": "color",
+      "id": "modal_background_color",
+      "label": "Modal Background",
+      "default": "#ffffff",
+      "info": "Background color for the entire modal window"
     },
     {
       "type": "header",

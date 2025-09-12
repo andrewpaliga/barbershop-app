@@ -74,6 +74,60 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     });
 
     logger.info(`Found ${services.length} services`);
+    
+    // Debug: Log variant IDs
+    services.forEach(service => {
+      if (service.variants && service.variants.length > 0) {
+        logger.info(`Service ${service.title} variants:`, service.variants.map(v => ({ 
+          id: v.id, 
+          shopifyVariantId: v.shopifyVariantId,
+          title: v.title,
+          price: v.price
+        })));
+      }
+    });
+
+    // Debug: Check if variants exist in Shopify and their status
+    if (services.length > 0 && services[0].variants && services[0].variants.length > 0) {
+      const firstVariant = services[0].variants[0];
+      logger.info(`Checking variant ${firstVariant.shopifyVariantId} in Shopify...`);
+      
+      try {
+        const shopify = await connections.shopify.forShopId(shopId);
+        if (shopify) {
+          const variantResponse = await shopify.rest.get({
+            path: `variants/${firstVariant.shopifyVariantId}`,
+          });
+          const variant = variantResponse.body.variant;
+          logger.info(`Variant details:`, {
+            id: variant.id,
+            title: variant.title,
+            price: variant.price,
+            available: variant.available,
+            inventory_quantity: variant.inventory_quantity,
+            product_id: variant.product_id,
+            sku: variant.sku
+          });
+          
+          // Check the product status
+          if (variant.product_id) {
+            const productResponse = await shopify.rest.get({
+              path: `products/${variant.product_id}`,
+            });
+            const product = productResponse.body.product;
+            logger.info(`Product details:`, {
+              id: product.id,
+              title: product.title,
+              status: product.status,
+              published_at: product.published_at,
+              product_type: product.product_type
+            });
+          }
+        }
+      } catch (error) {
+        logger.error(`Variant ${firstVariant.shopifyVariantId} error:`, error);
+      }
+    }
 
     // Use existing variant images from the database
     const variantImages = new Map();
@@ -210,6 +264,8 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
             title: edge.node.title,
             price: edge.node.price,
             compareAtPrice: edge.node.compareAtPrice,
+            // Keep variant ID as string to prevent precision loss with large Shopify IDs
+            // and ensure compatibility with Shopify's cart API
             shopifyVariantId: edge.node.id,
             duration: effectiveDuration,
             sku: edge.node.sku,

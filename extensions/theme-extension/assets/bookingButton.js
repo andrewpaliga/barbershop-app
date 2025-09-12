@@ -992,6 +992,8 @@ async function confirmBooking() {
       confirmBtn.innerHTML = '<span class="spinner"></span> Adding to Cart...';
       confirmBtn.disabled = true;
       
+      console.log('Adding to cart:', cartItemData);
+      
       try {
         const cartResponse = await fetch('/cart/add.js', {
           method: 'POST',
@@ -1005,7 +1007,24 @@ async function confirmBooking() {
           window.location.href = '/cart';
         } else {
           const cartError = await cartResponse.text();
-          showMessage('error', 'Failed to add booking to cart. Please try again.');
+          console.error('Cart add failed:', cartResponse.status, cartError);
+          
+          let errorMessage = 'Failed to add booking to cart. Please try again.';
+          
+          // Parse the error response to provide better error messages
+          try {
+            const errorData = JSON.parse(cartError);
+            if (errorData.description === 'Cannot find variant') {
+              errorMessage = 'This service is not available for online booking. Please contact us directly to book this service.';
+            } else if (errorData.description) {
+              errorMessage = `Booking error: ${errorData.description}`;
+            }
+          } catch (parseError) {
+            // If we can't parse the error, use the generic message
+            console.warn('Could not parse cart error:', parseError);
+          }
+          
+          showMessage('error', errorMessage);
           confirmBtn.innerHTML = originalText;
           confirmBtn.disabled = false;
         }
