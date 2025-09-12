@@ -1212,6 +1212,8 @@ async function loadBookingData() {
     
     bookingData = processedData;
     
+    // Theme customization is now handled by Liquid template
+    
     // Debug: Log existing bookings
     if (bookingData.existingBookings && Array.isArray(bookingData.existingBookings)) {
       console.log(`Loaded ${bookingData.existingBookings.length} existing bookings:`, bookingData.existingBookings);
@@ -1321,11 +1323,13 @@ function populateStaffButtons() {
   });
 }
 
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
   if (!window.api && window.BarbershopClient) {
     window.api = new BarbershopClient();
   }
+  
   
   window.onclick = function(event) {
     const modal = document.getElementById('barbershop-modal');

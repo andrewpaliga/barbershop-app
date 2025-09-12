@@ -1,3 +1,16 @@
+/* CSS Custom Properties for theming */
+:root {
+  --barbershop-primary: #0066cc;
+  --barbershop-secondary: #f8f9fa;
+  --barbershop-accent: #28a745;
+  --barbershop-text: #333333;
+  --barbershop-border: #e1e5e9;
+  --barbershop-background: #ffffff;
+  --barbershop-button: #0066cc;
+  --barbershop-button-text: #ffffff;
+}
+
+
 .barbershop-booking-btn:hover {
   opacity: 0.9;
   transform: translateY(-1px);
@@ -9,16 +22,16 @@
 
 .barbershop-close:hover {
   color: white;
-  background: #333;
+  background: var(--barbershop-text);
 }
 
 .barbershop-selection-btn {
-  border: 2px solid #e1e5e9;
+  border: 2px solid var(--barbershop-border);
   border-radius: 16px;
   padding: 30px;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: white;
+  background: var(--barbershop-background);
   text-align: left;
   width: 100%;
   position: relative;
@@ -26,7 +39,7 @@
 }
 
 .barbershop-selection-btn:hover {
-  border-color: var(--button-color);
+  border-color: var(--barbershop-primary);
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   transform: translateY(-2px);
 }
@@ -46,18 +59,18 @@
   height: 60px;
   border-radius: 8px;
   object-fit: cover;
-  border: 2px solid #e1e5e9;
+  border: 2px solid var(--barbershop-border);
   flex-shrink: 0;
 }
 
 .barbershop-service-placeholder {
-  background: linear-gradient(135deg, #eef1f4 0%, #d8dde3 100%);
+  background: linear-gradient(135deg, var(--barbershop-secondary) 0%, var(--barbershop-border) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
   font-weight: bold;
-  color: #444;
+  color: var(--barbershop-text);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
@@ -87,7 +100,7 @@
   height: 60px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #e1e5e9;
+  border: 2px solid var(--barbershop-border);
 }
 
 .barbershop-staff-info {
@@ -97,14 +110,14 @@
 .barbershop-selection-title {
   font-size: 22px;
   font-weight: 600;
-  color: #333;
+  color: var(--barbershop-text);
   margin: 0;
   line-height: 1.2;
 }
 
 .barbershop-selection-subtitle {
   font-size: 16px;
-  color: #666;
+  color: var(--barbershop-text);
   margin: 8px 0 0 0;
   line-height: 1.3;
 }
@@ -114,7 +127,7 @@
   display: inline-block;
   width: 16px;
   height: 16px;
-  border: 2px solid #ffffff;
+  border: 2px solid var(--barbershop-background);
   border-radius: 50%;
   border-top-color: transparent;
   animation: spin 1s ease-in-out infinite;
@@ -128,7 +141,7 @@
 .barbershop-selection-price {
   font-size: 18px;
   font-weight: 600;
-  color: var(--button-color);
+  color: var(--barbershop-text);
   margin: 8px 0 0 0;
 }
 
@@ -142,10 +155,10 @@
 .barbershop-calendar-sidebar {
   width: 320px;
   flex-shrink: 0;
-  background: #f8f9fa;
+  background: var(--barbershop-secondary);
   padding: 30px;
   border-radius: 16px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--barbershop-border);
 }
 
 .barbershop-selected-barber {
@@ -153,7 +166,7 @@
   padding: 20px;
   border-radius: 12px;
   margin-bottom: 30px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--barbershop-border);
 }
 
 .barbershop-selected-barber-info {
@@ -167,24 +180,24 @@
   height: 50px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #e1e5e9;
+  border: 2px solid var(--barbershop-border);
 }
 
 .barbershop-selected-barber-details h4 {
   margin: 0 0 5px 0;
-  color: #333;
+  color: var(--barbershop-text);
   font-size: 18px;
 }
 
 .barbershop-selected-barber-details p {
   margin: 0;
-  color: #666;
+  color: var(--barbershop-text);
   font-size: 16px;
 }
 
 .barbershop-service-menu-item {
   background: white;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--barbershop-border);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 15px;
@@ -193,30 +206,30 @@
 }
 
 .barbershop-service-menu-item:hover {
-  border-color: var(--button-color);
+  border-color: var(--barbershop-button);
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .barbershop-service-menu-item.selected {
-  border-color: var(--button-color);
+  border-color: var(--barbershop-button);
   background: rgba(0,0,0,0.02);
 }
 
 .barbershop-service-menu-item h4 {
   margin: 0 0 8px 0;
-  color: #333;
+  color: var(--barbershop-text);
   font-size: 16px;
   font-weight: 600;
 }
 
 .barbershop-service-menu-item p {
   margin: 0;
-  color: #666;
+  color: var(--barbershop-text);
   font-size: 14px;
 }
 
 .barbershop-service-menu-item .price {
-  color: var(--button-color);
+  color: var(--barbershop-text);
   font-weight: 600;
   font-size: 16px;
   margin-top: 5px;
@@ -225,7 +238,7 @@
 .barbershop-calendar-area {
   flex: 1;
   background: white;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--barbershop-border);
   border-radius: 16px;
   overflow: hidden;
 }
@@ -233,7 +246,7 @@
 .barbershop-calendar-header {
   padding: 30px;
   border-bottom: 1px solid #e9ecef;
-  background: #f8f9fa;
+  background: var(--barbershop-secondary);
 }
 
 .barbershop-calendar-nav {
@@ -244,7 +257,7 @@
 
 .barbershop-nav-btn {
   background: white;
-  border: 1px solid #ddd;
+  border: 1px solid var(--barbershop-border);
   border-radius: 8px;
   padding: 12px;
   cursor: pointer;
@@ -255,8 +268,8 @@
 }
 
 .barbershop-nav-btn:hover {
-  background: #f8f9fa;
-  border-color: var(--button-color);
+  background: var(--barbershop-secondary);
+  border-color: var(--barbershop-button);
 }
 
 .barbershop-calendar-grid {
@@ -274,7 +287,7 @@
   text-align: center;
   padding: 15px;
   font-weight: 600;
-  color: #666;
+  color: var(--barbershop-text);
   font-size: 16px;
 }
 
@@ -286,20 +299,20 @@
 
 .barbershop-calendar-day {
   min-height: 350px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--barbershop-border);
   border-radius: 12px;
   padding: 15px;
   background: white;
 }
 
 .barbershop-calendar-day.disabled {
-  background: #f8f9fa;
+  background: var(--barbershop-secondary);
   opacity: 0.5;
 }
 
 .barbershop-day-number {
   font-weight: 600;
-  color: #333;
+  color: var(--barbershop-text);
   margin-bottom: 15px;
   font-size: 16px;
 }
@@ -309,7 +322,7 @@
   width: 100%;
   padding: 8px 10px;
   margin-bottom: 6px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--barbershop-border);
   border-radius: 6px;
   background: white;
   font-size: 14px;
@@ -320,25 +333,25 @@
 
 .barbershop-time-slot:hover {
   background: rgba(0,0,0,0.05);
-  border-color: var(--button-color);
+  border-color: var(--barbershop-button);
 }
 
 .barbershop-time-slot.selected {
-  background: var(--button-color);
-  color: var(--button-text-color);
-  border-color: var(--button-color);
+  background: var(--barbershop-button);
+  color: var(--barbershop-button-text);
+  border-color: var(--barbershop-button);
 }
 
 .barbershop-time-slot.unavailable {
-  background: #f8f9fa;
+  background: var(--barbershop-secondary);
   color: #ccc;
   cursor: not-allowed;
-  border-color: #f0f0f0;
+  border-color: var(--barbershop-border);
 }
 
 .barbershop-time-slot.unavailable:hover {
-  background: #f8f9fa;
-  border-color: #f0f0f0;
+  background: var(--barbershop-secondary);
+  border-color: var(--barbershop-border);
 }
 
 @media (max-width: 1200px) {
@@ -376,33 +389,33 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--barbershop-border);
 }
 
 .barbershop-booking-detail-row:last-child {
   border-bottom: none;
   font-weight: 600;
   font-size: 18px;
-  color: #333;
+  color: var(--barbershop-text);
   margin-top: 10px;
   padding-top: 20px;
-  border-top: 2px solid #e9ecef;
+  border-top: 2px solid var(--barbershop-border);
 }
 
 .barbershop-booking-detail-label {
-  color: #666;
+  color: var(--barbershop-text);
   font-weight: 500;
 }
 
 .barbershop-booking-detail-value {
-  color: #333;
+  color: var(--barbershop-text);
   font-weight: 600;
 }
 
 /* Barber Selection Modal Styles */
 .barbershop-barber-choice {
   background: white;
-  border: 2px solid #e1e5e9;
+  border: 2px solid var(--barbershop-border);
   border-radius: 12px;
   padding: 20px;
   cursor: pointer;
@@ -411,7 +424,7 @@
 }
 
 .barbershop-barber-choice:hover {
-  border-color: var(--button-color);
+  border-color: var(--barbershop-button);
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   transform: translateY(-2px);
 }
@@ -425,20 +438,20 @@
   height: 60px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #e1e5e9;
+  border: 2px solid var(--barbershop-border);
   margin: 0 auto 15px;
 }
 
 .barbershop-barber-choice-name {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--barbershop-text);
   margin-bottom: 8px;
 }
 
 .barbershop-barber-choice-bio {
   font-size: 14px;
-  color: #666;
+  color: var(--barbershop-text);
   line-height: 1.4;
 }
 

@@ -19,6 +19,7 @@ export default function Settings() {
   const [selectedInterval, setSelectedInterval] = useState<number>(30);
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  
 
   // Update selectedInterval when config loads
   React.useEffect(() => {
@@ -26,6 +27,7 @@ export default function Settings() {
       setSelectedInterval(config.timeSlotInterval);
     }
   }, [config?.timeSlotInterval]);
+
 
   if (fetching) {
     return (
@@ -287,6 +289,7 @@ export default function Settings() {
             </BlockStack>
           </div>
         </Card>
+        
       </div>
       
       {showSuccess && (

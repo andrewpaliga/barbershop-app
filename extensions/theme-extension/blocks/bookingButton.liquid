@@ -1,12 +1,22 @@
 {% assign button_text = block.settings.button_text | default: "Book Now" %}
 {% assign show_staff_selection = block.settings.show_staff_selection | default: true %}
-{% assign button_color = block.settings.button_color | default: "#000000" %}
+{% assign button_color = block.settings.button_color | default: "#0066cc" %}
 {% assign button_text_color = block.settings.button_text_color | default: "#FFFFFF" %}
 {% assign button_padding = block.settings.button_padding | default: 10 %}
 {% assign button_radius = block.settings.button_radius | default: 4 %}
 {% assign booking_instructions = block.settings.booking_instructions | default: "Select a date, time and barber to book this service." %}
 
+{% comment %} Theme color customization {% endcomment %}
+{% assign primary_color = block.settings.primary_color | default: "#0066cc" %}
+{% assign secondary_color = block.settings.secondary_color | default: "#f8f9fa" %}
+{% assign accent_color = block.settings.accent_color | default: "#28a745" %}
+{% assign text_color = block.settings.text_color | default: "#333333" %}
+{% assign border_color = block.settings.border_color | default: "#e1e5e9" %}
+{% assign background_color = block.settings.background_color | default: "#ffffff" %}
+{% assign custom_css = block.settings.custom_css | default: "" %}
 
+<!-- Load CSS first, then override with custom properties -->
+<link rel="stylesheet" href="{{ 'bookingButton.css' | asset_url }}">
 
 <div class="barbershop-booking-container">
   <!-- Booking Button -->
@@ -370,12 +380,22 @@
 
 <style>
 :root {
-  --button-color: {{ button_color }};
-  --button-text-color: {{ button_text_color }};
+  --barbershop-primary: {{ primary_color }};
+  --barbershop-secondary: {{ secondary_color }};
+  --barbershop-accent: {{ accent_color }};
+  --barbershop-text: {{ text_color }};
+  --barbershop-border: {{ border_color }};
+  --barbershop-background: {{ background_color }};
+  --barbershop-button: {{ button_color }};
+  --barbershop-button-text: {{ button_text_color }};
 }
+
+{% if custom_css != blank %}
+{{ custom_css }}
+{% endif %}
+
 </style>
 
-<link rel="stylesheet" href="{{ 'bookingButton.css' | asset_url }}">
 <script src="{{ 'bookingButton.js' | asset_url }}"></script>
 
 {% schema %}
@@ -384,25 +404,29 @@
   "target": "section",
   "settings": [
     {
+      "type": "header",
+      "content": "Booking Button"
+    },
+    {
       "type": "text",
       "id": "button_text",
       "label": "Button Text",
       "default": "Book Now",
-      "info": "Text displayed on the booking button"
+      "info": "Text displayed on the main booking button"
     },
     {
       "type": "color",
       "id": "button_color",
-      "label": "Button Color",
-      "default": "#000000",
-      "info": "Background color of the booking button"
+      "label": "Button Background",
+      "default": "#0066cc",
+      "info": "Background color of the main booking button"
     },
     {
       "type": "color",
       "id": "button_text_color",
       "label": "Button Text Color",
       "default": "#FFFFFF",
-      "info": "Text color of the booking button"
+      "info": "Text color of the main booking button"
     },
     {
       "type": "range",
@@ -413,32 +437,93 @@
       "step": 1,
       "default": 10,
       "unit": "px",
-      "info": "Padding around the button text"
+      "info": "Spacing around the button text"
     },
     {
       "type": "range",
       "id": "button_radius",
-      "label": "Button Border Radius",
+      "label": "Button Corner Rounding",
       "min": 0,
       "max": 20,
       "step": 1,
       "default": 4,
       "unit": "px",
-      "info": "Rounded corners of the button"
+      "info": "How rounded the button corners are"
+    },
+    {
+      "type": "header",
+      "content": "Modal Appearance"
+    },
+    {
+      "type": "color",
+      "id": "primary_color",
+      "label": "Service Selection Buttons",
+      "default": "#0066cc",
+      "info": "Background color of service selection buttons in the modal"
+    },
+    {
+      "type": "color",
+      "id": "secondary_color",
+      "label": "Modal Background",
+      "default": "#f8f9fa",
+      "info": "Background color of the booking modal and sidebar"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Success & Confirmation",
+      "default": "#28a745",
+      "info": "Color for success messages and confirmation elements"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Modal Text",
+      "default": "#333333",
+      "info": "Main text color throughout the booking modal"
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Modal Borders",
+      "default": "#e1e5e9",
+      "info": "Border color for modal elements and dividers"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Modal Content Background",
+      "default": "#ffffff",
+      "info": "Background color for modal content areas and cards"
+    },
+    {
+      "type": "header",
+      "content": "Custom Styling"
+    },
+    {
+      "type": "textarea",
+      "id": "custom_css",
+      "label": "Custom CSS",
+      "info": "Add custom CSS to further customize the booking widget appearance",
+      "placeholder": "/* Add your custom CSS here */"
+    },
+    {
+      "type": "header",
+      "content": "Booking Features"
     },
     {
       "type": "checkbox",
       "id": "show_staff_selection",
-      "label": "Show Staff Selection",
+      "label": "Enable Barber Selection",
       "default": true,
-      "info": "Allow customers to book by selecting a specific barber"
+      "info": "Allow customers to choose a specific barber when booking"
     },
     {
       "type": "textarea",
       "id": "booking_instructions",
       "label": "Booking Instructions",
       "default": "Select a date, time and barber to book this service.",
-      "info": "Instructions shown to customers when booking"
+      "info": "Instructions shown to customers in the booking modal"
     }
   ]
 }

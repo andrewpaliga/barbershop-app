@@ -91,7 +91,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     }
 
     // Fetch other data
-    const [staff, locations, staffAvailability, staffDateAvailability, existingBookings, config] = await Promise.all([
+    const [staff, locations, staffAvailability, staffDateAvailability, existingBookings] = await Promise.all([
       api.staff.findMany({
         filter: { 
           shopId: { equals: shopId }, 
@@ -133,12 +133,6 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
           id: true, scheduledAt: true, duration: true, status: true,
           staffId: true, locationId: true, variantId: true, totalPrice: true,
           customerName: true, customerEmail: true, notes: true, arrived: true
-        }
-      }),
-      api.config.maybeFindFirst({
-        filter: { shopId: { equals: shopId } },
-        select: {
-          id: true, timeSlotInterval: true
         }
       })
     ]);
@@ -182,8 +176,18 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
       return null;
     };
 
+    // Update the existing config query to include theme customization fields
+    const configWithTheme = await api.config.findFirst({
+      filter: { shopId: { equals: shopId } },
+      select: { 
+        id: true, 
+        timeSlotInterval: true,
+        themeExtensionUsed: true
+      }
+    });
+
     // Get timeSlotInterval with fallback to default of 15 minutes
-    const timeSlotInterval = config?.timeSlotInterval || 15;
+    const timeSlotInterval = configWithTheme?.timeSlotInterval || 15;
 
     // Build response
     const responseData = {
@@ -275,13 +279,8 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
 
     // Track theme extension usage
     try {
-      const currentConfig = await api.config.findFirst({
-        filter: { shopId: { equals: shopId } },
-        select: { id: true, themeExtensionUsed: true }
-      });
-
-      if (currentConfig && !currentConfig.themeExtensionUsed) {
-        await api.config.update(currentConfig.id, {
+      if (configWithTheme && !configWithTheme.themeExtensionUsed) {
+        await api.config.update(configWithTheme.id, {
           themeExtensionUsed: true
         });
         logger.info(`Theme extension usage tracked for shop ${shopId}`);
