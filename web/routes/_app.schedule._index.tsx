@@ -253,6 +253,11 @@ export default function SchedulePage() {
         id: true,
         financialStatus: true,
       },
+      shop: {
+        id: true,
+        myshopifyDomain: true,
+        domain: true,
+      },
     },
   });
 
@@ -961,9 +966,16 @@ export default function SchedulePage() {
                                         >
                                           <Box padding="50">
                                             <BlockStack gap="25">
-                                              <Badge tone={getStatusColor(booking.order?.financialStatus === 'paid' ? 'paid' : 'not_paid') as any}>
-                                                {booking.order?.financialStatus === 'paid' ? 'paid' : 'not_paid'}
-                                              </Badge>
+                                              {(() => {
+                                                const paymentStatus = booking.order?.financialStatus
+                                                  ? (booking.order.financialStatus === 'paid' ? 'paid' : 'not_paid')
+                                                  : booking.status;
+                                                return (
+                                                  <Badge tone={getStatusColor(paymentStatus) as any}>
+                                                    {paymentStatus}
+                                                  </Badge>
+                                                );
+                                              })()}
                                               <Text as="p" variant="bodyXs" fontWeight="bold">
                                                 {booking.variant?.product?.title}
                                               </Text>
@@ -1396,16 +1408,36 @@ export default function SchedulePage() {
               <BlockStack gap="300">
                 <Text as="h3" variant="headingSm">Edit Booking</Text>
                 
-                <Select
-                  label="Status"
-                  value={selectedBooking.status}
-                  onChange={(value) => setSelectedBooking(prev => ({ ...prev, status: value }))}
-                  options={[
-                    { label: "Pending", value: "pending" },
-                    { label: "Paid", value: "paid" },
-                    { label: "Not Paid", value: "not_paid" },
-                  ]}
-                />
+                {selectedBooking?.order ? (
+                  <BlockStack gap="200">
+                    <Text as="p" variant="bodyMd" fontWeight="bold">Payment Status</Text>
+                    <Text as="p" variant="bodyMd">
+                      This booking's payment status is linked to its Shopify order and can't be edited here.
+                    </Text>
+                    <Button
+                      url={`https://admin.shopify.com/store/${(() => {
+                        const domain = selectedBooking.shop?.myshopifyDomain || selectedBooking.shop?.domain;
+                        if (!domain) return 'admin.shopify.com';
+                        // Remove .myshopify.com suffix if present
+                        return domain.replace('.myshopify.com', '');
+                      })()}/orders/${selectedBooking.order?.legacyResourceId || selectedBooking.order?.id}`}
+                      target="_blank"
+                    >
+                      View Order
+                    </Button>
+                  </BlockStack>
+                ) : (
+                  <Select
+                    label="Payment Status"
+                    value={selectedBooking.status}
+                    onChange={(value) => setSelectedBooking(prev => ({ ...prev, status: value }))}
+                    options={[
+                      { label: "Pending", value: "pending" },
+                      { label: "Paid", value: "paid" },
+                      { label: "Not Paid", value: "not_paid" },
+                    ]}
+                  />
+                )}
 
                 <TextField
                   label="Total Price"
