@@ -52,6 +52,32 @@ const Modal = () => {
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   const api = useApi();
+  
+  // Get current POS location
+  const [currentLocation, setCurrentLocation] = useState<{id: string, name: string} | null>(null);
+
+  // Get current POS location
+  useEffect(() => {
+    const getCurrentLocation = async () => {
+      try {
+        // Try to get location from POS context
+        if (api.location) {
+          const location = await api.location.get();
+          setCurrentLocation({
+            id: location.id,
+            name: location.name || `Location ${location.id}`
+          });
+          console.log('Current POS location:', location);
+        } else {
+          console.log('Location API not available in POS context');
+        }
+      } catch (error) {
+        console.error('Failed to get POS location:', error);
+      }
+    };
+
+    getCurrentLocation();
+  }, [api]);
 
   const formatDateTime = (scheduledAt: string) => {
     const date = new Date(scheduledAt);
@@ -138,7 +164,7 @@ const Modal = () => {
         setLoading(true);
         setError(null);
 
-        const url = 'https://barbershop--development.gadget.app/api/pos-bookings';
+        const url = `https://barbershop--development.gadget.app/api/pos-bookings${currentLocation ? `?locationId=${currentLocation.id}` : ''}`;
         const response = await fetch(url, {
           method: 'GET',
           headers: {
@@ -216,7 +242,7 @@ const Modal = () => {
     };
 
     fetchBookingsData();
-  }, [api]);
+  }, [api, currentLocation]);
 
   const handleAppointmentSelect = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
@@ -331,29 +357,28 @@ const Modal = () => {
       setDebugInfo(debugMsg1);
       console.log(debugMsg1);
       
+      // Set cart properties for order tracking
+      const cartProperties: Record<string, string> = {};
+      
       if (appointment.orderId) {
+        cartProperties.original_order_id = String(appointment.orderId);
+        console.log(`DEBUG: Will set original_order_id = ${appointment.orderId}`);
+      }
+      
+      // Always set the original booking ID for tracking
+      if (appointment.id) {
+        cartProperties.original_booking_id = String(appointment.id);
+        console.log(`DEBUG: Will set original_booking_id = ${appointment.id}`);
+      }
+      
+      if (Object.keys(cartProperties).length > 0) {
         try {
-          const debugMsg2 = `DEBUG: Attempting to set cart property original_order_id = ${appointment.orderId}`;
-          setDebugInfo(debugMsg2);
-          console.log(debugMsg2);
-          
-          await api.cart.addCartProperties({
-            original_order_id: String(appointment.orderId)
-          });
-          
-          const successMsg = `SUCCESS: Set original order ID: ${appointment.orderId} as cart property`;
-          setDebugInfo(successMsg);
-          console.log(successMsg);
+          await api.cart.addCartProperties(cartProperties);
+          console.log(`SUCCESS: Set cart properties:`, cartProperties);
         } catch (error) {
-          const errorMsg = `ERROR: Failed to set cart property: ${error instanceof Error ? error.message : String(error)}`;
-          setDebugInfo(errorMsg);
-          console.error(errorMsg, error);
+          console.error(`ERROR: Failed to set cart properties:`, error);
           // Continue with adding items even if property setting fails
         }
-      } else {
-        const warningMsg = `WARNING: No appointment.orderId available to set as cart property`;
-        setDebugInfo(warningMsg);
-        console.warn(warningMsg);
       }
 
       let itemsAdded = 0;
@@ -470,6 +495,18 @@ const Modal = () => {
         <ScrollView>
           {currentScreen === 'list' ? (
             <>
+              {/* Location Indicator */}
+              {currentLocation && (
+                <Box padding="Small" background="base">
+                  <Stack direction="inline" gap="200" alignItems="center">
+                    <Icon source="location" />
+                    <Text variant="bodyMd" fontWeight="bold">
+                      {currentLocation.name}
+                    </Text>
+                    <Badge tone="info">Current Location</Badge>
+                  </Stack>
+                </Box>
+              )}
 
               <Section title="Upcoming Appointments">
                 {upcomingAppointments.length > 0 ? (

@@ -27,6 +27,7 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
 
       // Check if this order has the original_order_id in note attributes
       const originalOrderId = record.noteAttributes?.find(attr => attr.name === 'original_order_id')?.value;
+      const originalBookingId = record.noteAttributes?.find(attr => attr.name === 'original_booking_id')?.value;
       
       if (originalOrderId) {
         logger.info(`Found original order ID: ${originalOrderId} in POS order ${record.id}`);
@@ -171,8 +172,46 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
           logger.error(`Failed to cancel order ${originalOrderId}: ${cancelError?.message}`);
           // Don't fail the entire process if cancellation fails
         }
+      } else if (originalBookingId) {
+        // Handle case where POS order is paying for a manually created booking
+        logger.info(`Found original booking ID: ${originalBookingId} in POS order ${record.id}`);
+        
+        try {
+          // Find the original booking
+          const originalBooking = await api.booking.findFirst({
+            filter: {
+              id: { equals: originalBookingId },
+              shopId: { equals: record.shopId }
+            },
+            select: {
+              id: true,
+              status: true,
+              order: {
+                id: true,
+                name: true
+              }
+            }
+          });
+          
+          if (originalBooking) {
+            logger.info(`Found original booking ${originalBooking.id}, updating status to paid and linking to POS order`);
+            
+            // Update the booking to paid status and link it to the POS order
+            await api.booking.update(originalBooking.id, {
+              status: "paid",
+              order: { _link: record.id }
+            });
+            
+            logger.info(`Successfully updated booking ${originalBooking.id} to paid and linked to POS order ${record.id}`);
+          } else {
+            logger.warn(`No booking found with ID ${originalBookingId} for shop ${record.shopId}`);
+          }
+        } catch (bookingUpdateError) {
+          logger.error(`Failed to update original booking ${originalBookingId}: ${bookingUpdateError?.message}`);
+          // Don't fail the entire process if booking update fails
+        }
       } else {
-        logger.info(`No original_order_id found in note attributes for POS order ${record.id} - no cancellation needed`);
+        logger.info(`No original_order_id or original_booking_id found in note attributes for POS order ${record.id} - no updates needed`);
       }
     } catch (error) {
       logger.error(`Failed to check/cancel original order: ${error?.message}`);

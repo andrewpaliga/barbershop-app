@@ -26,6 +26,10 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     shopId = connections.shopify.currentShopId?.toString() || null;
     logger.info({ shopId }, "Attempted to get shop ID from current authenticated shop");
 
+    // Get location ID from query parameters
+    const locationId = (request.query as any)?.locationId as string;
+    logger.info({ locationId }, "Location ID from query params");
+
     // If no shop ID found, try to get it from query parameters
     if (!shopId) {
       const shopDomain = (request.query as any)?.shop as string;
