@@ -100,8 +100,8 @@ export default function NewService() {
         
         // Check if the action was successful
         if (result) {
-          console.log('Service created successfully, navigating to products');
-          navigate("/products");
+          console.log('Service created successfully, navigating to services');
+          navigate("/services");
         }
       } catch (err) {
         console.error('Service creation failed:', err);
@@ -115,7 +115,7 @@ export default function NewService() {
   };
 
   const handleCancel = () => {
-    navigate("/products");
+    navigate("/services");
   };
 
   const handleDurationPriceChange = (duration: number, checked: boolean, price?: number) => {

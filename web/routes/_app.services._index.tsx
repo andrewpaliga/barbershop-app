@@ -54,43 +54,61 @@ export default function ProductsIndex() {
       {
         name: "Haircut",
         description: "Professional haircut service",
-        price: 45,
-        duration: timeSlotInterval * 2, // 2 slots
-        mode: "single"
+        // define two durations: 1x and 2x interval
+        durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+        // derive per-slot price from the previous price (45 for 2 slots) -> ~22.5 per slot
+        durationPrices: {
+          [timeSlotInterval * 1]: 30,
+          [timeSlotInterval * 2]: 60
+        },
+        mode: "multi" as const
       },
       {
         name: "Beard Trim", 
         description: "Precise beard trimming and shaping",
         price: 25,
         duration: timeSlotInterval * 1, // 1 slot
-        mode: "single"
+        mode: "single" as const
       },
       {
         name: "Haircut + Beard",
         description: "Complete grooming package", 
-        price: 60,
+        price: 50,
         duration: timeSlotInterval * 3, // 3 slots
-        mode: "single"
+        mode: "single" as const
       },
       {
         name: "Hair Wash & Style",
         description: "Wash, cut, and style service",
-        price: 35,
-        duration: timeSlotInterval * 1.5, // 1.5 slots
-        mode: "single"
+        // two durations: 1x and 2x interval
+        durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+        // previous single: 1.5 slots for $35 (~23.33/slot) → round sensibly
+        durationPrices: {
+          [timeSlotInterval * 1]: 50,
+          [timeSlotInterval * 2]: 100
+        },
+        mode: "multi" as const
       }
     ];
 
     try {
       for (const service of essentials) {
         // Use the existing createService action
-        await api.createService({
-          name: service.name,
-          description: service.description,
-          price: service.price,
-          duration: service.duration,
-          mode: service.mode
-        });
+        if (service.mode === "multi") {
+          await api.createService({
+            name: service.name,
+            description: service.description,
+            durations: service.durations,
+            durationPrices: service.durationPrices
+          });
+        } else {
+          await api.createService({
+            name: service.name,
+            description: service.description,
+            price: service.price,
+            duration: service.duration
+          });
+        }
         
         console.log(`Created service: ${service.name}`);
       }
