@@ -164,45 +164,8 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
           
           logger.info(`Successfully cancelled original order ${originalOrderId} due to POS payment`);
           
-          // Now mark the original booking as paid since the service was completed via POS
-          logger.info(`Marking original booking as paid for cancelled order ${originalOrderId}`, {
-            originalOrderId: originalOrderId,
-    shopId: record.shopId,
-            searchingForBookingWithOrderId: originalOrderId
-          });
-          
-          try {
-            // Find the booking associated with the original order
-            const originalBooking = await api.booking.findFirst({
-              filter: {
-                shopId: { equals: record.shopId },
-                order: { legacyResourceId: { equals: originalOrderId } }
-              },
-              select: {
-                id: true,
-                status: true,
-                order: {
-                  id: true,
-                  name: true
-                }
-              }
-            });
-            
-            if (originalBooking) {
-              logger.info(`Found original booking ${originalBooking.id} for order ${originalOrderId}, updating status to paid`);
-              
-              await api.booking.update(originalBooking.id, {
-                status: "paid"
-              });
-              
-              logger.info(`Successfully marked booking ${originalBooking.id} as paid`);
-            } else {
-              logger.warn(`No booking found for original order ${originalOrderId} - this may be expected if the booking was created manually`);
-            }
-          } catch (bookingUpdateError) {
-            logger.error(`Failed to update original booking status: ${bookingUpdateError?.message}`);
-            // Don't fail the entire process if booking update fails
-          }
+          // Note: No need to update booking status to "paid" - the UI will derive payment status
+          // from the order's financialStatus in real-time, avoiding sync issues
           
         } catch (cancelError) {
           logger.error(`Failed to cancel order ${originalOrderId}: ${cancelError?.message}`);
@@ -472,7 +435,7 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
         totalPrice: totalPrice,
         staff: { _link: staff.id },
         duration: bookingData.duration || 60, // Default to 60 minutes
-        status: 'confirmed',
+        status: 'confirmed', // This is the booking status (confirmed/pending), payment status comes from order
         notes: `Order: ${record.name}\nService: ${lineItem.name}\n${bookingData.notes || ''}`.trim(),
         shop: { _link: record.shopId },
         location: { _link: location.id },

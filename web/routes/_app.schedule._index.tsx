@@ -249,6 +249,10 @@ export default function SchedulePage() {
         },
       },
       totalPrice: true,
+      order: {
+        id: true,
+        financialStatus: true,
+      },
     },
   });
 
@@ -957,8 +961,8 @@ export default function SchedulePage() {
                                         >
                                           <Box padding="50">
                                             <BlockStack gap="25">
-                                              <Badge tone={getStatusColor(booking.status) as any}>
-                                                {booking.status}
+                                              <Badge tone={getStatusColor(booking.order?.financialStatus === 'paid' ? 'paid' : 'not_paid') as any}>
+                                                {booking.order?.financialStatus === 'paid' ? 'paid' : 'not_paid'}
                                               </Badge>
                                               <Text as="p" variant="bodyXs" fontWeight="bold">
                                                 {booking.variant?.product?.title}

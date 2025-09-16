@@ -80,12 +80,7 @@ const Modal = () => {
   };
 
   const getPaymentStatusBadge = (booking: Appointment) => {
-    // Prioritize booking status if it's "paid" - this handles POS payments that mark bookings as paid
-    if (booking.status === 'paid') {
-      return { text: 'Paid', variant: 'success' as const };
-    }
-
-    // For other cases, use order financial status if it exists
+    // Use order financial status as the source of truth for payment status
     if (booking.orderFinancialStatus) {
       switch (booking.orderFinancialStatus) {
         case 'paid':
@@ -129,15 +124,11 @@ const Modal = () => {
   };
 
   const isBookingPaid = (booking: Appointment) => {
-    // Prioritize booking status if it's "paid" - this handles POS payments that mark bookings as paid
-    if (booking.status === 'paid') {
-      return true;
-    }
-    // Check order financial status if booking status is not "paid"
+    // Use order financial status as the source of truth for payment status
     if (booking.orderFinancialStatus) {
       return booking.orderFinancialStatus === 'paid';
     }
-    // Fall back to booking status
+    // Fall back to booking status if no order financial status
     return booking.status === 'paid';
   };
 
