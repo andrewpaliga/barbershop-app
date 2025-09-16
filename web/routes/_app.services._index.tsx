@@ -56,10 +56,9 @@ export default function ProductsIndex() {
         description: "Professional haircut service",
         // define two durations: 1x and 2x interval
         durations: [timeSlotInterval * 1, timeSlotInterval * 2],
-        // derive per-slot price from the previous price (45 for 2 slots) -> ~22.5 per slot
         durationPrices: {
-          [timeSlotInterval * 1]: 30,
-          [timeSlotInterval * 2]: 60
+          [timeSlotInterval * 1]: 23,
+          [timeSlotInterval * 2]: 45
         },
         mode: "multi" as const
       },
@@ -73,7 +72,7 @@ export default function ProductsIndex() {
       {
         name: "Haircut + Beard",
         description: "Complete grooming package", 
-        price: 50,
+        price: 60,
         duration: timeSlotInterval * 3, // 3 slots
         mode: "single" as const
       },
@@ -82,16 +81,16 @@ export default function ProductsIndex() {
         description: "Wash, cut, and style service",
         // two durations: 1x and 2x interval
         durations: [timeSlotInterval * 1, timeSlotInterval * 2],
-        // previous single: 1.5 slots for $35 (~23.33/slot) → round sensibly
         durationPrices: {
-          [timeSlotInterval * 1]: 50,
-          [timeSlotInterval * 2]: 100
+          [timeSlotInterval * 1]: 23,
+          [timeSlotInterval * 2]: 46
         },
         mode: "multi" as const
       }
     ];
 
     try {
+      let created = 0;
       for (const service of essentials) {
         // Use the existing createService action
         if (service.mode === "multi") {
@@ -109,8 +108,10 @@ export default function ProductsIndex() {
             duration: service.duration
           });
         }
-        
-        console.log(`Created service: ${service.name}`);
+        created += 1;
+        // update button label to reflect progress
+        setIsAddingEssentials(true);
+        (window as any).__essentialsProgress = `${created}/${essentials.length}`;
       }
       
       await refetch();
@@ -120,6 +121,7 @@ export default function ProductsIndex() {
       alert("Failed to add barber essentials. Please try again.");
     } finally {
       setIsAddingEssentials(false);
+      (window as any).__essentialsProgress = undefined;
     }
   };
 
@@ -187,7 +189,7 @@ export default function ProductsIndex() {
         <EmptyState
           heading="No services found"
           action={{
-            content: isAddingEssentials ? 'Adding Essentials...' : 'Add Barber Essentials',
+            content: isAddingEssentials ? 'Adding Essentials…' : 'Add Barber Essentials',
             onAction: addBarberEssentials,
             disabled: isAddingEssentials
           }}
@@ -286,6 +288,13 @@ export default function ProductsIndex() {
         </InlineStack>
         
         <Card>
+          {isAddingEssentials ? (
+            <Banner>
+              <Text as="p" variant="bodyMd">
+                Creating barber essentials {(window as any).__essentialsProgress ? `(${(window as any).__essentialsProgress})` : ''}...
+              </Text>
+            </Banner>
+          ) : null}
           <ServicesTable />
         </Card>
       </BlockStack>
