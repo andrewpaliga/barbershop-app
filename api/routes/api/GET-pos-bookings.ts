@@ -30,6 +30,35 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     const locationId = (request.query as any)?.locationId as string;
     logger.info({ locationId }, "Location ID from query params");
 
+    // Resolve location name if we have a location ID
+    let locationName = "Unknown Location";
+    if (locationId && shopId) {
+      try {
+        const shopifyClient = await connections.shopify.forShopId(shopId);
+        if (shopifyClient) {
+          const locationQuery = `
+            query getLocation($id: ID!) {
+              location(id: $id) {
+                id
+                name
+              }
+            }
+          `;
+          
+          const locationResult = await shopifyClient.graphql(locationQuery, {
+            id: `gid://shopify/Location/${locationId}`
+          });
+          
+          if (locationResult?.location) {
+            locationName = locationResult.location.name || `Location ${locationId}`;
+            logger.info({ locationName, locationId }, "Resolved location name");
+          }
+        }
+      } catch (error) {
+        logger.warn({ error: error?.message, locationId }, "Failed to resolve location name");
+      }
+    }
+
     // If no shop ID found, try to get it from query parameters
     if (!shopId) {
       const shopDomain = (request.query as any)?.shop as string;
@@ -310,7 +339,8 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
 
     await reply.send({
       recentBookings,
-      upcomingBookings
+      upcomingBookings,
+      locationName: locationName
     });
 
   } catch (error) {

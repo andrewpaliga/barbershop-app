@@ -53,31 +53,97 @@ const Modal = () => {
 
   const api = useApi();
   
-  // Get current POS location
+  // 1) Get Session API
+  const {session} = useApi<'pos.home.modal.render'>();
+  const {currentSession, getSessionToken} = session;
+
+  // 2) Store current location from session
   const [currentLocation, setCurrentLocation] = useState<{id: string, name: string} | null>(null);
 
-  // Get current POS location
   useEffect(() => {
-    const getCurrentLocation = async () => {
+    const fetchLocationAndBookings = async () => {
       try {
-        // Try to get location from POS context
-        if (api.location) {
-          const location = await api.location.get();
-          setCurrentLocation({
-            id: location.id,
-            name: location.name || `Location ${location.id}`
-          });
-          console.log('Current POS location:', location);
+        const locId = String(currentSession.locationId);
+        console.log('POS current locationId:', locId);
+        
+        // Fetch location name and bookings together
+        const response = await fetch(`https://barbershop--development.gadget.app/api/pos-bookings?locationId=${locId}`);
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Set location name from backend response
+          if (data.locationName) {
+            setCurrentLocation({
+              id: locId,
+              name: data.locationName
+            });
+            console.log('Found location name from backend:', data.locationName);
+          } else {
+            setCurrentLocation({
+              id: locId,
+              name: `Location ${locId}`
+            });
+          }
+
+          // Map bookings from backend response
+          const recent = (data.recentBookings || []).map((booking: any) => ({
+            id: booking.id,
+            customerName: booking.customerName,
+            scheduledAt: booking.scheduledAt,
+            serviceName: booking.serviceName,
+            price: booking.price,
+            staffName: booking.staffName,
+            status: booking.status,
+            source: booking.source,
+            orderFinancialStatus: booking.orderFinancialStatus,
+            arrived: booking.arrived,
+            customerId: booking.customerId,
+            variantId: booking.variantId,
+            orderId: booking.orderId,
+            lineItems: booking.lineItems,
+          }));
+
+          const upcoming = (data.upcomingBookings || []).map((booking: any) => ({
+            id: booking.id,
+            customerName: booking.customerName,
+            scheduledAt: booking.scheduledAt,
+            serviceName: booking.serviceName,
+            price: booking.price,
+            staffName: booking.staffName,
+            status: booking.status,
+            source: booking.source,
+            orderFinancialStatus: booking.orderFinancialStatus,
+            arrived: booking.arrived,
+            customerId: booking.customerId,
+            variantId: booking.variantId,
+            orderId: booking.orderId,
+            lineItems: booking.lineItems,
+          }));
+
+          setRecentAppointments(recent);
+          setUpcomingAppointments(upcoming);
         } else {
-          console.log('Location API not available in POS context');
+          setCurrentLocation({
+            id: locId,
+            name: `Location ${locId}`
+          });
+          setRecentAppointments([]);
+          setUpcomingAppointments([]);
         }
-      } catch (error) {
-        console.error('Failed to get POS location:', error);
+      } catch (e) {
+        console.error('Failed to read session.currentSession.locationId', e);
+        setRecentAppointments([]);
+        setUpcomingAppointments([]);
+      } finally {
+        setLoading(false);
       }
     };
 
-    getCurrentLocation();
-  }, [api]);
+    // start loading state before fetch
+    setLoading(true);
+    setError(null);
+    fetchLocationAndBookings();
+  }, [currentSession.locationId]);
 
   const formatDateTime = (scheduledAt: string) => {
     const date = new Date(scheduledAt);
@@ -491,22 +557,10 @@ const Modal = () => {
 
   return (
     <Navigator>
-      <Screen name="appointments" title={currentScreen === 'list' ? "Appointments" : "Appointment Details"}>
+      <Screen name="appointments" title={currentScreen === 'list' ? `Appointments${currentLocation ? ` (${currentLocation.name})` : ''}` : "Appointment Details"}>
         <ScrollView>
           {currentScreen === 'list' ? (
             <>
-              {/* Location Indicator */}
-              {currentLocation && (
-                <Box padding="Small" background="base">
-                  <Stack direction="inline" gap="200" alignItems="center">
-                    <Icon source="location" />
-                    <Text variant="bodyMd" fontWeight="bold">
-                      {currentLocation.name}
-                    </Text>
-                    <Badge tone="info">Current Location</Badge>
-                  </Stack>
-                </Box>
-              )}
 
               <Section title="Upcoming Appointments">
                 {upcomingAppointments.length > 0 ? (
