@@ -10,6 +10,10 @@ export const run: ActionRun = async ({ params, record }) => {
 export const options: ActionOptions = {
   actionType: "update",
   triggers: {
-    api: true
+    api: true,
+    shopify: {
+      webhooks: ["products/update"],
+      hasSync: true
+    }
   }
 };

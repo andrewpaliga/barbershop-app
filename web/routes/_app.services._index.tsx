@@ -15,6 +15,7 @@ export default function ProductsIndex() {
   // Get config to access timeSlotInterval
   const [{ data: config, fetching: configFetching }] = useFindOne(api.config, "current");
   
+
   // Only show services - using productType instead of isBarberService
   const tableFilter = { 
     productType: { 
@@ -44,6 +45,7 @@ export default function ProductsIndex() {
   // Debug: Log filter configuration
   console.log('Products filter:', tableFilter);
   console.log('Products data:', products);
+
 
   // Function to add barber essentials
   const addBarberEssentials = async () => {
@@ -232,6 +234,7 @@ export default function ProductsIndex() {
             </Button>
           </BlockStack>
         </Banner>
+
 
         {/* Collapsible Help Section */}
         <Collapsible open={helpSectionOpen}>
