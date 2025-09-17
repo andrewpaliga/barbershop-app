@@ -49,7 +49,6 @@ const Modal = () => {
   const [arrivalError, setArrivalError] = useState<string | null>(null);
   const [addingToCart, setAddingToCart] = useState(false);
   const [addToCartError, setAddToCartError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   const api = useApi();
   
@@ -419,9 +418,7 @@ const Modal = () => {
       }
 
       // Pass the original order ID as cart properties (will become order note attributes)
-      const debugMsg1 = `DEBUG: appointment.orderId = ${appointment.orderId}`;
-      setDebugInfo(debugMsg1);
-      console.log(debugMsg1);
+      console.log(`DEBUG: appointment.orderId = ${appointment.orderId}`);
       
       // Set cart properties for order tracking
       const cartProperties: Record<string, string> = {};
@@ -724,24 +721,6 @@ const Modal = () => {
                   </Box>
                 )}
 
-                {debugInfo && (
-                  <Box padding="200">
-                    <Text variant="body">Debug: {debugInfo}</Text>
-                  </Box>
-                )}
-
-                <Box padding="200">
-                  <Text variant="headingSmall">Debug Info</Text>
-                  <Text variant="body">• Order ID: {selectedAppointment.orderId || 'null/undefined'}</Text>
-                  <Text variant="body">• Order ID Type: {typeof selectedAppointment.orderId}</Text>
-                  <Text variant="body">• Order ID Is Null: {selectedAppointment.orderId === null ? 'true' : 'false'}</Text>
-                  <Text variant="body">• Order ID Is Undefined: {selectedAppointment.orderId === undefined ? 'true' : 'false'}</Text>
-                  <Text variant="body">• Order ID Truthy: {selectedAppointment.orderId ? 'true' : 'false'}</Text>
-                  <Text variant="body">• Source: {selectedAppointment.source}</Text>
-                  <Text variant="body">• Variant ID: {selectedAppointment.variantId || 'null/undefined'}</Text>
-                  <Text variant="body">• Customer ID: {selectedAppointment.customerId || 'null/undefined'}</Text>
-                  <Text variant="body">• Line Items Count: {selectedAppointment.lineItems?.length || 0}</Text>
-                </Box>
 
                 <Box padding="400">
                   <Stack direction="inline" gap="200" flexChildren>

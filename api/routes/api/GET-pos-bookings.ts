@@ -108,7 +108,12 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         status: { notEquals: "cancelled" },
         order: {
           financialStatus: { notEquals: "voided" }
-        }
+        },
+        ...(locationId && {
+          location: {
+            legacyResourceId: { equals: locationId }
+          }
+        })
       },
       sort: { scheduledAt: "Descending" },
       first: 5,
@@ -136,6 +141,11 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         staff: {
           id: true,
           name: true
+        },
+        location: {
+          id: true,
+          name: true,
+          legacyResourceId: true
         },
         order: {
           id: true,
@@ -187,7 +197,12 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         status: { notEquals: "cancelled" },
         order: {
           financialStatus: { notEquals: "voided" }
-        }
+        },
+        ...(locationId && {
+          location: {
+            legacyResourceId: { equals: locationId }
+          }
+        })
       },
       sort: { scheduledAt: "Ascending" },
       first: 5,
@@ -215,6 +230,11 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         staff: {
           id: true,
           name: true
+        },
+        location: {
+          id: true,
+          name: true,
+          legacyResourceId: true
         },
         order: {
           id: true,
@@ -271,6 +291,8 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
       serviceName: booking.variant?.product?.title || booking.variant?.title || 'Unknown Service',
       price: booking.totalPrice,
       staffName: booking.staff?.name || 'Unknown Staff',
+      locationName: booking.location?.name || 'Unknown Location',
+      locationId: booking.location?.legacyResourceId,
       status: booking.status,
       arrived: booking.arrived,
       source: booking.order ? 'web' : 'manual',
@@ -299,6 +321,8 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
       serviceName: booking.variant?.product?.title || booking.variant?.title || 'Unknown Service',
       price: booking.totalPrice,
       staffName: booking.staff?.name || 'Unknown Staff',
+      locationName: booking.location?.name || 'Unknown Location',
+      locationId: booking.location?.legacyResourceId,
       status: booking.status,
       arrived: booking.arrived,
       source: booking.order ? 'web' : 'manual',
