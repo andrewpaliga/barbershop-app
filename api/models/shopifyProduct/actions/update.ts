@@ -1,39 +1,65 @@
 import { applyParams, save, ActionOptions } from "gadget-server";
 import { preventCrossShopDataAccess } from "gadget-server/shopify";
 
-export const run: ActionRun = async ({ params, record, logger }) => {
+export const run: ActionRun = async ({ params, record, logger, api }) => {
   applyParams(params, record);
-  
-  // Debug: Log webhook payload structure
-  logger.info(`Webhook params keys: ${Object.keys(params).join(', ')}`);
-  
-  // Check if images are in the shopifyProduct object
-  if (params.shopifyProduct && typeof params.shopifyProduct === 'object') {
-    logger.info(`shopifyProduct keys: ${Object.keys(params.shopifyProduct).join(', ')}`);
-    
-    if (params.shopifyProduct.images) {
-      logger.info(`Found images in shopifyProduct: ${JSON.stringify(params.shopifyProduct.images)}`);
-      // Set images field from nested shopifyProduct data
-      record.images = params.shopifyProduct.images;
-      logger.info(`Set images field on record from shopifyProduct`);
-    } else {
-      logger.info('No images field in shopifyProduct object');
-    }
-  }
-  
-  // Also check top-level images (original check)
-  if (params.images) {
-    logger.info(`Images in webhook payload: ${JSON.stringify(params.images)}`);
-    record.images = params.images;
-    logger.info(`Set images field on record from top-level`);
-  }
-  
-  if (!params.images && (!params.shopifyProduct || !params.shopifyProduct.images)) {
-    logger.info('No images field found anywhere in webhook payload');
-  }
   
   await preventCrossShopDataAccess(params, record);
   await save(record);
+};
+
+export const onSuccess: ActionOnSuccess = async ({ params, record, logger, api }) => {
+  try {
+    // Extract images and variants from the webhook payload
+    const images = params.images || [];
+    const variants = params.variants || [];
+    
+    logger.info(`Processing ${images.length} images and ${variants.length} variants from product update`);
+    
+    if (images.length === 0 || variants.length === 0) {
+      logger.info("No images or variants to process");
+      return;
+    }
+    
+    // Build variant -> image mapping from the payload
+    const variantToImage: Record<string, any> = {};
+    
+    for (const image of images) {
+      if (image.variant_ids && Array.isArray(image.variant_ids) && image.variant_ids.length > 0) {
+        for (const variantId of image.variant_ids) {
+          variantToImage[String(variantId)] = {
+            id: String(image.id),
+            url: String(image.src),
+            altText: image.alt || '',
+            width: image.width || null,
+            height: image.height || null
+          };
+          logger.info(`Mapped variant ${variantId} to image ${image.id}: ${image.src}`);
+        }
+      }
+    }
+    
+    // Update each variant with its corresponding image
+    for (const variant of variants) {
+      const variantId = String(variant.id);
+      const imageData = variantToImage[variantId];
+      
+      if (imageData) {
+        try {
+          logger.info(`Updating variant ${variantId} with image data`);
+          await (api as any).internal.shopifyProductVariant.update(variantId, { image: imageData });
+          logger.info(`Successfully updated variant ${variantId} image`);
+        } catch (error) {
+          logger.error(`Failed to update variant ${variantId}:`, error);
+        }
+      } else {
+        logger.info(`No image found for variant ${variantId}`);
+      }
+    }
+    
+  } catch (error) {
+    logger.error("Error in product update onSuccess:", error);
+  }
 };
 
 export const options: ActionOptions = {
