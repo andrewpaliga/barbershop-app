@@ -414,8 +414,7 @@ function generateTimeSlots(date) {
   const dayOfWeek = getDayOfWeek(date);
   const aggregatedSlots = new Set();
   
-  console.log(`Generating time slots for ${date.toDateString()} (${dayOfWeek})`);
-  console.log(`Qualified staff: ${qualifiedStaff.length} members`);
+  // Generate time slots for the given date
   
   qualifiedStaff.forEach(staffId => {
     // First, try to find specific date availability for the exact date being checked
@@ -451,40 +450,22 @@ function generateTimeSlots(date) {
     // Use specific date availability if available, otherwise fall back to weekly availability
     const availability = dateAvailability || staffAvailability;
     
-    if (dateAvailability) {
-      console.log(`Using SPECIFIC DATE availability for ${staffId} on ${date.toDateString()}:`, dateAvailability);
-    } else if (staffAvailability) {
-      console.log(`Using WEEKLY availability for ${staffId} on ${dayOfWeek}:`, staffAvailability);
-    } else {
-      console.log(`No availability found for ${staffId} on ${date.toDateString()} (${dayOfWeek})`);
-    }
+    // Use specific date availability if available, otherwise fall back to weekly availability
     
     if (availability) {
       const startTime = parseTime(availability.startTime);
       const endTime = parseTime(availability.endTime);
       const timeSlotInterval = bookingData.timeSlotInterval || 30;
       
-      console.log(`Staff ${staffId}: Available ${availability.startTime} - ${availability.endTime} (${timeSlotInterval} min intervals)`);
-      console.log(`Start time in minutes: ${startTime}, End time in minutes: ${endTime}`);
-      console.log(`Raw availability data:`, availability);
-      
       // Generate time slots that align with the interval
-      console.log(`Generating slots from ${startTime} to ${endTime} with ${timeSlotInterval} minute intervals`);
-      
       for (let minutes = startTime; minutes < endTime; minutes += timeSlotInterval) {
         const time = formatTime(minutes);
-        console.log(`Generated slot: ${time} (${minutes} minutes from start)`);
         aggregatedSlots.add(time);
       }
-      
-      console.log(`Total slots generated for staff ${staffId}: ${Array.from(aggregatedSlots).length}`);
     }
   });
   
   const sortedSlots = Array.from(aggregatedSlots).sort();
-  console.log(`Generated ${sortedSlots.length} time slots:`, sortedSlots);
-  console.log(`Final time slots array:`, sortedSlots);
-  
   return sortedSlots;
 }
 
@@ -496,17 +477,13 @@ function getDayOfWeek(date) {
 function parseTime(timeString) {
   if (!timeString) return 0;
   const [hours, minutes] = timeString.split(':').map(Number);
-  const totalMinutes = hours * 60 + minutes;
-  console.log(`parseTime("${timeString}") = ${totalMinutes} minutes (${hours}h ${minutes}m)`);
-  return totalMinutes;
+  return hours * 60 + minutes;
 }
 
 function formatTime(minutes) {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
-  const formatted = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-  console.log(`formatTime(${minutes}) = "${formatted}" (${hours}h ${mins}m)`);
-  return formatted;
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 }
 
 function createTimeSlot(time, date) {
@@ -515,30 +492,21 @@ function createTimeSlot(time, date) {
   timeSlotElement.textContent = time;
   timeSlotElement.type = 'button';
   
-  console.log(`\n--- Creating time slot: ${time} ---`);
   const isAvailable = isTimeSlotAvailable(time, date);
-  console.log(`Time slot ${time} availability: ${isAvailable}`);
   
   if (!isAvailable) {
     timeSlotElement.classList.add('unavailable');
     timeSlotElement.disabled = true;
-    console.log(`Time slot ${time} marked as UNAVAILABLE`);
   } else {
     timeSlotElement.addEventListener('click', () => {
       selectTimeSlot(time, date, timeSlotElement);
     });
-    console.log(`Time slot ${time} marked as AVAILABLE`);
   }
-  
-  console.log(`--- End creating time slot: ${time} ---\n`);
   return timeSlotElement;
 }
 
 function isTimeSlotAvailable(time, date) {
-  console.log(`\n=== Checking availability for time slot: ${time} on ${date.toDateString()} ===`);
-  
   if (!currentSelection.serviceId || !currentSelection.locationId || !bookingData) {
-    console.log(`Missing required data: serviceId=${currentSelection.serviceId}, locationId=${currentSelection.locationId}, bookingData=${!!bookingData}`);
     return false;
   }
   
@@ -548,15 +516,10 @@ function isTimeSlotAvailable(time, date) {
   }
   
   const availableStaff = qualifiedStaff.filter(staffId => {
-    const isAvailable = isTimeSlotAvailableForStaff(time, date, staffId);
-    console.log(`Staff ${staffId} availability for ${time}: ${isAvailable}`);
-    return isAvailable;
+    return isTimeSlotAvailableForStaff(time, date, staffId);
   });
   
-  const finalResult = availableStaff.length > 0;
-  console.log(`Final result for time slot ${time}: ${finalResult} (${availableStaff.length} available staff)`);
-  
-  return finalResult;
+  return availableStaff.length > 0;
 }
 
 function isTimeSlotAvailableForStaff(time, date, staffId) {
@@ -601,9 +564,7 @@ function isTimeSlotAvailableForStaff(time, date, staffId) {
     );
     
     const isMatch = currentDate.getTime() === availDateLocal.getTime();
-    if (isMatch) {
-      console.log(`Date availability found for ${staffId} on ${availDate.toDateString()}:`, avail);
-    }
+    // Found specific date availability
     
     return isMatch;
   });
@@ -616,23 +577,10 @@ function isTimeSlotAvailableForStaff(time, date, staffId) {
     avail.isAvailable
   );
   
-  console.log(`Staff availability for ${staffId} on ${dayOfWeek}:`, staffAvailability);
-  
   // Use specific date availability if available, otherwise fall back to weekly availability
   const availability = dateAvailability || staffAvailability;
   
-  if (dateAvailability) {
-    console.log(`Using SPECIFIC DATE availability for ${staffId} on ${date.toDateString()}:`, dateAvailability);
-  } else if (staffAvailability) {
-    console.log(`Using WEEKLY availability for ${staffId} on ${dayOfWeek}:`, staffAvailability);
-  } else {
-    console.log(`No availability found for ${staffId} on ${date.toDateString()} (${dayOfWeek})`);
-  }
-  
-  console.log(`Final availability for ${staffId}:`, availability);
-  
   if (!availability || !availability.isAvailable) {
-    console.log(`Staff ${staffId} not available on ${dayOfWeek} or specific date`);
     return false;
   }
   
@@ -643,30 +591,12 @@ function isTimeSlotAvailableForStaff(time, date, staffId) {
   const serviceDuration = getServiceDuration();
   const slotEndTime = slotTime + serviceDuration;
   
-  console.log(`Checking availability for ${time} (${slotTime} - ${slotEndTime})`);
-  console.log(`Staff available: ${availability.startTime} - ${availability.endTime} (${startTime} - ${endTime})`);
-  console.log(`Service duration: ${serviceDuration} minutes`);
-  console.log(`Raw start/end times: startTime="${availability.startTime}", endTime="${availability.endTime}"`);
-  
   if (!(slotTime >= startTime && slotEndTime <= endTime)) {
-    console.log(`Time slot ${time} outside working hours`);
-    console.log(`Slot time: ${slotTime}, Slot end: ${slotEndTime}`);
-    console.log(`Working hours: ${startTime} - ${endTime}`);
-    console.log(`Slot ${slotTime} >= start ${startTime}: ${slotTime >= startTime}`);
-    console.log(`Slot end ${slotEndTime} <= end ${endTime}: ${slotEndTime <= endTime}`);
     return false;
   }
   
   const hasConflict = checkBookingConflictsForStaff(date, time, serviceDuration, staffId);
-  
-  if (hasConflict) {
-    console.log(`Time slot ${time} has booking conflict`);
-    return false;
-  }
-  
-  console.log(`Time slot ${time} is available for staff ${staffId}`);
-  console.log(`=== END availability check for ${time} ===\n`);
-  return true;
+  return !hasConflict;
 }
 
 function getServiceDuration() {
@@ -722,10 +652,7 @@ function checkBookingConflictsForStaff(date, time, serviceDuration, staffId) {
   
   const targetStaffId = String(staffId);
   
-  // Debug logging to help identify the issue
-  console.log(`Checking conflicts for ${time} on ${date.toDateString()}`);
-  console.log(`Proposed: ${proposedStart.toLocaleTimeString()} - ${proposedEnd.toLocaleTimeString()}`);
-  console.log(`Service duration: ${serviceDuration} minutes`);
+  // Check for booking conflicts
   
   const conflictingBookings = bookingData.existingBookings.filter(booking => {
     const bookingStaffId = String(booking.staffId);
@@ -740,18 +667,12 @@ function checkBookingConflictsForStaff(date, time, serviceDuration, staffId) {
     
     const hasOverlap = (proposedStart < existingEnd) && (proposedEnd > existingStart);
     
-    if (hasOverlap) {
-      console.log(`Conflict found: Existing booking ${existingStart.toLocaleTimeString()} - ${existingEnd.toLocaleTimeString()}`);
-    }
+    // Conflict detected
     
     return hasOverlap;
   });
   
-  const hasConflict = conflictingBookings.length > 0;
-  console.log(`Total conflicts: ${conflictingBookings.length}, Available: ${!hasConflict}`);
-  console.log(`=== END conflict check for ${time} ===\n`);
-  
-  return hasConflict;
+  return conflictingBookings.length > 0;
 }
 
 function selectTimeSlot(time, date, element) {
@@ -992,7 +913,7 @@ async function confirmBooking() {
       confirmBtn.innerHTML = '<span class="spinner"></span> Adding to Cart...';
       confirmBtn.disabled = true;
       
-      console.log('Adding to cart:', cartItemData);
+      // Adding booking to cart
       
       try {
         const cartResponse = await fetch('/cart/add.js', {
@@ -1007,7 +928,6 @@ async function confirmBooking() {
           window.location.href = '/cart';
         } else {
           const cartError = await cartResponse.text();
-          console.error('Cart add failed:', cartResponse.status, cartError);
           
           let errorMessage = 'Failed to add booking to cart. Please try again.';
           
@@ -1021,7 +941,6 @@ async function confirmBooking() {
             }
           } catch (parseError) {
             // If we can't parse the error, use the generic message
-            console.warn('Could not parse cart error:', parseError);
           }
           
           showMessage('error', errorMessage);
@@ -1234,19 +1153,9 @@ async function loadBookingData() {
     // Theme customization is now handled by Liquid template
     
     // Debug: Log existing bookings
-    if (bookingData.existingBookings && Array.isArray(bookingData.existingBookings)) {
-      console.log(`Loaded ${bookingData.existingBookings.length} existing bookings:`, bookingData.existingBookings);
-      bookingData.existingBookings.forEach(booking => {
-        const start = new Date(booking.scheduledAt);
-        const end = new Date(start.getTime() + (booking.duration || 60) * 60 * 1000);
-        console.log(`Booking: ${start.toLocaleString()} - ${end.toLocaleString()} (${booking.duration || 60} min) for staff ${booking.staffId}`);
-      });
-    } else {
-      console.log('No existing bookings loaded');
-    }
+    // Load existing bookings for conflict checking
     
   } catch (error) {
-    console.error('Error in loadBookingData:', error);
     throw error;
   }
 }
@@ -1257,7 +1166,7 @@ function populateServiceButtons() {
     return;
   }
   
-  container.innerHTML = '';
+  const fragment = document.createDocumentFragment();
   
   bookingData.services.forEach((service) => {
     if (service.variants && service.variants.length > 0) {
@@ -1266,47 +1175,35 @@ function populateServiceButtons() {
         button.className = 'barbershop-selection-btn barbershop-service-btn';
         button.onclick = () => selectService(service.id, variant.id);
         
-        let imageHtml;
-        if (variant.image && variant.image.url && variant.image.url !== 'null') {
-          imageHtml = `<img src="${variant.image.url}" alt="${service.title} - ${variant.title}" class="barbershop-service-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="barbershop-service-image barbershop-service-placeholder" style="display: none;"><div class="barbershop-placeholder-icon">${service.title.charAt(0).toUpperCase()}</div></div>`;
-        } else {
-          imageHtml = `<div class="barbershop-service-image barbershop-service-placeholder"><div class="barbershop-placeholder-icon">${service.title.charAt(0).toUpperCase()}</div></div>`;
-        }
+        const hasImage = variant.image && variant.image.url && variant.image.url !== 'null';
+        const imageHtml = hasImage 
+          ? `<img src="${variant.image.url}" alt="${service.title} - ${variant.title}" class="barbershop-service-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="barbershop-service-image barbershop-service-placeholder" style="display: none;"><div class="barbershop-placeholder-icon">${service.title.charAt(0).toUpperCase()}</div></div>`
+          : `<div class="barbershop-service-image barbershop-service-placeholder"><div class="barbershop-placeholder-icon">${service.title.charAt(0).toUpperCase()}</div></div>`;
         
         const durationText = variant.duration ? `${variant.duration} minutes` : '';
-        const subtitleText = durationText ? `${durationText}` : '';
-        
         const priceHtml = variant.price ? `<div class="barbershop-selection-price">$${variant.price}</div>` : '';
         
         button.innerHTML = `
           ${imageHtml}
           <div class="barbershop-service-info">
-            <div class="barbershop-selection-title">${getVariantDisplayTitle(service, variant)}</div>
-            ${subtitleText ? `<div class="barbershop-selection-subtitle">${subtitleText}</div>` : ''}
+            <div class="barbershop-selection-title">${service.title}</div>
+            ${durationText ? `<div class="barbershop-selection-subtitle">${durationText}</div>` : ''}
             ${priceHtml}
           </div>
         `;
         
-        container.appendChild(button);
+        fragment.appendChild(button);
       });
     }
   });
+  
+  container.innerHTML = '';
+  container.appendChild(fragment);
 }
 
 function populateStaffButtons() {
   const container = document.getElementById('staff-selection-buttons');
-  if (!container) {
-    console.error('Staff selection buttons container not found');
-    return;
-  }
-  
-  if (!bookingData) {
-    console.error('No booking data available');
-    return;
-  }
-  
-  if (!bookingData.staff || !Array.isArray(bookingData.staff)) {
-    console.error('Invalid staff data:', bookingData.staff);
+  if (!container || !bookingData || !bookingData.staff || !Array.isArray(bookingData.staff)) {
     return;
   }
   
@@ -1314,12 +1211,12 @@ function populateStaffButtons() {
     return hasStaffAvailabilityInNext3Months(staff.id);
   });
   
-  container.innerHTML = '';
-  
   if (availableStaff.length === 0) {
     container.innerHTML = '<div style="text-align: center; color: #666; padding: 40px;"><p>No barbers are currently available for booking in the next 3 months. Please check back later or contact us directly.</p></div>';
     return;
   }
+  
+  const fragment = document.createDocumentFragment();
   
   availableStaff.forEach((staff) => {
     const button = document.createElement('button');
@@ -1338,8 +1235,11 @@ function populateStaffButtons() {
       </div>
     `;
     
-    container.appendChild(button);
+    fragment.appendChild(button);
   });
+  
+  container.innerHTML = '';
+  container.appendChild(fragment);
 }
 
 
