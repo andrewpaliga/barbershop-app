@@ -895,18 +895,23 @@ async function confirmBooking() {
         id: shopifyVariantId,
         quantity: 1,
         properties: {
+          'Booking Time': formatTime12Hour(currentSelection.selectedTime),
           'Booking Date': currentSelection.selectedDate.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
           }),
-          'Booking Time': formatTime12Hour(currentSelection.selectedTime),
           'Barber Name': staff.name,
-          'Location Name': location.name,
           'Notes': notes || '',
           // hidden private metadata so it doesn't render in cart
           '_staff_id': currentSelection.staffId,
-          '_location_id': currentSelection.locationId
+          '_location_id': currentSelection.locationId,
+          // Show location name only if there are multiple locations
+          ...(bookingData.locations && bookingData.locations.length > 1 ? {
+            'Location Name': location.name
+          } : {
+            '_location_name': location.name
+          })
         }
       };
       

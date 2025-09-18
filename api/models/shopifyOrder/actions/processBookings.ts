@@ -572,6 +572,7 @@ function extractBookingData(properties: any[], logger?: any): any {
         case 'location':
         case 'shop_location':
         case 'shop location':
+        case '_location_name':
           bookingData.locationName = prop.value;
           if (logger) logger.info(`Extracted location name: ${prop.value}`);
           break;
