@@ -895,15 +895,15 @@ async function confirmBooking() {
         id: shopifyVariantId,
         quantity: 1,
         properties: {
-          'booking_date': currentSelection.selectedDate.toLocaleDateString('en-US', {
+          'Booking Date': currentSelection.selectedDate.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
           }),
-          'booking_time': formatTime12Hour(currentSelection.selectedTime),
-          'barber_name': staff.name,
-          'location_name': location.name,
-          'notes': notes || '',
+          'Booking Time': formatTime12Hour(currentSelection.selectedTime),
+          'Barber Name': staff.name,
+          'Location Name': location.name,
+          'Notes': notes || '',
           // hidden private metadata so it doesn't render in cart
           '_staff_id': currentSelection.staffId,
           '_location_id': currentSelection.locationId
