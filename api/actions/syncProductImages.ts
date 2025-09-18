@@ -1,113 +1,130 @@
 export const run: ActionRun = async ({ params, logger, api, connections }) => {
-  const { shopDomain } = params;
-  
   try {
-    logger.info("Starting product images sync", { shopDomain });
+    const { shopId } = params;
+    
+    logger.info("Starting product images sync", { shopId });
 
-    // Find shops to sync
-    let shopsToSync;
-    if (shopDomain) {
-      // Sync specific shop by domain
-      shopsToSync = await api.shopifyShop.findMany({
-        filter: {
-          OR: [
-            { domain: { equals: shopDomain } },
-            { myshopifyDomain: { equals: shopDomain } }
-          ]
-        },
-        select: {
-          id: true,
-          name: true,
-          domain: true,
-          myshopifyDomain: true
-        }
-      });
-
-      if (shopsToSync.length === 0) {
-        logger.warn("No shop found with the provided domain", { shopDomain });
-        return { success: false, message: `No shop found with domain: ${shopDomain}` };
-      }
-    } else {
-      // Sync all shops
-      shopsToSync = await api.shopifyShop.findMany({
-        select: {
-          id: true,
-          name: true,
-          domain: true,
-          myshopifyDomain: true
-        }
-      });
+    // Get the shop record to get the domain
+    const shop = await api.shopifyShop.findOne(shopId);
+    if (!shop) {
+      throw new Error(`Shop with ID ${shopId} not found`);
     }
 
-    logger.info(`Found ${shopsToSync.length} shop(s) to sync`);
+    // Get authenticated Shopify client for this specific shop
+    const shopify = await connections.shopify.forShopId(shopId);
+    
+    // GraphQL query to fetch products with images
+    const query = `
+      query($first: Int!) {
+        products(first: $first) {
+          nodes {
+            id
+            title
+            productType
+            images(first: 10) {
+              nodes {
+                id
+                url
+                altText
+                width
+                height
+              }
+            }
+          }
+        }
+      }
+    `;
 
     const results = [];
+    let updatedCount = 0;
+    let errorCount = 0;
 
-    // Process each shop
-    for (const shop of shopsToSync) {
+    // Fetch products from Shopify
+    const response = await shopify.graphql(query, { first: 250 });
+    const products = response.products.nodes;
+
+    logger.info(`Found ${products.length} products to process`);
+
+    // Process each product
+    for (const shopifyProduct of products) {
       try {
-        logger.info(`Starting sync for shop: ${shop.name} (${shop.domain})`, { shopId: shop.id });
-
-        // Create and run sync for products and variants
-        const syncResult = await api.shopifySync.run({
-          shop: { _link: shop.id },
-          domain: shop.domain || shop.myshopifyDomain,
-          models: ["shopifyProduct", "shopifyProductVariant"],
-          force: false
+        // Extract Shopify product ID (remove gid prefix)
+        const productId = shopifyProduct.id.replace('gid://shopify/Product/', '');
+        
+        // Find the corresponding product in Gadget
+        const gadgetProduct = await api.shopifyProduct.maybeFindFirst({
+          filter: {
+            AND: [
+              { id: { equals: productId } },
+              { shopId: { equals: shopId } }
+            ]
+          }
         });
 
-        logger.info(`Sync initiated for shop: ${shop.name}`, { 
-          shopId: shop.id, 
-          syncId: syncResult.id 
-        });
+        if (gadgetProduct) {
+          // Update the product's images field
+          await api.shopifyProduct.update(productId, {
+            images: shopifyProduct.images.nodes
+          });
 
-        results.push({
-          shopId: shop.id,
-          shopName: shop.name,
-          shopDomain: shop.domain,
-          syncId: syncResult.id,
-          status: 'initiated'
-        });
+          updatedCount++;
+          
+          results.push({
+            productId,
+            title: shopifyProduct.title,
+            imageCount: shopifyProduct.images.nodes.length,
+            status: 'updated'
+          });
+
+          logger.info(`Updated images for product: ${shopifyProduct.title}`, {
+            productId,
+            imageCount: shopifyProduct.images.nodes.length
+          });
+        } else {
+          logger.warn(`Product not found in Gadget database`, { productId });
+          results.push({
+            productId,
+            title: shopifyProduct.title,
+            status: 'not_found'
+          });
+        }
 
       } catch (error) {
-        logger.error(`Failed to sync shop: ${shop.name}`, { 
-          shopId: shop.id, 
-          error: error.message 
+        errorCount++;
+        logger.error(`Failed to update product images`, {
+          productId: shopifyProduct.id,
+          error: error.message
         });
 
         results.push({
-          shopId: shop.id,
-          shopName: shop.name,
-          shopDomain: shop.domain,
-          status: 'failed',
+          productId: shopifyProduct.id,
+          title: shopifyProduct.title,
+          status: 'error',
           error: error.message
         });
       }
     }
 
-    const successCount = results.filter(r => r.status === 'initiated').length;
-    const failureCount = results.filter(r => r.status === 'failed').length;
-
     logger.info("Product images sync completed", {
-      totalShops: shopsToSync.length,
-      successful: successCount,
-      failed: failureCount
+      totalProducts: products.length,
+      updated: updatedCount,
+      errors: errorCount
     });
 
     return {
       success: true,
-      message: `Sync initiated for ${successCount} shop(s), ${failureCount} failed`,
+      message: `Updated images for ${updatedCount} products, ${errorCount} errors`,
+      totalProducts: products.length,
+      updatedCount,
+      errorCount,
       results
     };
 
+export const params = {
+  shopId: { type: "string" }
+};
   } catch (error) {
     logger.error("Failed to run product images sync", { error: error.message });
     throw error;
-  }
-};
-
-export const params = {
-  shopDomain: {
-    type: "string"
   }
 };
