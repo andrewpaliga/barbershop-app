@@ -11,7 +11,6 @@ export default function NewStaffPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleSuccess = () => {
-    shopify.toast.show("Staff member created successfully!");
     navigate("/staff");
   };
 

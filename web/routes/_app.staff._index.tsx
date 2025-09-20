@@ -1,6 +1,6 @@
 import type { MetaFunction } from "@remix-run/node";
 import { useNavigate } from "@remix-run/react";
-import { Page, Card, BlockStack, DataTable, Text, Spinner, Banner } from "@shopify/polaris";
+import { Page, Card, BlockStack, DataTable, Text, Spinner, Banner, Button } from "@shopify/polaris";
 import { useFindMany } from "@gadgetinc/react";
 import { api } from "../api";
 
@@ -62,7 +62,7 @@ export default function StaffIndex() {
         }}
       >
         <BlockStack gap="400">
-          <Banner status="critical">
+          <Banner tone="critical">
             <Text as="p">Error loading staff: {error.toString()}</Text>
           </Banner>
         </BlockStack>
@@ -71,7 +71,14 @@ export default function StaffIndex() {
   }
 
   const rows = data?.map((staff) => [
-    staff.name || "—",
+    <Button
+      key={staff.id}
+      variant="plain"
+      onClick={() => handleStaffClick(staff)}
+      accessibilityLabel={`View details for ${staff.name}`}
+    >
+      {staff.name || "—"}
+    </Button>,
     staff.email || "—",
     staff.phone || "—",
     staff.isActive ? "Yes" : "No",
@@ -94,12 +101,6 @@ export default function StaffIndex() {
               columnContentTypes={["text", "text", "text", "text"]}
               headings={headings}
               rows={rows}
-              onRowClick={(rowIndex) => {
-                const staff = data[rowIndex];
-                if (staff) {
-                  handleStaffClick(staff);
-                }
-              }}
             />
           ) : (
             <div style={{ padding: "2rem", textAlign: "center" }}>
