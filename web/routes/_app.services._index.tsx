@@ -462,19 +462,7 @@ export default function ProductsIndex() {
               onChange={(value) => setSelectedTheme(value)}
             />
             
-            <Card background="bg-surface-secondary">
-              <BlockStack gap="200">
-                <Text as="h4" variant="headingSm">
-                  What you'll get:
-                </Text>
-                <List>
-                  <List.Item>4 pre-configured services relevant to your business type</List.Item>
-                  <List.Item>Appropriate pricing for your industry</List.Item>
-                  <List.Item>Multiple duration options where applicable</List.Item>
-                  <List.Item>Ready to customize after creation</List.Item>
-                </List>
-              </BlockStack>
-            </Card>
+
           </BlockStack>
         </Modal.Section>
       </Modal>
