@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Page, Card, Text, BlockStack, InlineStack, Banner, Button, Collapsible, List, DataTable, Spinner, EmptyState } from "@shopify/polaris";
+import { Page, Card, Text, BlockStack, InlineStack, Banner, Button, Collapsible, List, DataTable, Spinner, EmptyState, Modal, Select } from "@shopify/polaris";
 import { useFindMany, useFindOne } from "@gadgetinc/react";
 import { useNavigate } from "@remix-run/react";
 import { api } from "../api";
@@ -7,6 +7,8 @@ import { api } from "../api";
 export default function ProductsIndex() {
   const [helpSectionOpen, setHelpSectionOpen] = useState(false);
   const [isAddingEssentials, setIsAddingEssentials] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState("barber shop");
   const navigate = useNavigate();
   
   // Get the current shop's domain once for all product links
@@ -47,49 +49,172 @@ export default function ProductsIndex() {
   console.log('Products data:', products);
 
 
-  // Function to add barber essentials
-  const addBarberEssentials = async () => {
+  // Function to get services based on theme
+  const getServicesByTheme = (theme: string, timeSlotInterval: number) => {
+    const serviceSets = {
+      "barber shop": [
+        {
+          name: "Haircut",
+          description: "Professional haircut service",
+          durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+          durationPrices: {
+            [timeSlotInterval * 1]: 23,
+            [timeSlotInterval * 2]: 45
+          },
+          mode: "multi" as const
+        },
+        {
+          name: "Beard Trim", 
+          description: "Precise beard trimming and shaping",
+          price: 25,
+          duration: timeSlotInterval * 1,
+          mode: "single" as const
+        },
+        {
+          name: "Haircut + Beard",
+          description: "Complete grooming package", 
+          price: 60,
+          duration: timeSlotInterval * 3,
+          mode: "single" as const
+        },
+        {
+          name: "Hair Wash & Style",
+          description: "Wash, cut, and style service",
+          durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+          durationPrices: {
+            [timeSlotInterval * 1]: 23,
+            [timeSlotInterval * 2]: 46
+          },
+          mode: "multi" as const
+        }
+      ],
+      "hair salon": [
+        {
+          name: "Haircut",
+          description: "Professional haircut service",
+          durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+          durationPrices: {
+            [timeSlotInterval * 1]: 35,
+            [timeSlotInterval * 2]: 65
+          },
+          mode: "multi" as const
+        },
+        {
+          name: "Hair Color", 
+          description: "Professional hair coloring service",
+          price: 85,
+          duration: timeSlotInterval * 3,
+          mode: "single" as const
+        },
+        {
+          name: "Cut & Color",
+          description: "Complete hair transformation", 
+          price: 120,
+          duration: timeSlotInterval * 4,
+          mode: "single" as const
+        },
+        {
+          name: "Blowout & Style",
+          description: "Professional styling service",
+          durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+          durationPrices: {
+            [timeSlotInterval * 1]: 45,
+            [timeSlotInterval * 2]: 80
+          },
+          mode: "multi" as const
+        }
+      ],
+      "personal trainer": [
+        {
+          name: "Personal Training",
+          description: "One-on-one fitness training session",
+          durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+          durationPrices: {
+            [timeSlotInterval * 1]: 75,
+            [timeSlotInterval * 2]: 140
+          },
+          mode: "multi" as const
+        },
+        {
+          name: "Fitness Assessment", 
+          description: "Comprehensive fitness evaluation",
+          price: 60,
+          duration: timeSlotInterval * 1,
+          mode: "single" as const
+        },
+        {
+          name: "Training Package",
+          description: "Extended training session", 
+          price: 180,
+          duration: timeSlotInterval * 3,
+          mode: "single" as const
+        },
+        {
+          name: "Nutrition Consultation",
+          description: "Personalized nutrition planning",
+          durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+          durationPrices: {
+            [timeSlotInterval * 1]: 50,
+            [timeSlotInterval * 2]: 90
+          },
+          mode: "multi" as const
+        }
+      ],
+      "massage clinic": [
+        {
+          name: "Swedish Massage",
+          description: "Relaxing full-body massage",
+          durations: [timeSlotInterval * 2, timeSlotInterval * 3],
+          durationPrices: {
+            [timeSlotInterval * 2]: 80,
+            [timeSlotInterval * 3]: 115
+          },
+          mode: "multi" as const
+        },
+        {
+          name: "Deep Tissue", 
+          description: "Therapeutic deep tissue massage",
+          price: 95,
+          duration: timeSlotInterval * 2,
+          mode: "single" as const
+        },
+        {
+          name: "Hot Stone Massage",
+          description: "Relaxing hot stone therapy", 
+          price: 125,
+          duration: timeSlotInterval * 3,
+          mode: "single" as const
+        },
+        {
+          name: "Sports Massage",
+          description: "Targeted sports recovery massage",
+          durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+          durationPrices: {
+            [timeSlotInterval * 1]: 60,
+            [timeSlotInterval * 2]: 110
+          },
+          mode: "multi" as const
+        }
+      ]
+    };
+
+    // If "surprise me" is selected, pick a random theme
+    if (theme === "surprise me") {
+      const themes = Object.keys(serviceSets);
+      const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+      return { services: serviceSets[randomTheme as keyof typeof serviceSets], actualTheme: randomTheme };
+    }
+
+    return { services: serviceSets[theme as keyof typeof serviceSets], actualTheme: theme };
+  };
+
+  // Function to add example services
+  const addExampleServices = async () => {
     setIsAddingEssentials(true);
+    setShowThemeModal(false);
     const timeSlotInterval = config?.timeSlotInterval || 30;
     
-    const essentials = [
-      {
-        name: "Haircut",
-        description: "Professional haircut service",
-        // define two durations: 1x and 2x interval
-        durations: [timeSlotInterval * 1, timeSlotInterval * 2],
-        durationPrices: {
-          [timeSlotInterval * 1]: 23,
-          [timeSlotInterval * 2]: 45
-        },
-        mode: "multi" as const
-      },
-      {
-        name: "Beard Trim", 
-        description: "Precise beard trimming and shaping",
-        price: 25,
-        duration: timeSlotInterval * 1, // 1 slot
-        mode: "single" as const
-      },
-      {
-        name: "Haircut + Beard",
-        description: "Complete grooming package", 
-        price: 60,
-        duration: timeSlotInterval * 3, // 3 slots
-        mode: "single" as const
-      },
-      {
-        name: "Hair Wash & Style",
-        description: "Wash, cut, and style service",
-        // two durations: 1x and 2x interval
-        durations: [timeSlotInterval * 1, timeSlotInterval * 2],
-        durationPrices: {
-          [timeSlotInterval * 1]: 23,
-          [timeSlotInterval * 2]: 46
-        },
-        mode: "multi" as const
-      }
-    ];
+    const { services: essentials, actualTheme } = getServicesByTheme(selectedTheme, timeSlotInterval);
 
     try {
       let created = 0;
@@ -117,10 +242,10 @@ export default function ProductsIndex() {
       }
       
       await refetch();
-      alert("Barber essentials added successfully! You can now customize prices and durations.");
+      alert(`${actualTheme.charAt(0).toUpperCase() + actualTheme.slice(1)} services added successfully! You can now customize prices and durations.`);
     } catch (error) {
-      console.error("Failed to add barber essentials:", error);
-      alert("Failed to add barber essentials. Please try again.");
+      console.error("Failed to add example services:", error);
+      alert("Failed to add example services. Please try again.");
     } finally {
       setIsAddingEssentials(false);
       (window as any).__essentialsProgress = undefined;
@@ -175,7 +300,7 @@ export default function ProductsIndex() {
 
     if (error) {
       return (
-        <Banner status="critical">
+        <Banner tone="critical">
           <Text as="p" variant="bodyMd">
             Error loading services: {error.toString()}
           </Text>
@@ -191,8 +316,8 @@ export default function ProductsIndex() {
         <EmptyState
           heading="No services found"
           action={{
-            content: isAddingEssentials ? 'Adding Essentials…' : 'Add Barber Essentials',
-            onAction: addBarberEssentials,
+            content: isAddingEssentials ? 'Adding Services…' : 'Add Example Services',
+            onAction: () => setShowThemeModal(true),
             disabled: isAddingEssentials
           }}
           secondaryAction={{
@@ -202,7 +327,7 @@ export default function ProductsIndex() {
           image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
         >
           <Text as="p" variant="bodyMd">
-            Get started quickly with our barber essentials, or create your own custom service by adding a product with Type "Service" in your Shopify store.
+            Get started quickly with our example services, or create your own custom service by adding a product with Type "Service" in your Shopify store.
           </Text>
         </EmptyState>
       );
@@ -221,7 +346,7 @@ export default function ProductsIndex() {
     <Page title="Services" subtitle="Manage your barber services">
       <BlockStack gap="400">
         {/* Informational Banner */}
-        <Banner status="info">
+        <Banner tone="info">
           <BlockStack gap="200">
             <Text as="p" variant="bodyMd">
               Any product in your Shopify store can become a bookable service by setting its Type to "Service". Do it yourself or use the "Add Service" button.
@@ -237,7 +362,7 @@ export default function ProductsIndex() {
 
 
         {/* Collapsible Help Section */}
-        <Collapsible open={helpSectionOpen}>
+        <Collapsible open={helpSectionOpen} id="help-section">
           <Card>
             <BlockStack gap="400">
               <Text as="h3" variant="headingSm">
@@ -294,13 +419,65 @@ export default function ProductsIndex() {
           {isAddingEssentials ? (
             <Banner>
               <Text as="p" variant="bodyMd">
-                Creating barber essentials {(window as any).__essentialsProgress ? `(${(window as any).__essentialsProgress})` : ''}...
+                Creating services {(window as any).__essentialsProgress ? `(${(window as any).__essentialsProgress})` : ''}...
               </Text>
             </Banner>
           ) : null}
           <ServicesTable />
         </Card>
       </BlockStack>
+
+      {/* Theme Selection Modal */}
+      <Modal
+        open={showThemeModal}
+        onClose={() => setShowThemeModal(false)}
+        title="Choose Your Business Type"
+        primaryAction={{
+          content: 'Add Services',
+          onAction: addExampleServices,
+        }}
+        secondaryActions={[
+          {
+            content: 'Cancel',
+            onAction: () => setShowThemeModal(false),
+          },
+        ]}
+      >
+        <Modal.Section>
+          <BlockStack gap="400">
+            <Text as="p" variant="bodyMd">
+              Select the type of business you run to get relevant example services with appropriate pricing and durations.
+            </Text>
+            
+            <Select
+              label="Business Type"
+              options={[
+                { label: 'Barber Shop', value: 'barber shop' },
+                { label: 'Hair Salon', value: 'hair salon' },
+                { label: 'Personal Trainer', value: 'personal trainer' },
+                { label: 'Massage Clinic', value: 'massage clinic' },
+                { label: 'Surprise Me', value: 'surprise me' }
+              ]}
+              value={selectedTheme}
+              onChange={(value) => setSelectedTheme(value)}
+            />
+            
+            <Card background="bg-surface-secondary">
+              <BlockStack gap="200">
+                <Text as="h4" variant="headingSm">
+                  What you'll get:
+                </Text>
+                <List>
+                  <List.Item>4 pre-configured services relevant to your business type</List.Item>
+                  <List.Item>Appropriate pricing for your industry</List.Item>
+                  <List.Item>Multiple duration options where applicable</List.Item>
+                  <List.Item>Ready to customize after creation</List.Item>
+                </List>
+              </BlockStack>
+            </Card>
+          </BlockStack>
+        </Modal.Section>
+      </Modal>
     </Page>
   );
 }
