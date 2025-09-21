@@ -262,6 +262,58 @@ function validateForm(form) {
     return isValid;
 }
 
+// Documentation navigation functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const docsNavItems = document.querySelectorAll('.docs-nav-item');
+    const docsSections = document.querySelectorAll('.docs-section');
+    
+    docsNavItems.forEach(item => {
+        item.addEventListener('click', function() {
+            const targetSection = this.getAttribute('data-section');
+            
+            // Remove active class from all nav items and sections
+            docsNavItems.forEach(navItem => navItem.classList.remove('active'));
+            docsSections.forEach(section => section.classList.remove('active'));
+            
+            // Add active class to clicked nav item and corresponding section
+            this.classList.add('active');
+            const targetElement = document.getElementById(targetSection);
+            if (targetElement) {
+                targetElement.classList.add('active');
+                
+                // Smooth scroll to documentation section
+                const docsSection = document.querySelector('.documentation');
+                if (docsSection) {
+                    const offsetTop = docsSection.offsetTop - 80;
+                    window.scrollTo({
+                        top: offsetTop,
+                        behavior: 'smooth'
+                    });
+                }
+            }
+        });
+    });
+    
+    // Auto-highlight docs nav item based on scroll position
+    const docsObserver = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const sectionId = entry.target.id;
+                docsNavItems.forEach(navItem => {
+                    navItem.classList.remove('active');
+                    if (navItem.getAttribute('data-section') === sectionId) {
+                        navItem.classList.add('active');
+                    }
+                });
+            }
+        });
+    }, { threshold: 0.3 });
+    
+    docsSections.forEach(section => {
+        docsObserver.observe(section);
+    });
+});
+
 // Add smooth reveal animation for sections
 function revealOnScroll() {
     const sections = document.querySelectorAll('section');

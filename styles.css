@@ -708,6 +708,162 @@ body {
     color: white;
 }
 
+/* Documentation Section */
+.documentation {
+    padding: 80px 0;
+    background: #f8fafc;
+}
+
+.docs-nav {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 50px;
+    flex-wrap: wrap;
+}
+
+.docs-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 24px;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    color: #666;
+}
+
+.docs-nav-item:hover {
+    border-color: #667eea;
+    color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+}
+
+.docs-nav-item.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+}
+
+.docs-nav-icon {
+    font-size: 1.2rem;
+}
+
+.docs-nav-text {
+    font-size: 0.95rem;
+}
+
+.docs-content {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.docs-section {
+    display: none;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.docs-section.active {
+    display: block;
+}
+
+.docs-section-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 30px;
+    color: #1a1a1a;
+    text-align: center;
+}
+
+.docs-card {
+    background: white;
+    border-radius: 16px;
+    padding: 30px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+    transition: all 0.3s ease;
+}
+
+.docs-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.docs-card h4 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #1a1a1a;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 8px;
+}
+
+.docs-card h5 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #374151;
+}
+
+.docs-card p {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 16px;
+}
+
+.docs-card ul, .docs-card ol {
+    margin: 16px 0;
+    padding-left: 20px;
+}
+
+.docs-card li {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 8px;
+}
+
+.docs-card strong {
+    color: #1a1a1a;
+    font-weight: 600;
+}
+
+.troubleshooting-item {
+    background: #f8fafc;
+    border-left: 4px solid #ef4444;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+}
+
+.troubleshooting-item h5 {
+    color: #dc2626;
+    margin-bottom: 12px;
+    font-size: 1.1rem;
+}
+
+.troubleshooting-item p {
+    margin-bottom: 0;
+    color: #374151;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .nav-links {
@@ -772,6 +928,28 @@ body {
         flex-direction: column;
         gap: 20px;
         text-align: center;
+    }
+    
+    /* Documentation responsive */
+    .docs-nav {
+        gap: 10px;
+    }
+    
+    .docs-nav-item {
+        padding: 12px 16px;
+        font-size: 0.9rem;
+    }
+    
+    .docs-nav-text {
+        display: none;
+    }
+    
+    .docs-card {
+        padding: 20px;
+    }
+    
+    .docs-section-title {
+        font-size: 1.5rem;
     }
 }
 
