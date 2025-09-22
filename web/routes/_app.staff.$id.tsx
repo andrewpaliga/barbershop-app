@@ -985,6 +985,16 @@ export default function StaffEdit() {
         onAction: () => navigate("/staff"),
       }}
       title="Edit Staff Member"
+      primaryAction={{
+        content: "Save",
+        onAction: () => {
+          // Find and click the AutoSubmit button
+          const saveButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+          if (saveButton) {
+            saveButton.click();
+          }
+        },
+      }}
       secondaryActions={[
         {
           content: "Delete",
@@ -1117,13 +1127,10 @@ export default function StaffEdit() {
                 <AutoInput field="isActive" />
               </BlockStack>
 
-              <SubmitResultBanner />
-
-              <InlineStack gap="200">
-                <AutoSubmit variant="primary">
-                  Save Staff Member
-                </AutoSubmit>
-              </InlineStack>
+              {/* Hidden submit button for the primary action */}
+              <div style={{ display: 'none' }}>
+                <AutoSubmit />
+              </div>
             </BlockStack>
           </AutoForm>
         </Card>
