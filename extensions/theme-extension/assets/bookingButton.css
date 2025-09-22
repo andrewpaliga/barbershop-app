@@ -545,7 +545,23 @@
   .barbershop-modal-content h2 {
     padding-right: 0;
   }
+
+  /* Center barber choices list in the barber selection modal */
+  #available-barbers-list {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px !important;
+  }
+  .barbershop-barber-choice {
+    width: 100%;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
+
+/* (reverted) remove special hover/active styling for close button */
 
 /* Mobile-specific placement for the close button (avoid title overlap) */
 @media (max-width: 480px) {

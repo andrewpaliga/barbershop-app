@@ -788,10 +788,21 @@ function showBookingConfirmation() {
   const details = document.getElementById('booking-details');
   const notes = document.getElementById('notes').value;
   
+  // Pretty date with ordinal, e.g., "Oct 15th"
+  const formatDatePretty = (d) => {
+    try {
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch (e) {
+      // Fallback if locale formatting fails
+      const month = d.toLocaleString('en-US', { month: 'short' });
+      return `${month} ${d.getDate()}`;
+    }
+  };
+
   details.innerHTML = `
     <div class="barbershop-booking-detail-row">
       <span class="barbershop-booking-detail-label">Service:</span>
-      <span class="barbershop-booking-detail-value">${service.title} - ${variant.title}</span>
+      <span class="barbershop-booking-detail-value">${getVariantDisplayTitle(service, variant)}</span>
     </div>
     <div class="barbershop-booking-detail-row">
       <span class="barbershop-booking-detail-label">Barber:</span>
@@ -799,7 +810,7 @@ function showBookingConfirmation() {
     </div>
     <div class="barbershop-booking-detail-row">
       <span class="barbershop-booking-detail-label">Date & Time:</span>
-      <span class="barbershop-booking-detail-value">${currentSelection.selectedDate.toLocaleDateString()} at ${currentSelection.selectedTime}</span>
+      <span class="barbershop-booking-detail-value">${formatDatePretty(currentSelection.selectedDate)} at ${formatTime12Hour(currentSelection.selectedTime)}</span>
     </div>
     <div class="barbershop-booking-detail-row">
       <span class="barbershop-booking-detail-label">Location:</span>
