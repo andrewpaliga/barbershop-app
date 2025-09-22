@@ -212,7 +212,7 @@ export default function NewStaffPage() {
               <AutoInput field="name" />
               <AutoInput field="email" />
               <AutoInput field="phone" />
-              <AutoInput field="bio" />
+              <AutoInput field="title" />
               <AutoInput field="isActive" />
               <BlockStack gap="200">
                 <AutoSubmit />

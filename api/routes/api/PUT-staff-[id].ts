@@ -16,13 +16,13 @@ const route: RouteHandler = async ({ reply, api, connections, params, request })
     }
 
     const body = await request.json();
-    const { name, email, phone, bio, isActive } = body;
+    const { name, email, phone, title, isActive } = body;
 
     const updatedStaff = await api.staff.update(staffId, {
       name,
       email,
       phone,
-      bio,
+      title,
       isActive
     });
 

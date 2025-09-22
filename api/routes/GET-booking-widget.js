@@ -309,7 +309,7 @@ const route: RouteHandler = async ({ request, reply, api, connections }) => {
             node {
               id
               name
-              bio
+              title
             }
           }
         }

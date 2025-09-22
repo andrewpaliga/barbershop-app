@@ -17,7 +17,7 @@ const route: RouteHandler = async ({ reply, api, connections, logger }) => {
         email: true,
         phone: true,
         isActive: true,
-        bio: true
+        title: true
       }
     });
 

@@ -152,7 +152,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
           isActive: { notEquals: false } // Include staff unless explicitly marked inactive
         },
         select: {
-          id: true, name: true, email: true, phone: true, bio: true,
+          id: true, name: true, email: true, phone: true, title: true,
           avatar: { url: true, fileName: true }
         }
       }),
@@ -278,7 +278,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         name: staffMember.name,
         email: staffMember.email,
         phone: staffMember.phone,
-        bio: staffMember.bio,
+        title: staffMember.title,
         avatar: staffMember.avatar ? {
           url: staffMember.avatar.url,
           fileName: staffMember.avatar.fileName

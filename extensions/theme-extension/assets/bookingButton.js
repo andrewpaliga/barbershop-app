@@ -175,7 +175,7 @@ function updateSelectedBarberInfo() {
           ${avatarHtml}
           <div class="barbershop-selected-barber-details">
             <h4>${staff.name}</h4>
-            <p>${staff.bio || 'Professional barber'}</p>
+            <p>${staff.title || 'Professional barber'}</p>
           </div>
         </div>
       `;
@@ -763,7 +763,7 @@ function showBarberSelectionForTimeSlot(time, date) {
       ${avatarHtml}
       <div class="barbershop-barber-choice-content">
         <div class="barbershop-barber-choice-name">${staff.name}</div>
-        <div class="barbershop-barber-choice-bio">${staff.bio || 'Professional barber'}</div>
+        <div class="barbershop-barber-choice-bio">${staff.title || 'Professional barber'}</div>
       </div>
     `;
     
@@ -1287,7 +1287,7 @@ function populateStaffButtons() {
       ${avatarHtml}
       <div class="barbershop-staff-info">
         <div class="barbershop-selection-title">${staff.name}</div>
-        <div class="barbershop-selection-subtitle">${staff.bio || 'Professional barber'}</div>
+        <div class="barbershop-selection-subtitle">${staff.title || 'Professional barber'}</div>
       </div>
     `;
     

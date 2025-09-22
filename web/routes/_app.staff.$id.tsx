@@ -1113,7 +1113,7 @@ export default function StaffEdit() {
                 <AutoInput field="name" />
                 <AutoInput field="email" />
                 <AutoInput field="phone" />
-                <AutoInput field="bio" />
+                <AutoInput field="title" />
                 <AutoInput field="isActive" />
               </BlockStack>
 

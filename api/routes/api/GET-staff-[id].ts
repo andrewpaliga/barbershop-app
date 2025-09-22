@@ -24,7 +24,7 @@ const route: RouteHandler = async ({ reply, api, connections, logger, params }) 
         name: true,
         email: true,
         phone: true,
-        bio: true,
+        title: true,
         isActive: true,
         avatar: {
           url: true

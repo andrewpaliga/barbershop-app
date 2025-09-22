@@ -14,7 +14,6 @@ export const schema: GadgetModel = {
       allowPublicAccess: true,
       storageKey: "B4ShB6T5sccW",
     },
-    bio: { type: "string", storageKey: "iL32ZGQ0oxIH" },
     email: { type: "email", storageKey: "v9T5V49rMcOL" },
     isActive: { type: "boolean", storageKey: "B_HsH1sA5mjB" },
     name: {
@@ -29,5 +28,6 @@ export const schema: GadgetModel = {
       parent: { model: "shopifyShop" },
       storageKey: "FX4rfFQxz7Nj",
     },
+    title: { type: "string", storageKey: "iL32ZGQ0oxIH" },
   },
 };
