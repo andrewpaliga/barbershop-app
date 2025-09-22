@@ -399,7 +399,6 @@
   color: var(--barbershop-text);
   margin-top: 10px;
   padding-top: 20px;
-  border-top: 2px solid var(--barbershop-border);
 }
 
 .barbershop-booking-detail-label {
@@ -524,5 +523,34 @@
     padding: 12px 20px;
     font-size: 14px;
     min-width: 120px;
+  }
+}
+
+/* Revised mobile centering using flex to override inline grid */
+@media (max-width: 480px) {
+  #service-selection-buttons,
+  #staff-selection-buttons {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+  }
+  .barbershop-selection-btn {
+    width: 100%;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* restore normal heading padding and just make the close button translucent */
+  .barbershop-modal-content h2 {
+    padding-right: 0;
+  }
+}
+
+/* Mobile-specific placement for the close button (avoid title overlap) */
+@media (max-width: 480px) {
+  #main-close-button {
+    right: 8px !important;
+    top: 8px !important;
   }
 }
