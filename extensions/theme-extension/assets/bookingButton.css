@@ -215,6 +215,21 @@
   background: rgba(0,0,0,0.02);
 }
 
+/* Add down arrow to collapsed service tile */
+.barbershop-service-menu-item.selected.expandable {
+  position: relative;
+  cursor: pointer;
+}
+
+.barbershop-service-menu-item.selected.expandable::after {
+  content: "▾";
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  color: #6b7280;
+  font-size: 18px;
+}
+
 .barbershop-service-menu-item h4 {
   margin: 0 0 8px 0;
   color: var(--barbershop-text);

@@ -12,7 +12,8 @@ let currentSelection = {
   variantId: null,
   selectedDate: null,
   selectedTime: null,
-  locationId: null
+  locationId: null,
+  serviceExplicitlyChosen: false
 };
 let currentWeekStart = null;
 
@@ -148,6 +149,10 @@ function showBookingForm() {
   
   initializeCalendar();
   updateSelectedBarberInfo();
+  const container = document.getElementById('service-menu-list');
+  if (container && currentSelection.serviceExplicitlyChosen && currentSelection.serviceId && currentSelection.variantId) {
+    container.setAttribute('data-collapsed', 'true');
+  }
   populateServiceMenu();
   
   const forceMode = (bookingData?.locations?.length === 1) ? 'single' : null;
@@ -183,7 +188,6 @@ function updateSelectedBarberInfo() {
     container.innerHTML = `
       <div style="text-align: center; color: #666; padding: 20px;">
         <h4 style="margin-bottom: 10px; color: #333;">Any Available Barber</h4>
-        <p>Showing availability for ${serviceName} from all qualified barbers</p>
       </div>
     `;
   } else {
@@ -200,13 +204,44 @@ function populateServiceMenu() {
   if (!container || !bookingData) return;
   
   container.innerHTML = '';
+  const isCollapsed = container.getAttribute('data-collapsed') === 'true';
   
+  // If collapsed and a selection exists, render only the selected service variant as a toggle
+  if (isCollapsed && currentSelection.serviceExplicitlyChosen && currentSelection.serviceId && currentSelection.variantId) {
+    const service = bookingData.services.find(s => s.id === currentSelection.serviceId);
+    const variant = service?.variants.find(v => v.id === currentSelection.variantId);
+    if (service && variant) {
+      const serviceItem = document.createElement('div');
+      serviceItem.className = 'barbershop-service-menu-item selected expandable';
+      serviceItem.style.cursor = 'pointer';
+      serviceItem.onclick = () => {
+        container.setAttribute('data-collapsed', 'false');
+        populateServiceMenu();
+      };
+      const durationText = (variant && variant.duration) ? ` • ${variant.duration} minutes` : ` • ${(bookingData?.timeSlotInterval || 60)} minutes`;
+      const priceHtml = variant.price ? `<div class="price">$${variant.price}</div>` : '';
+      serviceItem.innerHTML = `
+        <h4>${getVariantDisplayTitle(service, variant)}</h4>
+        <p>${service.body || 'Professional service'}${durationText}</p>
+        ${priceHtml}
+      `;
+      container.appendChild(serviceItem);
+      return;
+    }
+  }
+
+  // Otherwise, render full list
   bookingData.services.forEach(service => {
     if (service.variants && service.variants.length > 0) {
       service.variants.forEach(variant => {
         const serviceItem = document.createElement('div');
         serviceItem.className = 'barbershop-service-menu-item';
-        serviceItem.onclick = () => selectServiceFromMenuVariant(service.id, variant.id);
+        serviceItem.onclick = () => {
+          selectServiceFromMenuVariant(service.id, variant.id);
+          // collapse after selecting
+          container.setAttribute('data-collapsed', 'true');
+          populateServiceMenu();
+        };
         
         if (currentSelection.serviceId === service.id && currentSelection.variantId === variant.id) {
           serviceItem.classList.add('selected');
@@ -236,6 +271,7 @@ function selectServiceFromMenuVariant(serviceId, variantId) {
   
   currentSelection.serviceId = serviceId;
   currentSelection.variantId = variantId;
+  currentSelection.serviceExplicitlyChosen = true;
 
   if (currentSelection.type !== 'staff') {
     currentSelection.staffId = null;
@@ -1070,12 +1106,14 @@ function selectService(serviceId, variantId) {
   currentSelection.serviceId = serviceId;
   currentSelection.variantId = variantId;
   currentSelection.staffId = null;
+  currentSelection.serviceExplicitlyChosen = true;
   showBookingForm();
 }
 
 function selectStaff(staffId) {
   currentSelection.type = 'staff';
   currentSelection.staffId = staffId;
+  currentSelection.serviceExplicitlyChosen = false; // reset explicit choice when user chooses a barber
   
   if (bookingData && bookingData.services && bookingData.services.length > 0) {
     const firstService = bookingData.services[0];
