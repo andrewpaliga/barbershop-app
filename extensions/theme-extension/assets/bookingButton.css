@@ -219,13 +219,17 @@
 .barbershop-service-menu-item.selected.expandable {
   position: relative;
   cursor: pointer;
+  background: #f8f9fa;
+  border-color: var(--barbershop-button);
+  color: var(--barbershop-text);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 .barbershop-service-menu-item.selected.expandable::after {
   content: "▾";
   position: absolute;
   right: 14px;
-  top: 14px;
+  top: 8px; /* a bit closer to the top */
   color: #6b7280;
   font-size: 18px;
 }
@@ -435,6 +439,46 @@
   cursor: pointer;
   transition: all 0.3s ease;
   text-align: center;
+}
+
+/* Mobile: horizontal layout for barber choices */
+@media (max-width: 480px) {
+  .barbershop-barber-choice {
+    display: flex;
+    align-items: center;
+    text-align: left;
+    padding: 16px;
+    gap: 12px;
+  }
+  
+  .barbershop-barber-choice-avatar {
+    width: 48px;
+    height: 48px;
+    margin: 0;
+    flex-shrink: 0;
+  }
+  
+  .barbershop-barber-choice-name {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+    line-height: 1.2;
+  }
+  
+  .barbershop-barber-choice-bio {
+    font-size: 13px;
+    margin: 0;
+    line-height: 1.3;
+    color: #6b7280;
+  }
+  
+  /* Text content container for proper vertical centering */
+  .barbershop-barber-choice-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+  }
 }
 
 .barbershop-barber-choice:hover {

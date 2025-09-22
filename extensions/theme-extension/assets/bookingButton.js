@@ -761,8 +761,10 @@ function showBarberSelectionForTimeSlot(time, date) {
     
     barberChoice.innerHTML = `
       ${avatarHtml}
-      <div class="barbershop-barber-choice-name">${staff.name}</div>
-      <div class="barbershop-barber-choice-bio">${staff.bio || 'Professional barber'}</div>
+      <div class="barbershop-barber-choice-content">
+        <div class="barbershop-barber-choice-name">${staff.name}</div>
+        <div class="barbershop-barber-choice-bio">${staff.bio || 'Professional barber'}</div>
+      </div>
     `;
     
     barbersList.appendChild(barberChoice);
