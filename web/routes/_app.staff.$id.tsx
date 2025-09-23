@@ -681,6 +681,7 @@ export default function StaffEdit() {
     return sunday;
   });
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [titleError, setTitleError] = useState<string | null>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -988,11 +989,19 @@ export default function StaffEdit() {
       primaryAction={{
         content: "Save",
         onAction: () => {
+          // Validate Title length before submitting
+          const titleInput = document.querySelector('input[name="title"], input[name*="title" i]') as HTMLInputElement | null;
+          const titleValue = titleInput?.value?.trim() || "";
+          if (titleValue.length > 30) {
+            setTitleError("Title must be 30 characters or fewer (30 max).");
+            titleInput?.focus();
+            return;
+          }
+          setTitleError(null);
+
           // Find and click the AutoSubmit button
           const saveButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
-          if (saveButton) {
-            saveButton.click();
-          }
+          if (saveButton) saveButton.click();
         },
       }}
       secondaryActions={[
@@ -1030,6 +1039,12 @@ export default function StaffEdit() {
             <Text as="p" variant="bodyMd">
               {deleteError.toString()}
             </Text>
+          </Banner>
+        )}
+
+        {titleError && (
+          <Banner tone="critical" onDismiss={() => setTitleError(null)}>
+            <Text as="p" variant="bodyMd">{titleError}</Text>
           </Banner>
         )}
 
