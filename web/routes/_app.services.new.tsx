@@ -14,7 +14,6 @@ import { api } from "../api";
 interface ServiceFormData {
   name: string;
   description: string;
-  photo?: FileList;
   price: number;
   duration: number;
   multiDuration: boolean;
@@ -64,11 +63,6 @@ export default function NewService() {
         serviceData = {
           name: formData.name,
           description: formData.description,
-          photo: formData.photo?.[0] ? { 
-            filename: formData.photo[0].name,
-            contentType: formData.photo[0].type,
-            size: formData.photo[0].size
-          } : null,
           durations: durations,
           durationPrices: formData.durationPrices,
         };
@@ -79,11 +73,6 @@ export default function NewService() {
         serviceData = {
           name: formData.name,
           description: formData.description,
-          photo: formData.photo?.[0] ? { 
-            filename: formData.photo[0].name,
-            contentType: formData.photo[0].type,
-            size: formData.photo[0].size
-          } : null,
           price: formData.price,
           duration: formData.duration,
         };
@@ -366,31 +355,7 @@ export default function NewService() {
             </div>
           </Card>
 
-          <Card>
-            <div style={{ padding: '20px' }}>
-              <Text as="h2" variant="headingMd">
-                Service Photo
-              </Text>
-              
-              <Controller
-                name="photo"
-                control={control}
-                render={({ field: { onChange, onBlur, name } }) => (
-                  <input
-                    type="file"
-                    accept="image/*"
-                    name={name}
-                    onChange={(e) => onChange(e.target.files)}
-                    onBlur={onBlur}
-                  />
-                )}
-              />
-              
-              <Text as="p" variant="bodyMd" tone="subdued">
-                Upload an optional photo for this service
-              </Text>
-            </div>
-          </Card>
+          {/* Photo upload removed as it's not needed */}
 
           <div style={{ marginTop: '20px' }}>
             <InlineStack gap="300" align="end">
