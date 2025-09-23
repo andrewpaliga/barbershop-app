@@ -564,6 +564,9 @@ function extractBookingData(properties: any[], logger?: any): any {
         case 'barber':
         case 'stylist_name':
         case 'stylist name':
+        case 'staff_name':
+        case 'staff name':
+        case 'staff':
           bookingData.barberName = prop.value;
           if (logger) logger.info(`Extracted barber name: ${prop.value}`);
           break;

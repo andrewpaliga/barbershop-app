@@ -950,7 +950,7 @@ async function confirmBooking() {
             month: 'long',
             day: 'numeric'
           }),
-          'Barber Name': staff.name,
+          'Staff Name': staff.name,
           'Notes': notes || '',
           // hidden private metadata so it doesn't render in cart
           '_staff_id': currentSelection.staffId,
