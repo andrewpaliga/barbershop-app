@@ -1291,6 +1291,10 @@ async function loadBookingData() {
       }
       if (Array.isArray(bookingData.services)) {
         bookingData.services.forEach(function(svc){
+          // Prefetch product image
+          var pimg = svc && svc.image && svc.image.url;
+          if (pimg) { var pimgEl = new Image(); pimgEl.src = pimg; }
+          
           if (Array.isArray(svc.variants)) {
             svc.variants.forEach(function(v){
               var vsrc = v && v.image && v.image.url;
@@ -1326,9 +1330,14 @@ function populateServiceButtons() {
         button.className = 'barbershop-selection-btn barbershop-service-btn';
         button.onclick = () => selectService(service.id, variant.id);
         
-        const hasImage = variant.image && variant.image.url && variant.image.url !== 'null';
+        // Use variant image if available, otherwise fallback to product image
+        const variantImage = variant.image && variant.image.url && variant.image.url !== 'null';
+        const productImage = service.image && service.image.url && service.image.url !== 'null';
+        const hasImage = variantImage || productImage;
+        const imageUrl = variantImage ? variant.image.url : (productImage ? service.image.url : null);
+        
         const imageHtml = hasImage 
-          ? `<img src="${variant.image.url}" alt="${service.title} - ${variant.title}" class="barbershop-service-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="barbershop-service-image barbershop-service-placeholder" style="display: none;"><div class="barbershop-placeholder-icon">${service.title.charAt(0).toUpperCase()}</div></div>`
+          ? `<img src="${imageUrl}" alt="${service.title} - ${variant.title}" class="barbershop-service-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="barbershop-service-image barbershop-service-placeholder" style="display: none;"><div class="barbershop-placeholder-icon">${service.title.charAt(0).toUpperCase()}</div></div>`
           : `<div class="barbershop-service-image barbershop-service-placeholder"><div class="barbershop-placeholder-icon">${service.title.charAt(0).toUpperCase()}</div></div>`;
         
         const durationText = variant.duration ? `${variant.duration} minutes` : '';

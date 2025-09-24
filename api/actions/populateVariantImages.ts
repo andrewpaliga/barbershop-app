@@ -1,210 +1,113 @@
-import { ActionRun } from "gadget-server";
+import { ActionRun, ActionOptions } from "gadget-server";
 
 export const run: ActionRun = async ({ params, logger, api, connections }) => {
-  const { shopDomain } = params;
-  
-  logger.info("Starting variant image population process", { shopDomain });
-
   try {
-    // Determine which shops to process
-    let shopsToProcess = [];
+    logger.info("Starting to populate variant images...");
     
-    if (shopDomain) {
-      // Find specific shop by domain
-      const shop = await api.shopifyShop.findFirst({
-        filter: {
-          OR: [
-            { domain: { equals: shopDomain } },
-            { myshopifyDomain: { equals: shopDomain } }
-          ]
-        },
-        select: { id: true, domain: true, myshopifyDomain: true }
-      });
-      
-      if (!shop) {
-        logger.error("Shop not found", { shopDomain });
-        return { success: false, error: "Shop not found" };
+    // Get all variants that don't have images populated
+    const variants = await api.shopifyProductVariant.findMany({
+      filter: {
+        OR: [
+          { image: { equals: null } },
+          { images: { equals: null } }
+        ]
+      },
+      select: {
+        id: true,
+        productId: true,
+        shopId: true,
+        image: true,
+        images: true
       }
-      
-      shopsToProcess = [shop];
-      logger.info("Processing specific shop", { shopId: shop.id, domain: shop.domain });
-    } else {
-      // Get all shops
-      shopsToProcess = await api.shopifyShop.findMany({
-        select: { id: true, domain: true, myshopifyDomain: true }
-      });
-      logger.info("Processing all shops", { count: shopsToProcess.length });
-    }
-
-    let totalVariantsProcessed = 0;
-    let totalVariantsUpdated = 0;
-    let totalErrors = 0;
-
-    for (const shop of shopsToProcess) {
-      logger.info("Processing shop", { shopId: shop.id, domain: shop.domain });
-
-      // First, let's see what variants exist and what their image status is
-      const allVariants = await api.shopifyProductVariant.findMany({
-        filter: {
-          shopId: { equals: shop.id }
-        },
-        select: {
-          id: true,
-          image: true,
-          productId: true,
-          shopId: true,
-          title: true,
-          sku: true
-        }
-      });
-
-      logger.info("Found all variants for shop", { 
-        shopId: shop.id, 
-        count: allVariants.length 
-      });
-
-      // Log a few variants to see their current image status
-      allVariants.slice(0, 3).forEach((variant, index) => {
-        logger.info(`Sample variant ${index + 1}:`, {
-          id: variant.id,
-          title: variant.title,
-          image: variant.image,
-          hasImage: !!variant.image
-        });
-      });
-
-      // Process ALL variants to ensure fresh images (replace existing ones too)
-      const variants = allVariants;
-
-      logger.info("Processing all variants for fresh images", { 
-        shopId: shop.id, 
-        count: variants.length,
-        totalVariants: allVariants.length
-      });
-
-      for (const variant of variants) {
-        totalVariantsProcessed++;
-        
-        try {
-          logger.info("Processing variant", { 
-            variantId: variant.id, 
-            productId: variant.productId,
-            title: variant.title
-          });
-
-          // Get the product to access its images
-          const product = await api.shopifyProduct.findFirst({
-            filter: { id: { equals: variant.productId } },
-            select: { id: true, handle: true, title: true, shopifyId: true }
-          });
-
-          if (!product) {
-            logger.warn("Product not found", { productId: variant.productId });
-            continue;
-          }
-
-          // Get the Shopify client for this shop
-          const shopify = await connections.shopify.forShopId(shop.id);
-          
-          if (!shopify) {
-            logger.error("Could not get Shopify client for shop", { shopId: shop.id });
-            continue;
-          }
-
-          // Get product details from Shopify REST API using the actual Shopify product ID
-          try {
-            const shopifyProductId = product.shopifyId || product.id;
-            const productResponse = await shopify.rest.get({
-              path: `products/${shopifyProductId}`,
-            });
-            
-            if (!productResponse?.body?.product) {
-              logger.warn("Product not found in Shopify", { 
-                databaseId: product.id, 
-                shopifyId: shopifyProductId,
-                title: product.title 
-              });
-              continue;
-            }
-
-            const shopifyProduct = productResponse.body.product;
-            const imageUrl = shopifyProduct.image?.src || shopifyProduct.images?.[0]?.src;
-            
-            if (!imageUrl) {
-              logger.info("No image found for product", { 
-                databaseId: product.id, 
-                shopifyId: shopifyProductId,
-                title: product.title 
-              });
-              continue;
-            }
-
-            // Prepare image data
-            const imageData = {
-              id: variant.id,
-              url: imageUrl,
-              altText: product.title || '',
-              width: 300,
-              height: 300
-            };
-
-            // Update the variant with image data using the internal API to avoid triggers
-            await api.internal.shopifyProductVariant.update(variant.id, {
-              image: imageData
-            });
-
-            totalVariantsUpdated++;
-            
-            logger.info("Successfully updated variant with image", {
-              variantId: variant.id,
-              imageData: imageData
-            });
-
-          } catch (apiError) {
-            logger.error("Error fetching product from Shopify API", {
-              productId: product.id,
-              error: apiError instanceof Error ? apiError.message : String(apiError)
-            });
-            continue;
-          }
-
-        } catch (error) {
-          totalErrors++;
-          logger.error("Error processing variant", {
-            variantId: variant.id,
-            error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
-          });
-        }
-      }
-    }
-
-    const result = {
-      success: true,
-      shopsProcessed: shopsToProcess.length,
-      totalVariantsProcessed,
-      totalVariantsUpdated,
-      totalErrors
-    };
-
-    logger.info("Variant image population completed", result);
-    return result;
-
-  } catch (error) {
-    logger.error("Fatal error in variant image population", {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
     });
     
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : String(error)
-    };
+    logger.info(`Found ${variants.length} variants to process`);
+    
+    for (const variant of variants) {
+      try {
+        if (!variant.productId || !variant.shopId) {
+          logger.warn(`Skipping variant ${variant.id} - missing productId or shopId`);
+          continue;
+        }
+        
+        const shopify = await connections.shopify.forShopId(variant.shopId);
+        if (!shopify) {
+          logger.warn(`No Shopify connection for shop ${variant.shopId}`);
+          continue;
+        }
+        
+        // Get variant details to find specific image_id
+        const variantResponse = await shopify.rest.get({
+          path: `variants/${variant.id}`,
+        });
+        
+        const variantData = variantResponse.body.variant;
+        const imageId = variantData?.image_id;
+        const productId = variantData?.product_id;
+        
+        if (!productId) {
+          logger.warn(`No product_id for variant ${variant.id}`);
+          continue;
+        }
+        
+        // Fetch all product images
+        const productImagesResponse = await shopify.rest.get({
+          path: `products/${productId}/images`,
+        });
+        
+        const allImages = productImagesResponse.body.images || [];
+        const variantImages = [];
+        let primaryImage = null;
+        
+        // Process all images
+        for (const imageData of allImages) {
+          if (imageData?.src) {
+            const imageInfo = {
+              id: imageData.id?.toString(),
+              url: imageData.src,
+              altText: imageData.alt || '',
+              width: imageData.width || null,
+              height: imageData.height || null
+            };
+            
+            variantImages.push(imageInfo);
+            
+            // Set as primary image if it matches the variant's image_id or if no primary image set yet
+            if (imageId && imageData.id?.toString() === imageId.toString()) {
+              primaryImage = imageInfo;
+            } else if (!primaryImage) {
+              primaryImage = imageInfo;
+            }
+          }
+        }
+        
+        if (variantImages.length > 0) {
+          logger.info(`Updating variant ${variant.id} with ${variantImages.length} images`);
+          
+          // Update the record with both single image and images array
+          await api.shopifyProductVariant.update(variant.id, {
+            image: primaryImage,
+            images: variantImages
+          });
+          
+          logger.info(`Successfully updated images for variant ${variant.id}`);
+        } else {
+          logger.info(`No images found for product ${productId}`);
+        }
+        
+      } catch (error) {
+        logger.error(`Error processing variant ${variant.id}:`, error);
+      }
+    }
+    
+    logger.info("Finished populating variant images");
+    
+  } catch (error) {
+    logger.error("Error in populateVariantImages:", error);
+    throw error;
   }
 };
 
-export const params = {
-  shopDomain: {
-    type: "string"
-  }
+export const options: ActionOptions = {
+  actionType: "custom",
 };

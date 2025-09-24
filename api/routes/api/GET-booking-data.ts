@@ -57,6 +57,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
           handle: true,
           productType: true,
           vendor: true,
+          images: true,
           variants: {
             edges: {
               node: {
@@ -66,7 +67,8 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
                 compareAtPrice: true,
                 option1: true,
                 sku: true,
-                image: true
+                image: true,
+                images: true
               }
             }
           }
@@ -77,26 +79,26 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     
     // Debug: Log variant IDs
     services.forEach(service => {
-      if (service.variants && service.variants.length > 0) {
-        logger.info(`Service ${service.title} variants:`, service.variants.map(v => ({ 
-          id: v.id, 
-          shopifyVariantId: v.shopifyVariantId,
-          title: v.title,
-          price: v.price
+      if (service.variants && service.variants.edges && service.variants.edges.length > 0) {
+        logger.info(`Service ${service.title} variants:`, service.variants.edges.map(edge => ({ 
+          id: edge.node.id, 
+          shopifyVariantId: edge.node.id,
+          title: edge.node.title,
+          price: edge.node.price
         })));
       }
     });
 
     // Debug: Check if variants exist in Shopify and their status
-    if (services.length > 0 && services[0].variants && services[0].variants.length > 0) {
-      const firstVariant = services[0].variants[0];
-      logger.info(`Checking variant ${firstVariant.shopifyVariantId} in Shopify...`);
+    if (services.length > 0 && services[0].variants && services[0].variants.edges && services[0].variants.edges.length > 0) {
+      const firstVariant = services[0].variants.edges[0].node;
+      logger.info(`Checking variant ${firstVariant.id} in Shopify...`);
       
       try {
         const shopify = await connections.shopify.forShopId(shopId);
         if (shopify) {
           const variantResponse = await shopify.rest.get({
-            path: `variants/${firstVariant.shopifyVariantId}`,
+            path: `variants/${firstVariant.id}`,
           });
           const variant = variantResponse.body.variant;
           logger.info(`Variant details:`, {
@@ -125,7 +127,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
           }
         }
       } catch (error) {
-        logger.error(`Variant ${firstVariant.shopifyVariantId} error:`, error);
+        logger.error(`Variant ${firstVariant.id} error:`, error);
       }
     }
 
@@ -136,9 +138,17 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
       if (service.variants?.edges) {
         // Use existing variant images that were populated by the action
         service.variants.edges.forEach(edge => {
-          if (edge.node.image && edge.node.image.url) {
+          // Use images array if available, otherwise fallback to single image
+          if (edge.node.images && Array.isArray(edge.node.images) && edge.node.images.length > 0) {
+            // Use the first image from the images array
+            const firstImage = edge.node.images[0];
+            if (firstImage && typeof firstImage === 'object' && firstImage !== null && 'url' in firstImage) {
+              variantImages.set(edge.node.id, firstImage);
+              logger.info(`Using existing images array for variant ${edge.node.id}: ${firstImage.url}`);
+            }
+          } else if (edge.node.image && typeof edge.node.image === 'object' && edge.node.image !== null && 'url' in edge.node.image) {
             variantImages.set(edge.node.id, edge.node.image);
-            logger.info(`Using existing image for variant ${edge.node.id}: ${edge.node.image.url}`);
+            logger.info(`Using existing single image for variant ${edge.node.id}: ${edge.node.image.url}`);
           }
         });
       }
@@ -252,6 +262,8 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         handle: service.handle,
         productType: service.productType,
         vendor: service.vendor,
+        image: service.images && Array.isArray(service.images) && service.images.length > 0 && service.images[0].src ? 
+          { url: service.images[0].src, alt: service.images[0].alt || service.title } : null,
         variants: service.variants?.edges?.map(edge => {
           const parsedDuration =
             parseDuration(edge.node.option1 || '') || parseDuration(edge.node.title || '');
