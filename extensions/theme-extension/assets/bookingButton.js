@@ -1130,12 +1130,32 @@ function selectStaff(staffId) {
 }
 
 async function openBookingModal() {
+  
   const modal = document.getElementById('barbershop-modal');
   if (!modal) {
     return;
   }
+
+  try {
+    // Move modal to <body> to avoid theme stacking/overflow contexts hiding it
+    if (modal.parentElement !== document.body) {
+      document.body.appendChild(modal);
+      modal.__movedToBody = true;
+    }
+  } catch (moveErr) {
+    
+  }
   
-  modal.style.display = 'block';
+  try {
+    modal.style.setProperty('display', 'block', 'important');
+    modal.style.visibility = 'visible';
+    modal.style.opacity = '1';
+    // Force reflow for some browsers
+    void modal.offsetHeight;
+    
+  } catch (styleErr) {
+    
+  }
   
   currentSelection = {
     type: null,
@@ -1162,6 +1182,58 @@ async function openBookingModal() {
     showMessage('error', `Failed to load booking options: ${error.message}`);
     setLoading(false);
   }
+}
+
+// Ensure the function is available in themes that restrict inline handlers or change script scoping
+try {
+  if (typeof window !== 'undefined') {
+    window.openBookingModal = openBookingModal;
+    // Robust binding that works across Online Store 2.0 dynamic rendering
+    function bindBookingButton() {
+      var buttons = document.querySelectorAll('#barbershop-booking-btn, .barbershop-booking-btn, [data-open-booking-modal]');
+      if (!buttons || buttons.length === 0) return;
+      buttons.forEach(function(btn){
+        if (btn.__barbershopBound) return;
+        // Remove inline onclick to avoid double-firing or blocked inline handlers
+        if (btn.hasAttribute && btn.hasAttribute('onclick')) {
+          try { btn.removeAttribute('onclick'); } catch(_) {}
+        }
+        btn.addEventListener('click', function (e) {
+          if (typeof openBookingModal === 'function') {
+            e.preventDefault();
+            e.stopPropagation();
+            openBookingModal();
+          }
+        });
+        btn.__barbershopBound = true;
+      });
+    }
+
+    // Run immediately if DOM is already loaded
+    if (document.readyState !== 'loading') { bindBookingButton(); }
+    // Also on DOMContentLoaded (for classic loads)
+    document.addEventListener('DOMContentLoaded', function(){ bindBookingButton(); });
+    // And observe for dynamic section renders
+    try {
+      var observer = new MutationObserver(function () { bindBookingButton(); });
+      observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
+    } catch (_) {}
+
+    // Last-resort delegated click handler in case button is replaced after binding
+    document.addEventListener('click', function(e){
+      var target = e.target;
+      if (!target) return;
+      var btn = target.closest && target.closest('#barbershop-booking-btn, .barbershop-booking-btn, [data-open-booking-modal]');
+      if (btn) {
+        if (typeof openBookingModal === 'function') {
+          e.preventDefault();
+          openBookingModal();
+        }
+      }
+    }, true);
+  }
+} catch (_) {
+  // no-op
 }
 
 async function loadBookingData() {
