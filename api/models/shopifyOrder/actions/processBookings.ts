@@ -578,14 +578,8 @@ function extractBookingData(properties: any[], logger?: any): any {
           bookingData.time = prop.value;
           if (logger) logger.info(`Extracted time: ${prop.value}`);
           break;
-        case 'barber_name':
-        case 'barber name':
-        case 'barber':
-        case 'stylist_name':
-        case 'stylist name':
-        case 'staff_name':
-        case 'staff name':
-        case 'staff':
+        case 'booked_with':
+        case 'booked with':
           bookingData.barberName = prop.value;
           if (logger) logger.info(`Extracted barber name: ${prop.value}`);
           break;
