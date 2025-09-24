@@ -5,6 +5,7 @@ if (!window.api && window.BarbershopClient) {
 
 // Global variables to store booking data and current selection
 let bookingData = null;
+let bookingDataPromise = null; // single-flight fetch cache
 let currentSelection = {
   type: null,
   serviceId: null,
@@ -1170,7 +1171,10 @@ async function openBookingModal() {
   setLoading(true);
   
   try {
-    await loadBookingData();
+    if (!bookingData) {
+      bookingDataPromise = bookingDataPromise || loadBookingData();
+      await bookingDataPromise;
+    }
     
     populateServiceButtons();
     populateStaffButtons();
@@ -1277,6 +1281,25 @@ async function loadBookingData() {
     }
     
     bookingData = processedData;
+    // Prefetch common images to reduce first-render jank
+    try {
+      if (Array.isArray(bookingData.staff)) {
+        bookingData.staff.forEach(function(s){
+          var src = s && s.avatar && s.avatar.url;
+          if (src) { var img = new Image(); img.src = src; }
+        });
+      }
+      if (Array.isArray(bookingData.services)) {
+        bookingData.services.forEach(function(svc){
+          if (Array.isArray(svc.variants)) {
+            svc.variants.forEach(function(v){
+              var vsrc = v && v.image && v.image.url;
+              if (vsrc) { var vimg = new Image(); vimg.src = vsrc; }
+            });
+          }
+        });
+      }
+    } catch (_) {}
     
     // Theme customization is now handled by Liquid template
     
@@ -1376,6 +1399,12 @@ document.addEventListener('DOMContentLoaded', function() {
   if (!window.api && window.BarbershopClient) {
     window.api = new BarbershopClient();
   }
+  // Kick off background prefetch so first click is fast
+  try {
+    if (!bookingDataPromise) {
+      bookingDataPromise = loadBookingData().catch(function(){ bookingDataPromise = null; });
+    }
+  } catch (_) {}
   
   
   window.onclick = function(event) {
