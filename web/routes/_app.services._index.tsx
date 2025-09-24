@@ -198,11 +198,22 @@ export default function ProductsIndex() {
       ]
     };
 
-    // If "surprise me" is selected, pick a random theme
-    if (theme === "surprise me") {
-      const themes = Object.keys(serviceSets);
-      const randomTheme = themes[Math.floor(Math.random() * themes.length)];
-      return { services: serviceSets[randomTheme as keyof typeof serviceSets], actualTheme: randomTheme };
+    // If "random" is selected, pick a random subset of services across themes
+    if (theme === "random") {
+      // Flatten all services
+      const allServices = Object.values(serviceSets).flat();
+      // Sample 4-6 unique services
+      const min = 4; const max = 6;
+      const count = Math.min(allServices.length, Math.floor(Math.random() * (max - min + 1)) + min);
+      const picked: typeof allServices = [] as any;
+      const used = new Set<number>();
+      while (picked.length < count && used.size < allServices.length) {
+        const idx = Math.floor(Math.random() * allServices.length);
+        if (used.has(idx)) continue;
+        used.add(idx);
+        picked.push(allServices[idx]);
+      }
+      return { services: picked as (typeof serviceSets)[keyof typeof serviceSets], actualTheme: 'random' };
     }
 
     return { services: serviceSets[theme as keyof typeof serviceSets], actualTheme: theme };
@@ -446,7 +457,7 @@ export default function ProductsIndex() {
         <Modal.Section>
           <BlockStack gap="400">
             <Text as="p" variant="bodyMd">
-              Select the type of business you run to get relevant example services with appropriate pricing and durations.
+              Select a business theme to auto-generate example services. You can remove them anytime.
             </Text>
             
             <Select
@@ -456,7 +467,7 @@ export default function ProductsIndex() {
                 { label: 'Hair Salon', value: 'hair salon' },
                 { label: 'Personal Trainer', value: 'personal trainer' },
                 { label: 'Massage Clinic', value: 'massage clinic' },
-                { label: 'Surprise Me', value: 'surprise me' }
+                { label: 'Random', value: 'random' }
               ]}
               value={selectedTheme}
               onChange={(value) => setSelectedTheme(value)}
