@@ -126,7 +126,6 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         variantId: true,
         customer: {
           id: true,
-          displayName: true,
           firstName: true,
           lastName: true,
           email: true
@@ -215,7 +214,6 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         variantId: true,
         customer: {
           id: true,
-          displayName: true,
           firstName: true,
           lastName: true,
           email: true
@@ -281,8 +279,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     const recentBookings = recentBookingsData.map(booking => ({
       id: booking.id,
       customerId: booking.customer?.id,
-      customerName: booking.customer?.displayName || 
-                   `${booking.customer?.firstName || ''} ${booking.customer?.lastName || ''}`.trim() ||
+      customerName: `${booking.customer?.firstName || ''} ${booking.customer?.lastName || ''}`.trim() ||
                    booking.customer?.email ||
                    booking.customerName || 
                    booking.customerEmail ||
@@ -311,8 +308,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     const upcomingBookings = upcomingBookingsData.map(booking => ({
       id: booking.id,
       customerId: booking.customer?.id,
-      customerName: booking.customer?.displayName || 
-                   `${booking.customer?.firstName || ''} ${booking.customer?.lastName || ''}`.trim() ||
+      customerName: `${booking.customer?.firstName || ''} ${booking.customer?.lastName || ''}`.trim() ||
                    booking.customer?.email ||
                    booking.customerName || 
                    booking.customerEmail ||

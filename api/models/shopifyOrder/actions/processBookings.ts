@@ -481,10 +481,29 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
         order: { _link: record.id }
       };
 
-      // Only set customer relationship if customerId exists, otherwise fall back to email/name
+      // Prefer authoritative customer data from the Shopify order's customer
       if (record.customerId) {
         bookingCreateData.customer = { _link: record.customerId };
         logger.info(`Linking booking to customer ${record.customerId} for line item ${lineItem.id}`);
+
+        try {
+          const customer = await api.shopifyCustomer.findOne(record.customerId, {
+            select: { id: true, email: true, firstName: true, lastName: true }
+          });
+          if (customer) {
+            bookingCreateData.customerEmail = customer.email || record.email || bookingData.customerEmail;
+            bookingCreateData.customerName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || bookingData.customerName || `${record.billingAddress?.first_name || ''} ${record.billingAddress?.last_name || ''}`.trim();
+            logger.info(`Populated booking customer fields from Shopify customer`, {
+              customerId: customer.id,
+              customerEmail: bookingCreateData.customerEmail,
+              customerName: bookingCreateData.customerName
+            });
+          }
+        } catch (custErr) {
+          logger.warn(`Failed to fetch Shopify customer ${record.customerId}, falling back to order/billing info: ${custErr?.message}`);
+          bookingCreateData.customerEmail = record.email || bookingData.customerEmail;
+          bookingCreateData.customerName = bookingData.customerName || `${record.billingAddress?.first_name || ''} ${record.billingAddress?.last_name || ''}`.trim();
+        }
       } else {
         // Fall back to storing email/name directly if no customer relationship
         bookingCreateData.customerEmail = record.email || bookingData.customerEmail;
