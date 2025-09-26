@@ -9,13 +9,14 @@ import {
   InlineStack,
   Badge,
 } from "@shopify/polaris";
-import { useFindFirst, useAction } from "@gadgetinc/react";
+import { useFindFirst, useFindOne, useAction } from "@gadgetinc/react";
 import { api } from "../api";
 import { useState } from "react";
 
 export default function Settings() {
   const [{ data: config, fetching, error }] = useFindFirst(api.config);
-  const [{ fetching: updatingOnboarding }, updateConfig] = useAction(api.config.update);
+  const [{ data: currentShop }] = useFindOne(api.shopifyShop, "current");
+  const [, updateConfig] = useAction(api.config.update as any);
   const [selectedInterval, setSelectedInterval] = useState<number>(30);
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -130,7 +131,7 @@ export default function Settings() {
           <BlockStack gap="400">
             <BlockStack gap="200">
               <Text as="h2" variant="headingMd">
-                Onboarding Settings
+                Onboarding
               </Text>
               <Text as="p" variant="bodyMd" tone="subdued">
                 Manage your app setup and onboarding experience
@@ -155,7 +156,7 @@ export default function Settings() {
                     <Button
                       variant="primary"
                       size="slim"
-                      loading={updatingOnboarding}
+                      loading={isSaving}
                       onClick={async () => {
                         setIsSaving(true);
                         try {
@@ -293,7 +294,7 @@ export default function Settings() {
           zIndex: 1000,
           animation: 'slideIn 0.3s ease-out'
         }}>
-          <Text variant="bodyMd">
+          <Text as="p" variant="bodyMd">
             ✅ Your changes have been saved!
           </Text>
         </div>

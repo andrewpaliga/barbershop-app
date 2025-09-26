@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Page, Card, Text, BlockStack, InlineStack, Banner, Button, ProgressBar, Icon, Badge, Layout, Box } from "@shopify/polaris";
 import { CheckIcon } from "@shopify/polaris-icons";
-import { useFindMany, useFindFirst, useAction } from "@gadgetinc/react";
+import { useFindMany, useFindFirst, useFindOne, useAction } from "@gadgetinc/react";
 import { useNavigate } from "@remix-run/react";
 import { api } from "../api";
 
@@ -11,6 +11,7 @@ export default function Index() {
   // Get config data and update action
   const [{ data: config, fetching: fetchingConfig, error: configError }, refetchConfig] = useFindFirst(api.config);
   const [{ fetching: updatingConfig }, updateConfig] = useAction(api.config.update);
+  const [{ data: currentShop }] = useFindOne(api.shopifyShop, "current");
 
   // Define dates first
   const today = new Date();
@@ -77,7 +78,7 @@ export default function Index() {
   const steps = [
     {
       title: "Add a service",
-      description: "Create services and assign them to staff members",
+      description: "Add a bookable service to your store",
       completed: (servicesData?.length || 0) > 0,
       action: () => navigate("/services"),
       buttonText: "Add Service"
@@ -90,11 +91,29 @@ export default function Index() {
       buttonText: "Add Staff"
     },
     {
-      title: "Enable booking button",
-      description: "Add the booking widget to your storefront",
+      title: "Add Booking Button",
+      description: "Allow your customers to book appointments from your online store",
       completed: config?.themeExtensionUsed || false,
-      action: () => window.open("https://help.shopify.com/en/manual/online-store/themes/theme-structure/extend/apps", "_blank"),
-      buttonText: "Setup Widget"
+      action: () => {
+        const domain = currentShop?.myshopifyDomain;
+        console.log('Current shop data:', currentShop);
+        console.log('Domain:', domain);
+        
+        if (domain) {
+          const store = domain.replace(/\.myshopify\.com$/i, "");
+          const href = `https://admin.shopify.com/store/${store}/themes/current/editor`;
+          console.log('Opening href:', href);
+          window.open(href, "_blank");
+          return;
+        }
+        
+        // Fallback: use a known store slug
+        const fallbackDomain = "paliga-test-store";
+        const hrefFallback = `https://admin.shopify.com/store/${fallbackDomain}/themes/current/editor`;
+        console.log('Opening fallback href:', hrefFallback);
+        window.open(hrefFallback, "_blank");
+      },
+      buttonText: "Open Theme Editor"
     },
     {
       title: "Enable POS extension",
@@ -235,9 +254,21 @@ export default function Index() {
                           </BlockStack>
                         </InlineStack>
                         {!step.completed && (
-                          <Button onClick={step.action} variant="primary">
-                            {step.buttonText}
-                          </Button>
+                          <InlineStack gap="200">
+                            {step.title === "Add Booking Button" && (
+                              <Button 
+                                variant="secondary" 
+                                onClick={() => {
+                                  window.open("https://docs.barbershop-pro.com/theme-setup", "_blank");
+                                }}
+                              >
+                                View Instructions
+                              </Button>
+                            )}
+                            <Button onClick={step.action} variant="primary">
+                              {step.buttonText}
+                            </Button>
+                          </InlineStack>
                         )}
                       </InlineStack>
                     </Card>
