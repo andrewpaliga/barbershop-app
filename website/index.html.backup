@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-zinc-50 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-50">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Barbershop Booking App – Modern Appointment Management</title>
+
+    <meta property="og:title" content="Barbershop Booking App">
+    <meta name="author" content="Barbershop Pro">
+    <meta property="og:locale" content="en_US">
+    <meta name="description" content="Professional barbershop booking management app. Streamline appointments, manage staff schedules, and enhance customer experience with our Shopify-integrated solution.">
+    <meta property="og:description" content="Professional barbershop booking management app. Streamline appointments, manage staff schedules, and enhance customer experience with our Shopify-integrated solution.">
+    <link rel="canonical" href="https://barbershop-pro.com/">
+    <meta property="og:url" content="https://barbershop-pro.com/">
+    <meta property="og:site_name" content="Barbershop Pro">
+    
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" href="/favicon.png">
+</head>
+
+<body class="container mx-auto p-6 mb-10">
+    <div class="mx-auto max-w-prose">
+
+      <header class="flex flex-wrap gap-4 items-center mb-3">
+        <a class="mr-auto font-thin text-4xl" href="/">Barbershop Pro</a>
+
+        <div class="flex flex-wrap gap-3">
+          <a class="hover:text-[#ff0000]" target="_blank" rel="noopener noreferrer me" href="https://www.youtube.com/barbershoppro" title="Subscribe to our YouTube channel" aria-label="Subscribe to our YouTube channel">
+            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"><path fill="currentColor" d="M23,9.71a8.5,8.5,0,0,0-.91-4.13,2.92,2.92,0,0,0-1.72-1A78.36,78.36,0,0,0,12,4.27a78.45,78.45,0,0,0-8.34.3,2.87,2.87,0,0,0-1.46.74c-.9.83-1,2.25-1.1,3.45a48.29,48.29,0,0,0,0,6.48,9.55,9.55,0,0,0,.3,2,3.14,3.14,0,0,0,.71,1.36,2.86,2.86,0,0,0,1.49.78,45.18,45.18,0,0,0,6.5.33c3.5.05,6.57,0,10.2-.28a2.88,2.88,0,0,0,1.53-.78,2.49,2.49,0,0,0,.61-1,10.58,10.58,0,0,0,.52-3.4C23,13.69,23,10.31,23,9.71ZM9.74,14.85V8.66l5.92,3.11C14,12.69,11.81,13.73,9.74,14.85Z"/></svg>
+          </a>
+          <a class="hover:text-[#d62976]" target="_blank" rel="noopener noreferrer me" href="https://www.instagram.com/barbershoppro/" title="Follow us on Instagram" aria-label="Follow us on Instagram">
+            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"><path fill="currentColor" d="M17.34,5.46h0a1.2,1.2,0,1,0,1.2,1.2A1.2,1.2,0,0,0,17.34,5.46Zm4.6,2.42a7.59,7.59,0,0,0-.46-2.43,4.94,4.94,0,0,0-1.16-1.77,4.7,4.7,0,0,0-1.77-1.15,7.3,7.3,0,0,0-2.43-.47C15.06,2,14.72,2,12,2s-3.06,0-4.12.06a7.3,7.3,0,0,0-2.43.47A4.78,4.78,0,0,0,3.68,3.68,4.7,4.7,0,0,0,2.53,5.45a7.3,7.3,0,0,0-.47,2.43C2,8.94,2,9.28,2,12s0,3.06.06,4.12a7.3,7.3,0,0,0,.47,2.43,4.7,4.7,0,0,0,1.15,1.77,4.78,4.78,0,0,0,1.77,1.15,7.3,7.3,0,0,0,2.43.47C8.94,22,9.28,22,12,22s3.06,0,4.12-.06a7.3,7.3,0,0,0,2.43-.47,4.7,4.7,0,0,0,1.77-1.15,4.85,4.85,0,0,0,1.16-1.77,7.59,7.59,0,0,0,.46-2.43c0-1.06.06-1.4.06-4.12S22,8.94,21.94,7.88ZM20.14,16a5.61,5.61,0,0,1-.34,1.86,3.06,3.06,0,0,1-.75,1.15,3.19,3.19,0,0,1-1.15.75,5.61,5.61,0,0,1-1.86.34c-1,.05-1.37.06-4,.06s-3,0-4-.06A5.73,5.73,0,0,1,6.1,19.8,3.27,3.27,0,0,1,5,19.05a3,3,0,0,1-.74-1.15A5.54,5.54,0,0,1,3.86,16c0-1-.06-1.37-.06-4s0-3,.06-4A5.54,5.54,0,0,1,4.21,6.1,3,3,0,0,1,5,5,3.14,3.14,0,0,1,6.1,4.2,5.73,5.73,0,0,1,8,3.86c1,0,1.37-.06,4-.06s3,0,4,.06a5.61,5.61,0,0,1,1.86.34A3.06,3.06,0,0,1,19.05,5,3.06,3.06,0,0,1,19.8,6.1,5.61,5.61,0,0,1,20.14,8c.05,1,.06,1.37.06,4S20.19,15,20.14,16ZM12,6.87A5.13,5.13,0,1,0,17.14,12,5.12,5.12,0,0,0,12,6.87Zm0,8.46A3.33,3.33,0,1,1,15.33,12,3.33,3.33,0,0,1,12,15.33Z"/></svg>
+          </a>
+          <a class="hover:opacity-70" target="_blank" rel="noopener noreferrer me" href="https://x.com/barbershoppro" title="Follow us on Twitter" aria-label="Follow us on Twitter">
+            <svg xmlns="http://www.w3.org/2000/svg" width="29" height="30" viewBox="0 0 29 29"><path fill="currentColor" d="M 17.257812 12.273438 L 28.054688 0 L 25.496094 0 L 16.121094 10.65625 L 8.636719 0 L 0 0 L 11.320312 16.113281 L 0 28.984375 L 2.558594 28.984375 L 12.457031 17.730469 L 20.363281 28.984375 L 29 28.984375 Z M 13.753906 16.257812 L 12.609375 14.652344 L 3.480469 1.882812 L 7.410156 1.882812 L 14.777344 12.1875 L 15.921875 13.792969 L 25.496094 27.1875 L 21.566406 27.1875 Z M 13.753906 16.257812 "/></svg>
+          </a>
+          <a class="hover:opacity-70" target="_blank" rel="noopener noreferrer me" href="https://github.com/barbershoppro" title="Visit our GitHub" aria-label="Visit our GitHub">
+            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"><path fill="currentColor" d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          </a>
+        </div>
+      </header>
+      
+      <div class="flex flex-wrap gap-5 text-2xl font-normal mb-10">
+        <a class="hover:underline" href="/">Home</a>
+        <a class="hover:underline" href="#features">Features</a>
+        <a class="hover:underline" href="#docs">Documentation</a>
+        <a class="hover:underline" href="#contact">Contact</a>
+      </div>
+
+      <main>
+        <div class="post">
+          <article class="mx-auto prose prose-stone dark:prose-invert prose-h1:font-normal prose-h2:font-normal">
+            <header class="post-header">
+              <h1 class="post-title">Barbershop Booking App</h1>
+            </header>
+
+            <div class="post-content">
+              
+<p>Transform your barbershop with smart booking management. Streamline appointments, manage staff schedules, and delight customers with our powerful Shopify-integrated barbershop booking system.</p>
+
+<p>Built for modern barbershops who want to focus on what matters most - providing excellent service to their customers while running an efficient business.</p>
+
+<h2>Key Features</h2>
+
+<p><strong>Smart Scheduling</strong> - Automated appointment booking with real-time availability. Customers can book 24/7 with instant confirmations.</p>
+
+<p><strong>Staff Management</strong> - Manage your team's schedules, track performance, and handle availability with ease. Perfect for multi-staff operations.</p>
+
+<p><strong>Shopify Integration</strong> - Seamlessly integrated with your Shopify store. Sync products, manage inventory, and process payments all in one place.</p>
+
+<p><strong>Mobile Ready</strong> - Fully responsive design works perfectly on all devices. Manage your barbershop from anywhere, anytime.</p>
+
+<p><strong>Analytics & Reports</strong> - Track your business performance with detailed analytics. Understand your customers and optimize your operations.</p>
+
+<p><strong>Smart Notifications</strong> - Automated reminders for customers and staff. Reduce no-shows and keep everyone informed.</p>
+
+<h2>Why Choose Our Barbershop Booking System?</h2>
+
+<p><strong>Save Time</strong> - Reduce administrative work by up to 70% with automated booking and scheduling.</p>
+
+<p><strong>Increase Revenue</strong> - Reduce no-shows by 40% and capture more bookings with 24/7 online availability.</p>
+
+<p><strong>Happy Customers</strong> - Provide a seamless booking experience that your customers will love and recommend.</p>
+
+<p><strong>Secure & Reliable</strong> - Enterprise-grade security with 99.9% uptime guarantee. Your data is always safe.</p>
+
+<h2>Getting Started</h2>
+
+<p>Welcome to your barbershop booking system! Follow these steps to get your business up and running:</p>
+
+<ol>
+<li><strong>Access Your Dashboard:</strong> Navigate to your Shopify admin panel and find the Barbershop Pro app</li>
+<li><strong>Complete Initial Configuration:</strong> Set up your shop information, locations, and basic settings</li>
+<li><strong>Add Your Staff:</strong> Create staff profiles with photos, contact information, and specialties</li>
+<li><strong>Configure Services:</strong> Set up your service offerings with pricing and duration</li>
+<li><strong>Set Availability:</strong> Define when your staff are available for appointments</li>
+</ol>
+
+<h2>Staff Management</h2>
+
+<p>From the staff list, you can:</p>
+
+<ul>
+<li><strong>View Details:</strong> Click on any staff member's name to access their profile</li>
+<li><strong>Edit Information:</strong> Update contact details, bio, or photo</li>
+<li><strong>Set Availability:</strong> Configure when each staff member is available</li>
+<li><strong>Manage Services:</strong> Assign which services each staff member can perform</li>
+<li><strong>Deactivate Staff:</strong> Temporarily disable staff without deleting their data</li>
+</ul>
+
+<h2>Booking System</h2>
+
+<p>Your customers can book appointments through your integrated booking widget:</p>
+
+<ol>
+<li><strong>Select Service:</strong> Choose from your available services (haircut, beard trim, etc.)</li>
+<li><strong>Pick Date & Time:</strong> View real-time availability and select preferred slot</li>
+<li><strong>Choose Staff:</strong> Select their preferred barber (optional)</li>
+<li><strong>Enter Details:</strong> Provide contact information and any special requests</li>
+<li><strong>Confirm Booking:</strong> Review and confirm their appointment</li>
+</ol>
+
+<h2>Shopify Integration</h2>
+
+<p>Your barbershop services are automatically synced with your Shopify store:</p>
+
+<ul>
+<li><strong>Service Products:</strong> Each booking service becomes a Shopify product</li>
+<li><strong>Inventory Management:</strong> Track service availability and capacity</li>
+<li><strong>Pricing Sync:</strong> Service prices automatically update in Shopify</li>
+<li><strong>Product Variants:</strong> Different service options (e.g., haircut vs. haircut + beard)</li>
+</ul>
+
+<h2>Pricing</h2>
+
+<p><strong>Starter - $29/month</strong> - Perfect for small barbershops. Up to 2 staff members, 100 bookings per month, basic scheduling, email support.</p>
+
+<p><strong>Professional - $59/month</strong> - Ideal for growing barbershops. Up to 5 staff members, unlimited bookings, advanced scheduling, Shopify integration, analytics & reports, priority support.</p>
+
+<p><strong>Enterprise - $99/month</strong> - For large barbershop chains. Unlimited staff members, multi-location support, custom integrations, advanced analytics, API access, dedicated support.</p>
+
+<h2>Getting Help</h2>
+
+<p>If you need additional support:</p>
+
+<ul>
+<li><strong>Check the FAQ:</strong> Common questions and answers</li>
+<li><strong>Contact Support:</strong> Reach out to our support team</li>
+<li><strong>Video Tutorials:</strong> Watch step-by-step guides</li>
+<li><strong>Community Forum:</strong> Connect with other barbershop owners</li>
+</ul>
+
+            </div>
+
+            <footer>
+              <div class="post-tags">
+                <p>
+                  Tagged:
+                  
+                  <a href="/tags/#booking">#booking</a>
+                  
+                  <a href="/tags/#barbershop">#barbershop</a>
+                  
+                  <a href="/tags/#shopify">#shopify</a>
+                  
+                </p>
+              </div>
+              
+              <p class="post-date">Published 14 January 2024</p>
+            </footer>
+
+          </article>
+
+        </div>
+      </main>
+
+      <footer>
+        <div class="flex flex-wrap gap-4 mt-10 mb-3">
+          <a class="mr-auto font-thin text-4xl" href="/">Barbershop Pro</a>
+
+          <div class="flex flex-wrap gap-3">
+            <a class="hover:text-[#ff0000]" target="_blank" rel="noopener noreferrer me" href="https://www.youtube.com/barbershoppro" title="Subscribe to our YouTube channel" aria-label="Subscribe to our YouTube channel">
+              <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"><path fill="currentColor" d="M23,9.71a8.5,8.5,0,0,0-.91-4.13,2.92,2.92,0,0,0-1.72-1A78.36,78.36,0,0,0,12,4.27a78.45,78.45,0,0,0-8.34.3,2.87,2.87,0,0,0-1.46.74c-.9.83-1,2.25-1.1,3.45a48.29,48.29,0,0,0,0,6.48,9.55,9.55,0,0,0,.3,2,3.14,3.14,0,0,0,.71,1.36,2.86,2.86,0,0,0,1.49.78,45.18,45.18,0,0,0,6.5.33c3.5.05,6.57,0,10.2-.28a2.88,2.88,0,0,0,1.53-.78,2.49,2.49,0,0,0,.61-1,10.58,10.58,0,0,0,.52-3.4C23,13.69,23,10.31,23,9.71ZM9.74,14.85V8.66l5.92,3.11C14,12.69,11.81,13.73,9.74,14.85Z"/></svg>
+            </a>
+            <a class="hover:text-[#d62976]" target="_blank" rel="noopener noreferrer me" href="https://www.instagram.com/barbershoppro/" title="Follow us on Instagram" aria-label="Follow us on Instagram">
+              <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"><path fill="currentColor" d="M17.34,5.46h0a1.2,1.2,0,1,0,1.2,1.2A1.2,1.2,0,0,0,17.34,5.46Zm4.6,2.42a7.59,7.59,0,0,0-.46-2.43,4.94,4.94,0,0,0-1.16-1.77,4.7,4.7,0,0,0-1.77-1.15,7.3,7.3,0,0,0-2.43-.47C15.06,2,14.72,2,12,2s-3.06,0-4.12.06a7.3,7.3,0,0,0-2.43.47A4.78,4.78,0,0,0,3.68,3.68,4.7,4.7,0,0,0,2.53,5.45a7.3,7.3,0,0,0-.47,2.43C2,8.94,2,9.28,2,12s0,3.06.06,4.12a7.3,7.3,0,0,0,.47,2.43,4.7,4.7,0,0,0,1.15,1.77,4.78,4.78,0,0,0,1.77,1.15,7.3,7.3,0,0,0,2.43.47C8.94,22,9.28,22,12,22s3.06,0,4.12-.06a7.3,7.3,0,0,0,2.43-.47,4.7,4.7,0,0,0,1.77-1.15,4.85,4.85,0,0,0,1.16-1.77,7.59,7.59,0,0,0,.46-2.43c0-1.06.06-1.4.06-4.12S22,8.94,21.94,7.88ZM20.14,16a5.61,5.61,0,0,1-.34,1.86,3.06,3.06,0,0,1-.75,1.15,3.19,3.19,0,0,1-1.15.75,5.61,5.61,0,0,1-1.86.34c-1,.05-1.37.06-4,.06s-3,0-4-.06A5.73,5.73,0,0,1,6.1,19.8,3.27,3.27,0,0,1,5,19.05a3,3,0,0,1-.74-1.15A5.54,5.54,0,0,1,3.86,16c0-1-.06-1.37-.06-4s0-3,.06-4A5.54,5.54,0,0,1,4.21,6.1,3,3,0,0,1,5,5,3.14,3.14,0,0,1,6.1,4.2,5.73,5.73,0,0,1,8,3.86c1,0,1.37-.06,4-.06s3,0,4,.06a5.61,5.61,0,0,1,1.86.34A3.06,3.06,0,0,1,19.05,5,3.06,3.06,0,0,1,19.8,6.1,5.61,5.61,0,0,1,20.14,8c.05,1,.06,1.37.06,4S20.19,15,20.14,16ZM12,6.87A5.13,5.13,0,1,0,17.14,12,5.12,5.12,0,0,0,12,6.87Zm0,8.46A3.33,3.33,0,1,1,15.33,12,3.33,3.33,0,0,1,12,15.33Z"/></svg>
+            </a>
+            <a class="hover:opacity-70" target="_blank" rel="noopener noreferrer me" href="https://x.com/barbershoppro" title="Follow us on Twitter" aria-label="Follow us on Twitter">
+              <svg xmlns="http://www.w3.org/2000/svg" width="29" height="30" viewBox="0 0 29 29"><path fill="currentColor" d="M 17.257812 12.273438 L 28.054688 0 L 25.496094 0 L 16.121094 10.65625 L 8.636719 0 L 0 0 L 11.320312 16.113281 L 0 28.984375 L 2.558594 28.984375 L 12.457031 17.730469 L 20.363281 28.984375 L 29 28.984375 Z M 13.753906 16.257812 L 12.609375 14.652344 L 3.480469 1.882812 L 7.410156 1.882812 L 14.777344 12.1875 L 15.921875 13.792969 L 25.496094 27.1875 L 21.566406 27.1875 Z M 13.753906 16.257812 "/></svg>
+            </a>
+            <a class="hover:opacity-70" target="_blank" rel="noopener noreferrer me" href="https://github.com/barbershoppro" title="Visit our GitHub" aria-label="Visit our GitHub">
+              <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"><path fill="currentColor" d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            </a>
+          </div>
+        </div>
+        
+        <div class="flex flex-wrap gap-5 text-2xl font-normal mb-10">
+          <a class="hover:underline" href="/">Home</a>
+          <a class="hover:underline" href="#features">Features</a>
+          <a class="hover:underline" href="#docs">Documentation</a>
+          <a class="hover:underline" href="#contact">Contact</a>
+        </div>
+
+        <div>
+          <img class="float-right ml-4 rounded-full" alt="Barbershop Pro logo" width="100" height="100" src="/assets/images/barbershop-pro-logo.jpg">
+
+          <div class="mb-11 prose dark:prose-invert">
+            <p>
+              This is our barbershop booking management solution where we help modern barbershops streamline their operations and delight their customers.
+            </p>
+            <p>
+              Get in touch:&nbsp;<a target="_blank" rel="noopener noreferrer" href="mailto:hello@barbershop-pro.com">hello@barbershop-pro.com</a>
+            </p>
+          </div>
+        </div>
+
+      </footer>
+    </div>
+
+  </body>
+</html>
