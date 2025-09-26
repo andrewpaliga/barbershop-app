@@ -1,7 +1,7 @@
 {
-  "name": "barbershop",
+  "name": "simplybook",
   "version": "0.1.0",
-  "description": "Internal package for Gadget app barbershop (Development environment)",
+  "description": "Internal package for Gadget app SimplyBook (Development environment)",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {

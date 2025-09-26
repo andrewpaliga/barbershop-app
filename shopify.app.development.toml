@@ -1,10 +1,10 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "f4d55cc55fa99d6584734e84e04efa01"
-name = "barbershop-development"
+name = "simply-book-development"
 application_url = "https://barbershop--development.gadget.app/api/shopify/install-or-render"
 embedded = true
-handle = "barbershop-development"
+handle = "simply-book-development"
 
 [webhooks]
 api_version = "2025-04"

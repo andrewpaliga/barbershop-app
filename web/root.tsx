@@ -33,7 +33,7 @@ export const meta = () => [
     content: "width=device-width, initial-scale=1",
   },
   {
-    title: "Gadget Shopify Remix app",
+    title: "SimplyBook",
   },
   {
     name: "shopify-api-key",

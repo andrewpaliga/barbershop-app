@@ -189,9 +189,9 @@ export default function Index() {
 
 
   const welcomeMessage = completedSteps === 0 
-    ? "Welcome to your Barbershop booking app! Let's get you set up."
+    ? "Welcome to your SimplyBook booking app! Let's get you set up."
     : completedSteps === steps.length
-    ? "🎉 Congratulations! Your barbershop app is fully configured and ready to take bookings."
+    ? "🎉 Congratulations! Your SimplyBook app is fully configured and ready to take bookings."
     : `Great progress! You've completed ${completedSteps} of ${steps.length} setup steps.`;
 
   return (
