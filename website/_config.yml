@@ -1,9 +1,9 @@
 # Site settings
-title: "SimplyBook: The Shopify Booking App"
-description: "The easiest way to take bookings on Shopify. Seamlessly integrated with Shopify Checkout and Shopify POS, SimplyBook is the all-in-one booking app designed for service-based businesses."
-author: "Alumify"
-email: "hello@barbershop-pro.com"
-url: "https://barbershop-pro.com"
+title: "SimplyBook — Shopify Booking App"
+description: "SimplyBook is a general‑purpose booking app for Shopify. Perfect for barbershops, salons, personal trainers, and more. Seamless Shopify Checkout and POS integration. $9/month with a 7‑day free trial."
+author: "SimplyBook"
+email: "hello@shopifybookingapp.com"
+url: "https://shopifybookingapp.com"
 baseurl: ""
 
 # Build settings
@@ -30,7 +30,6 @@ social:
 # SEO
 seo:
   type: "WebSite"
-  name: "Barbershop Pro"
-  description: "Professional barbershop booking management app"
-  url: "https://barbershop-pro.com"
-  image: "/assets/images/barbershop-pro-logo.jpg"
+  name: "SimplyBook"
+  description: "General‑purpose booking app for Shopify with Checkout and POS integration."
+  url: "https://shopifybookingapp.com"

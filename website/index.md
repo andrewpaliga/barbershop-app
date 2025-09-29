@@ -1,23 +1,21 @@
 ---
 layout: default
-title: "Shopify Booking App"
-description: "Professional barbershop booking management app. Streamline appointments, manage staff schedules, and enhance customer experience with our Shopify-integrated solution."
+title: "SimplyBook — Shopify Booking App"
+description: "Add online booking to your Shopify store in one minute. One \"Book Now\" button, seamless Checkout + POS integration, and flexible service durations. $9/month with a 7‑day free trial — start booking today."
 date: 2024-01-14
-tags: [booking, barbershop, shopify]
+tags: [booking, appointments, shopify, salons, barbershops, fitness, spa, wellness, beauty, massage, yoga, pilates, coaches, trainers, consultants]
 ---
 
-## Shopify Booking App
+## SimplyBook
 
-Welcome to **SimplyBook** — the all-in-one booking app designed for businesses on Shopify.
+Welcome to **SimplyBook** — the easiest way to take appointmetns on Shopify.
 
 
 ## Why Choose Our App
 
-**Seamless Shopify Integration** - All bookings are processed through Shopify Checkout. This lets you upsell additional products or services and manage everything from a single system.
-
-**Shopify POS Extension** - Use our native POS integration to view upcoming appointments and add them directly to your in-store checkout for quick, hassle-free payments.
-
-**Efortless User Experience** - Simply add a Book Now button to your website and you’re ready to go. Customers can select a service, choose a time, and confirm in seconds.
+- **One Booking Button**: Add a single, prominent “Book Now” button to your store. Customers can book any service from one place — fast and frictionless.
+- **Seamless Shopify integration**: Every booking goes through Shopify Checkout, so you can upsell products, manage payments, and keep everything in one system.
+- **Built for POS**: Our native Shopify POS extension shows upcoming appointments and lets you add them directly to in‑store checkout for quick payment.
 
 ## Who It’s For
 
