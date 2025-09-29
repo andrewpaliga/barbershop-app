@@ -11,8 +11,26 @@ markdown: kramdown
 highlighter: rouge
 permalink: pretty
 
+# Sass settings to suppress deprecation warnings
+sass:
+  sass_dir: _sass
+  style: compressed
+  quiet_deps: true
+  silence_deprecations: ["import", "global-builtin", "color-functions"]
+
 # Theme settings
 theme: minima
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+
+# Ensure Jekyll compiles our assets/main.scss but don't import Minima's Sass
+defaults:
+  - scope:
+      path: "assets"
+      type: "sass"
+    values:
+      layout: null
 
 # Plugins
 plugins:
