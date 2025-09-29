@@ -14,6 +14,8 @@ import {
   DataTable,
   TextField,
   ButtonGroup,
+  FooterHelp,
+  Link,
 } from "@shopify/polaris";
 import { DeleteIcon, PlusIcon, XIcon, ChevronLeftIcon, ChevronRightIcon, EditIcon } from "@shopify/polaris-icons";
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -1464,6 +1466,9 @@ export default function StaffEdit() {
           </BlockStack>
         </Card>
       </BlockStack>
+      <FooterHelp>
+        Learn more about <Link url="https://shopifybookingapp.com/docs/#staff-management">SimplyBook staff management</Link>.
+      </FooterHelp>
     </Page>
   );
 }

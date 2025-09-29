@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Page, Card, Text, BlockStack, InlineStack, Banner, Button, ProgressBar, Icon, Badge, Layout, Box } from "@shopify/polaris";
+import { Page, Card, Text, BlockStack, InlineStack, Banner, Button, ProgressBar, Icon, Badge, Layout, Box, FooterHelp, Link } from "@shopify/polaris";
 import { CheckIcon } from "@shopify/polaris-icons";
 import { useFindMany, useFindFirst, useFindOne, useAction } from "@gadgetinc/react";
 import { useNavigate } from "@remix-run/react";
@@ -159,6 +159,13 @@ export default function Index() {
                 <Text variant="bodyMd" as="p">Loading dashboard...</Text>
               </div>
             </Card>
+          </Layout.Section>
+          
+          {/* Footer Help - Always visible */}
+          <Layout.Section>
+            <FooterHelp>
+              Learn more about <Link url="https://shopifybookingapp.com/docs/">SimplyBook documentation</Link>.
+            </FooterHelp>
           </Layout.Section>
         </Layout>
       </Page>
@@ -426,6 +433,13 @@ export default function Index() {
             </Layout.Section>
           </>
         )}
+        
+        {/* Footer Help - Always visible */}
+        <Layout.Section>
+          <FooterHelp>
+            Learn more about <Link url="https://shopifybookingapp.com/">SimplyBook</Link>.
+          </FooterHelp>
+        </Layout.Section>
       </Layout>
     </Page>
   );

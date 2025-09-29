@@ -17,7 +17,9 @@ import {
   Icon,
   Divider,
   Layout,
-  EmptyState
+  EmptyState,
+  FooterHelp,
+  Link
 } from "@shopify/polaris";
 import {
   ChevronLeftIcon,
@@ -1461,6 +1463,9 @@ export default function SchedulePage() {
           )}
         </Modal.Section>
       </Modal>
+      <FooterHelp>
+        Learn more about <Link url="https://shopifybookingapp.com/docs/#schedule-management">SimplyBook schedule management</Link>.
+      </FooterHelp>
     </Page>
   );
 }

@@ -8,6 +8,8 @@ import {
   Button,
   InlineStack,
   Text,
+  FooterHelp,
+  Link,
 } from "@shopify/polaris";
 import { api } from "../api";
 
@@ -372,6 +374,11 @@ export default function NewService() {
           </div>
         </div>
       </form>
+      <div style={{ marginTop: '16px' }}>
+        <FooterHelp>
+          Learn more about <Link url="https://shopifybookingapp.com/docs/#services-management">SimplyBook services</Link>.
+        </FooterHelp>
+      </div>
     </Page>
   );
 }

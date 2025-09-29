@@ -16,6 +16,8 @@ import {
   BlockStack,
   Breadcrumbs,
   Grid,
+  FooterHelp,
+  Link,
 } from "@shopify/polaris";
 import { ArrowLeftIcon } from "@shopify/polaris-icons";
 import { useFindOne, useFindFirst, useGlobalAction, useAction } from "@gadgetinc/react";
@@ -693,6 +695,9 @@ export default function LocationHours() {
           </BlockStack>
         </Card>
       </BlockStack>
+      <FooterHelp>
+        Learn more about <Link url="https://shopifybookingapp.com/docs/#hours-of-operation">SimplyBook hours of operation</Link>.
+      </FooterHelp>
     </Page>
   );
 }

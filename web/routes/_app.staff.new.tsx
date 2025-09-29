@@ -1,7 +1,7 @@
 import { useNavigate } from "@remix-run/react";
 import { useState, useRef, useEffect } from "react";
 import { AutoForm, AutoInput, AutoBelongsToInput, AutoSubmit } from "@gadgetinc/react/auto/polaris";
-import { Page, Card, Button, BlockStack, Text, InlineStack, Avatar } from "@shopify/polaris";
+import { Page, Card, Button, BlockStack, Text, InlineStack, Avatar, FooterHelp, Link } from "@shopify/polaris";
 import { ArrowLeftIcon } from "@shopify/polaris-icons";
 import { api } from "../api";
 
@@ -224,6 +224,9 @@ export default function NewStaffPage() {
           </AutoForm>
         </BlockStack>
       </Card>
+      <FooterHelp>
+        Learn more about <Link url="https://shopifybookingapp.com/docs/#staff-management">SimplyBook staff management</Link>.
+      </FooterHelp>
     </Page>
   );
 }

@@ -1,6 +1,6 @@
 import type { MetaFunction } from "@remix-run/node";
 import { useNavigate } from "@remix-run/react";
-import { Page, Card, BlockStack, DataTable, Text, Spinner, Banner, Button } from "@shopify/polaris";
+import { Page, Card, BlockStack, DataTable, Text, Spinner, Banner, Button, FooterHelp, Link } from "@shopify/polaris";
 import { useFindMany } from "@gadgetinc/react";
 import { api } from "../api";
 
@@ -110,6 +110,10 @@ export default function StaffIndex() {
             </div>
           )}
         </Card>
+
+        <FooterHelp>
+          Learn more about <Link url="https://shopifybookingapp.com/docs/#staff-management">SimplyBook staff management</Link>.
+        </FooterHelp>
       </BlockStack>
     </Page>
   );

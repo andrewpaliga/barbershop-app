@@ -11,6 +11,7 @@ import {
   Banner,
   EmptyState,
   DataTable,
+  FooterHelp,
 } from "@shopify/polaris";
 import { Link, useNavigate } from "@remix-run/react";
 
@@ -335,6 +336,9 @@ export default function HoursOfOperation() {
           rows={rows}
         />
       </Card>
+      <FooterHelp>
+        Learn more about <a href="https://shopifybookingapp.com/docs/#hours-of-operation">SimplyBook hours of operation</a>.
+      </FooterHelp>
     </Page>
   );
 }

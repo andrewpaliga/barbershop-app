@@ -8,6 +8,8 @@ import {
   BlockStack,
   InlineStack,
   Badge,
+  FooterHelp,
+  Link,
 } from "@shopify/polaris";
 import { useFindFirst, useFindOne, useAction } from "@gadgetinc/react";
 import { api } from "../api";
@@ -299,6 +301,9 @@ export default function Settings() {
           </Text>
         </div>
       )}
+      <FooterHelp>
+        Learn more about <Link url="https://shopifybookingapp.com/docs/#settings">SimplyBook settings</Link>.
+      </FooterHelp>
     </Page>
   );
 }

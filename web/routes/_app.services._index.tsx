@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Page, Card, Text, BlockStack, InlineStack, Banner, Button, Collapsible, List, DataTable, Spinner, EmptyState, Modal, Select } from "@shopify/polaris";
+import { Page, Card, Text, BlockStack, InlineStack, Banner, Button, Collapsible, List, DataTable, Spinner, EmptyState, Modal, Select, FooterHelp, Link } from "@shopify/polaris";
 import { useFindMany, useFindOne } from "@gadgetinc/react";
 import { useNavigate } from "@remix-run/react";
 import { api } from "../api";
@@ -477,6 +477,9 @@ export default function ProductsIndex() {
           </BlockStack>
         </Modal.Section>
       </Modal>
+      <FooterHelp>
+        Learn more about <Link url="https://shopifybookingapp.com/docs/#services-management">SimplyBook services</Link>.
+      </FooterHelp>
     </Page>
   );
 }
