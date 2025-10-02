@@ -15,6 +15,21 @@ import {
   Section,
 } from '@shopify/ui-extensions-react/point-of-sale';
 
+// Environment-aware configuration
+const getAppConfig = () => {
+  // In production, use the production domain; in development, use development domain
+  // This could be enhanced to read from build-time environment variables
+  const isDevelopment = true; // TODO: Make this configurable via build process
+  const appDomain = isDevelopment 
+    ? 'simplybook--development.gadget.app'
+    : 'simplybook.gadget.app';
+  
+  return {
+    apiBaseUrl: `https://${appDomain}`,
+    isDevelopment
+  };
+};
+
 type Appointment = {
   id: string;
   customerName: string;
@@ -59,6 +74,12 @@ const Modal = () => {
   // 2) Store current location from session
   const [currentLocation, setCurrentLocation] = useState<{id: string, name: string} | null>(null);
 
+  // 3) Get configuration
+  const config = getAppConfig();
+  if (config.isDevelopment) {
+    console.log('POS Extension: Using development configuration', config);
+  }
+
   useEffect(() => {
     const fetchLocationAndBookings = async () => {
       try {
@@ -66,7 +87,7 @@ const Modal = () => {
         console.log('POS current locationId:', locId);
         
         // Fetch location name and bookings together
-        const response = await fetch(`https://barbershop--development.gadget.app/api/pos-bookings?locationId=${locId}`);
+        const response = await fetch(`${config.apiBaseUrl}/api/pos-bookings?locationId=${locId}`);
         if (response.ok) {
           const data = await response.json();
           
@@ -229,7 +250,7 @@ const Modal = () => {
         setLoading(true);
         setError(null);
 
-        const url = `https://barbershop--development.gadget.app/api/pos-bookings${currentLocation ? `?locationId=${currentLocation.id}` : ''}`;
+        const url = `${config.apiBaseUrl}/api/pos-bookings${currentLocation ? `?locationId=${currentLocation.id}` : ''}`;
         const response = await fetch(url, {
           method: 'GET',
           headers: {
@@ -324,7 +345,7 @@ const Modal = () => {
       setUpdatingArrival(true);
       setArrivalError(null);
 
-      const url = `https://barbershop--development.gadget.app/api/pos-booking-arrived`;
+      const url = `${config.apiBaseUrl}/api/pos-booking-arrived`;
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -364,7 +385,7 @@ const Modal = () => {
       setUpdatingArrival(true);
       setArrivalError(null);
 
-      const url = `https://barbershop--development.gadget.app/api/pos-booking-arrived`;
+      const url = `${config.apiBaseUrl}/api/pos-booking-arrived`;
       const response = await fetch(url, {
         method: 'POST',
         headers: {

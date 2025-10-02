@@ -720,7 +720,7 @@ function createScheduledAtInLocationTimezone(
         logger.error(`Failed to parse date string for line item ${lineItemId}`, {
           lineItemId: lineItemId,
           dateValue: dateStr,
-          parseError: parseError.message,
+          parseError: (parseError as Error).message,
           supportedFormats: ['MM/DD/YYYY', 'Month DD, YYYY']
         });
         return null;
@@ -817,7 +817,7 @@ function createScheduledAtInLocationTimezone(
       logger.warn(`Timezone conversion failed, falling back to basic UTC conversion`, {
         lineItemId: lineItemId,
         timezone: timezone,
-        error: timezoneError.message
+        error: (timezoneError as Error).message
       });
       
       // Fallback: Create UTC date directly (less accurate for DST)
@@ -871,8 +871,8 @@ function createScheduledAtInLocationTimezone(
       dateStr: dateStr,
       timeStr: timeStr,
       locationTimeZone: locationTimeZone,
-      error: error.message,
-      stack: error.stack
+      error: (error as Error).message,
+      stack: (error as Error).stack
     });
     return null;
   }
@@ -969,7 +969,7 @@ function formatDateInTimezone(date: Date, timezone: string): string {
 }
 
 export const options: ActionOptions = {
-  actionType: "background",
+  actionType: "custom",
   triggers: {
     api: true
   }

@@ -3,9 +3,9 @@ api_version = "2025-07"
 [[extensions]]
 uid = "b8af2af5-91ce-56a3-2dd8-974fe772a1a036fcf0d7"
 type = "ui_extension"
-name = "pos-ui-smart-grid"
+name = "Appointment Display"
 handle = "pos-ui-smart-grid"
-description = "A typescript-react POS UI extension"
+description = "Display and manage appointment bookings directly in Shopify POS"
 
 [[extensions.targeting]]
 module = "./src/Tile.tsx"

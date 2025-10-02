@@ -11,7 +11,9 @@ export default function Index() {
   // Get config data and update action
   const [{ data: config, fetching: fetchingConfig, error: configError }, refetchConfig] = useFindFirst(api.config);
   const [{ fetching: updatingConfig }, updateConfig] = useAction(api.config.update);
-  const [{ data: currentShop }] = useFindOne(api.shopifyShop, "current");
+  
+  // Get shop data - useFindFirst works, useFindOne with "current" doesn't
+  const [{ data: currentShop, fetching: fetchingShop, error: shopError }] = useFindFirst(api.shopifyShop);
 
   // Define dates first
   const today = new Date();
@@ -52,7 +54,9 @@ export default function Index() {
       customerName: true,
       scheduledAt: true,
       status: true,
-      staff: { name: true }
+      staff: {
+        name: true
+      }
     }
   });
 
@@ -70,7 +74,9 @@ export default function Index() {
       customerName: true,
       scheduledAt: true,
       status: true,
-      staff: { name: true }
+      staff: {
+        name: true
+      }
     }
   });
 
@@ -95,23 +101,29 @@ export default function Index() {
       description: "Allow your customers to book appointments from your online store",
       completed: config?.themeExtensionUsed || false,
       action: () => {
-        const domain = currentShop?.myshopifyDomain;
-        console.log('Current shop data:', currentShop);
-        console.log('Domain:', domain);
-        
-        if (domain) {
-          const store = domain.replace(/\.myshopify\.com$/i, "");
-          const href = `https://admin.shopify.com/store/${store}/themes/current/editor`;
-          console.log('Opening href:', href);
-          window.open(href, "_blank");
+        if (fetchingShop) {
+          alert('Please wait while shop data is loading...');
           return;
         }
         
-        // Fallback: use a known store slug
-        const fallbackDomain = "paliga-test-store";
-        const hrefFallback = `https://admin.shopify.com/store/${fallbackDomain}/themes/current/editor`;
-        console.log('Opening fallback href:', hrefFallback);
-        window.open(hrefFallback, "_blank");
+        if (shopError) {
+          console.error('Shop fetch error:', shopError);
+          alert('Error loading shop data. Please try refreshing the page.');
+          return;
+        }
+        
+        const domain = currentShop?.myshopifyDomain;
+        
+        if (!domain) {
+          console.error('Theme Editor: No myshopifyDomain found in currentShop:', currentShop);
+          alert('Unable to open Theme Editor: Shop domain not found. Please try refreshing the page.');
+          return;
+        }
+        
+        const store = domain.replace(/\.myshopify\.com$/i, "");
+        const href = `https://admin.shopify.com/store/${store}/themes/current/editor`;
+        console.log('Opening Theme Editor:', href);
+        window.open(href, "_blank");
       },
       buttonText: "Open Theme Editor"
     },
@@ -229,7 +241,7 @@ export default function Index() {
                   </Text>
                   <InlineStack gap="200" blockAlign="center">
                     <Badge tone={isOnboardingComplete ? "success" : "attention"}>
-                      {completedSteps}/{steps.length} Complete
+                      {`${completedSteps}/${steps.length} Complete`}
                     </Badge>
                     <Button 
                       variant="plain" 
@@ -249,7 +261,7 @@ export default function Index() {
                     <Card key={index} background={step.completed ? "bg-surface-success" : "bg-surface"}>
                       <InlineStack align="space-between" blockAlign="center">
                         <InlineStack gap="300" blockAlign="center">
-                          {step.completed && <Icon source={CheckIcon} tone="success" />}
+                          {step.completed && <Icon source={CheckIcon as any} tone="success" />}
                           {!step.completed && <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '2px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}></div>}
                           <BlockStack gap="100">
                             <Text variant="headingMd" as="h3">
@@ -266,7 +278,7 @@ export default function Index() {
                               <Button 
                                 variant="secondary" 
                                 onClick={() => {
-                                  window.open("https://docs.barbershop-pro.com/theme-setup", "_blank");
+                                  window.open("https://www.shopifybookingapp.com/docs/#adding-the-booking-button-to-your-store", "_blank");
                                 }}
                               >
                                 View Instructions
@@ -357,7 +369,7 @@ export default function Index() {
                                 {booking.customerName || "Walk-in Customer"}
                               </Text>
                               <Text variant="bodySm" as="p" tone="subdued">
-                                with {booking.staff?.name} • {new Date(booking.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                with {(booking as any).staff?.name || 'Unknown Staff'} • {booking.scheduledAt ? new Date(booking.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Time TBD'}
                               </Text>
                             </BlockStack>
                             <Badge tone={
@@ -404,7 +416,7 @@ export default function Index() {
                                 {booking.customerName || "Walk-in Customer"}
                               </Text>
                               <Text variant="bodySm" as="p" tone="subdued">
-                                with {booking.staff?.name} • {new Date(booking.scheduledAt).toLocaleDateString()} at {new Date(booking.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                with {(booking as any).staff?.name || 'Unknown Staff'} • {booking.scheduledAt ? new Date(booking.scheduledAt).toLocaleDateString() : 'Date TBD'} at {booking.scheduledAt ? new Date(booking.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Time TBD'}
                               </Text>
                             </BlockStack>
                             <Badge tone={

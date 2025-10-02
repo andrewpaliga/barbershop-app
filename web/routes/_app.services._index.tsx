@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Page, Card, Text, BlockStack, InlineStack, Banner, Button, Collapsible, List, DataTable, Spinner, EmptyState, Modal, Select, FooterHelp, Link } from "@shopify/polaris";
-import { useFindMany, useFindOne } from "@gadgetinc/react";
+import { useFindMany, useFindOne, useFindFirst } from "@gadgetinc/react";
 import { useNavigate } from "@remix-run/react";
 import { api } from "../api";
 
@@ -12,10 +12,10 @@ export default function ProductsIndex() {
   const navigate = useNavigate();
   
   // Get the current shop's domain once for all product links
-  const [{ data: currentShop }] = useFindOne(api.shopifyShop, "current");
+  const [{ data: currentShop }] = useFindFirst(api.shopifyShop);
   
   // Get config to access timeSlotInterval
-  const [{ data: config, fetching: configFetching }] = useFindOne(api.config, "current");
+  const [{ data: config, fetching: configFetching }] = useFindFirst(api.config);
   
 
   // Only show services - using productType instead of isBarberService

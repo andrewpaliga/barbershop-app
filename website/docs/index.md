@@ -217,7 +217,7 @@ Set the default time interval for booking slots:
 
 ---
 
-## Adding the Booking Widget to Your Store
+## Adding the Booking Button to Your Store
 
 ### Step 1: Open Theme Editor
 

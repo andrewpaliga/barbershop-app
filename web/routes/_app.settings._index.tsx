@@ -17,7 +17,7 @@ import { useState } from "react";
 
 export default function Settings() {
   const [{ data: config, fetching, error }] = useFindFirst(api.config);
-  const [{ data: currentShop }] = useFindOne(api.shopifyShop, "current");
+  const [{ data: currentShop }] = useFindFirst(api.shopifyShop);
   const [, updateConfig] = useAction(api.config.update as any);
   const [selectedInterval, setSelectedInterval] = useState<number>(30);
   const [showSuccess, setShowSuccess] = useState<boolean>(false);

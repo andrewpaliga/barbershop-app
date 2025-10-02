@@ -1,3 +1,4 @@
-name = "simplybook"
+name = "Booking Button"
+description = "Add a booking button to product pages for appointment scheduling"
 uid = "134fe30e-ef4b-9ae1-4daa-0c827125bc5744b6e937"
 type = "theme"

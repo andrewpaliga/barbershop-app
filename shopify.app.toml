@@ -20,7 +20,7 @@ redirect_urls = [
 
 [app_proxy]
 url = "https://simplybook.gadget.app"
-subpath = "test"
+subpath = "simplybook-api"
 prefix = "apps"
 
 [pos]

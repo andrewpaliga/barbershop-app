@@ -380,7 +380,7 @@ export default function LocationHours() {
     return (
       <Page title="Error">
         <Card>
-          <Banner status="critical">
+          <Banner>
             <Text as="p" variant="bodyMd">
               Error loading location: {(hoursError || locationError)?.toString()}
             </Text>

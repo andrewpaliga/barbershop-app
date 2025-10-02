@@ -13,12 +13,7 @@ export const loader = async ({ context }: LoaderFunctionArgs) => {
 export default function() {
   const { gadgetConfig } = useLoaderData<typeof loader>();
 
-  console.log('_app.tsx component rendering');
-  console.log('gadgetConfig.shopifyInstallState:', gadgetConfig.shopifyInstallState);
-
   if (gadgetConfig.shopifyInstallState) {
-    console.log('Taking authenticated branch - rendering POSRedirect, NavMenu, and Outlet');
-    console.log('POSRedirect component should be rendered');
     return (
       <>
         <POSRedirect />
@@ -27,7 +22,6 @@ export default function() {
       </>
     );
   } else {
-    console.log('Taking unauthenticated branch - rendering Unauthenticated component');
     return <Unauthenticated />;
   }
 }
