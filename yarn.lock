@@ -771,6 +771,10 @@
   version "0.0.0"
   uid ""
 
+"@gadget-client/simplybook@link:.gadget/client":
+  version "0.0.0"
+  uid ""
+
 "@gadgetinc/api-client-core@0.15.46":
   version "0.15.46"
   resolved "https://registry.yarnpkg.com/@gadgetinc/api-client-core/-/api-client-core-0.15.46.tgz#08123dd62faaa95a60f9aa42bbc3e518ecc178be"
