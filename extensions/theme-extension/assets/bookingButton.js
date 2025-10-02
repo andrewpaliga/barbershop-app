@@ -751,7 +751,7 @@ function showBarberSelectionForTimeSlot(time, date) {
   });
   
   if (availableStaff.length === 0) {
-    showMessage('error', 'No barbers are available at this time. Please select a different time slot.');
+    showMessage('error', 'No professionals are available at this time. Please select a different time slot.');
     return;
   }
   
