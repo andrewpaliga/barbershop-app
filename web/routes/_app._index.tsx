@@ -25,6 +25,9 @@ export default function Index() {
 
   // Check completion status with API calls
   const [{ data: staffData }] = useFindMany(api.staff);
+  const [{ data: staffAvailabilityData }] = useFindMany(api.staffAvailability, {
+    filter: { isAvailable: { equals: true } }
+  });
   const [{ data: servicesData }] = useFindMany(api.shopifyProduct, {
     filter: {
       productType: {
@@ -90,11 +93,17 @@ export default function Index() {
       buttonText: "Add Service"
     },
     {
-      title: "Add a staff member",
-      description: "Add team members who can provide services",
-      completed: (staffData?.length || 0) > 0,
-      action: () => navigate("/staff/new"),
-      buttonText: "Add Staff"
+      title: "Add a staff member with availability",
+      description: "Add team members who can provide services and set their availability",
+      completed: (staffData?.length || 0) > 0 && (staffAvailabilityData?.length || 0) > 0,
+      action: () => {
+        if ((staffData?.length || 0) === 0) {
+          navigate("/staff/new");
+        } else {
+          navigate("/staff");
+        }
+      },
+      buttonText: (staffData?.length || 0) === 0 ? "Add Staff" : "Add Availability"
     },
     {
       title: "Add Booking Button",
