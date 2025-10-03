@@ -198,7 +198,7 @@ function updateSelectedBarberInfo() {
     
     container.innerHTML = `
       <div style="text-align: center; color: #666; padding: 20px;">
-        <h4 style="margin-bottom: 10px; color: #333;">Any Available Barber</h4>
+        <h4 style="margin-bottom: 10px; color: #333;">Any Available Professional</h4>
       </div>
     `;
   } else {

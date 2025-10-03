@@ -24,7 +24,12 @@ export default function Index() {
   nextWeek.setDate(nextWeek.getDate() + 7);
 
   // Check completion status with API calls
-  const [{ data: staffData }] = useFindMany(api.staff);
+  const [{ data: staffData }] = useFindMany(api.staff, {
+    select: {
+      id: true,
+      name: true
+    }
+  });
   const [{ data: staffAvailabilityData }] = useFindMany(api.staffAvailability, {
     filter: { isAvailable: { equals: true } }
   });
@@ -99,6 +104,11 @@ export default function Index() {
       action: () => {
         if ((staffData?.length || 0) === 0) {
           navigate("/staff/new");
+          return;
+        }
+        const firstStaffId = staffData?.[0]?.id;
+        if (firstStaffId) {
+          navigate(`/staff/${firstStaffId}`);
         } else {
           navigate("/staff");
         }
