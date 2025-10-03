@@ -65,6 +65,7 @@ export const onSuccess: ActionOnSuccess = async ({ params, record, logger, api }
 export const options: ActionOptions = {
   actionType: "update",
   triggers: {
+    api: {},
     shopify: {
       webhooks: ["products/update"],
       hasSync: true
