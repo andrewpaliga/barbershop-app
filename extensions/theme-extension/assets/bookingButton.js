@@ -174,13 +174,13 @@ function updateSelectedBarberInfo() {
   const container = document.getElementById('selected-barber-info');
   if (!container || !bookingData) return;
   
-  // Auto-select single professional if there's only one available
-  const activeStaff = (bookingData && Array.isArray(bookingData.staff))
-    ? bookingData.staff.filter(function (s) { return s && s.isActive !== false; })
+  // Auto-select single professional if there's only one with availability
+  const availableStaff = (bookingData && Array.isArray(bookingData.staff))
+    ? bookingData.staff.filter(function (s) { return s && hasStaffAvailabilityInNext3Months(s.id); })
     : [];
   
-  if (activeStaff.length === 1 && !currentSelection.staffId) {
-    currentSelection.staffId = activeStaff[0].id;
+  if (availableStaff.length === 1 && !currentSelection.staffId) {
+    currentSelection.staffId = availableStaff[0].id;
     currentSelection.type = 'staff';
   }
   
@@ -1483,16 +1483,15 @@ function populateStaffButtons() {
     return;
   }
   
-  // Quick check: hide professional section if only 1 active staff
-  const activeStaffCount = bookingData.staff.filter(staff => staff.isActive !== false).length;
-  if (activeStaffCount === 1) {
-    container.parentElement.style.display = 'none';
-    return;
-  }
-  
   const availableStaff = bookingData.staff.filter(staff => {
     return hasStaffAvailabilityInNext3Months(staff.id);
   });
+  
+  // Quick check: hide professional section if only 1 staff has availability
+  if (availableStaff.length === 1) {
+    container.parentElement.style.display = 'none';
+    return;
+  }
   
   if (availableStaff.length === 0) {
     container.innerHTML = '<div style="text-align: center; color: #666; padding: 40px;"><p>No professionals are currently available for booking in the next 3 months. Please check back later or contact us directly.</p></div>';
