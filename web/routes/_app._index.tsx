@@ -108,7 +108,7 @@ export default function Index() {
         }
         const firstStaffId = staffData?.[0]?.id;
         if (firstStaffId) {
-          navigate(`/staff/${firstStaffId}`);
+          navigate(`/staff/${firstStaffId}#availability`);
         } else {
           navigate("/staff");
         }

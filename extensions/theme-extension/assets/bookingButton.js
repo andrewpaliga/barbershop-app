@@ -174,6 +174,16 @@ function updateSelectedBarberInfo() {
   const container = document.getElementById('selected-barber-info');
   if (!container || !bookingData) return;
   
+  // Auto-select single professional if there's only one available
+  const activeStaff = (bookingData && Array.isArray(bookingData.staff))
+    ? bookingData.staff.filter(function (s) { return s && s.isActive !== false; })
+    : [];
+  
+  if (activeStaff.length === 1 && !currentSelection.staffId) {
+    currentSelection.staffId = activeStaff[0].id;
+    currentSelection.type = 'staff';
+  }
+  
   if (currentSelection.staffId) {
     const staff = bookingData.staff.find(s => s.id === currentSelection.staffId);
     if (staff) {
@@ -284,9 +294,25 @@ function selectServiceFromMenuVariant(serviceId, variantId) {
   currentSelection.variantId = variantId;
   currentSelection.serviceExplicitlyChosen = true;
 
-  if (currentSelection.type !== 'staff') {
-    currentSelection.staffId = null;
-    currentSelection.type = 'service';
+  // If there's only one active professional, auto-select them for convenience
+  try {
+    const activeStaff = (bookingData && Array.isArray(bookingData.staff))
+      ? bookingData.staff.filter(function (s) { return s && s.isActive !== false; })
+      : [];
+    if (activeStaff.length === 1) {
+      currentSelection.staffId = activeStaff[0].id;
+      currentSelection.type = 'staff';
+    } else {
+      if (currentSelection.type !== 'staff') {
+        currentSelection.staffId = null;
+        currentSelection.type = 'service';
+      }
+    }
+  } catch (_) {
+    if (currentSelection.type !== 'staff') {
+      currentSelection.staffId = null;
+      currentSelection.type = 'service';
+    }
   }
   
   updateSelectedBarberInfo();
@@ -1188,6 +1214,17 @@ async function openBookingModal() {
     
     populateServiceButtons();
     populateStaffButtons();
+
+    // If there's only one active professional, reflect that selection in the sidebar
+    try {
+      const activeStaff = (bookingData && Array.isArray(bookingData.staff))
+        ? bookingData.staff.filter(function (s) { return s && s.isActive !== false; })
+        : [];
+      if (activeStaff.length === 1) {
+        currentSelection.staffId = activeStaff[0].id;
+        currentSelection.type = 'staff';
+      }
+    } catch (_) {}
     
     setLoading(false);
     showSelectionScreen();
@@ -1443,6 +1480,13 @@ function populateServiceButtons() {
 function populateStaffButtons() {
   const container = document.getElementById('staff-selection-buttons');
   if (!container || !bookingData || !bookingData.staff || !Array.isArray(bookingData.staff)) {
+    return;
+  }
+  
+  // Quick check: hide professional section if only 1 active staff
+  const activeStaffCount = bookingData.staff.filter(staff => staff.isActive !== false).length;
+  if (activeStaffCount === 1) {
+    container.parentElement.style.display = 'none';
     return;
   }
   

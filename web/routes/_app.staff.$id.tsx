@@ -1154,7 +1154,7 @@ export default function StaffEdit() {
 
 
 
-        <Card>
+        <Card id="availability">
           <BlockStack gap="400">
             <InlineStack align="space-between" blockAlign="center">
               <Text as="h2" variant="headingLg">
