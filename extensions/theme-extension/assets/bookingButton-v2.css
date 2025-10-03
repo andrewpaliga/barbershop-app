@@ -10,6 +10,18 @@
   --barbershop-button-text: #ffffff;
 }
 
+/* Simple CSS isolation to prevent theme inheritance */
+.barbershop-modal {
+  all: initial;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #333;
+}
+
+.barbershop-modal * {
+  box-sizing: border-box;
+}
 
 .barbershop-booking-btn:hover {
   opacity: 0.9;

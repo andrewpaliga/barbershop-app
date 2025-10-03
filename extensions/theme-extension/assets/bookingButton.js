@@ -1451,7 +1451,7 @@ function populateStaffButtons() {
   });
   
   if (availableStaff.length === 0) {
-    container.innerHTML = '<div style="text-align: center; color: #666; padding: 40px;"><p>No barbers are currently available for booking in the next 3 months. Please check back later or contact us directly.</p></div>';
+    container.innerHTML = '<div style="text-align: center; color: #666; padding: 40px;"><p>No professionals are currently available for booking in the next 3 months. Please check back later or contact us directly.</p></div>';
     return;
   }
   
