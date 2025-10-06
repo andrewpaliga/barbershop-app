@@ -1,6 +1,6 @@
 # Barbershop Pro - Jekyll Site
 
-This is a Jekyll-powered website for Barbershop Pro, a professional barbershop booking management app.
+This is a Jekyll-powered website for SimplyBook, an appointment booking management app.
 
 ## Setup
 
