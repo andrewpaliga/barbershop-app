@@ -7,7 +7,7 @@ function TileComponent() {
   return (
     <Tile
       title="Appointments"
-      subtitle="Barbify"
+      subtitle="SimplyBook"
       onPress={() => {
         api.action.presentModal();
       }}

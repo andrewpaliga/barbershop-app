@@ -18,7 +18,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
   reply.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   try {
-    logger.info("Starting POS bookings data fetch");
+    logger.info("/api/pos-bookings: Starting POS bookings data fetch");
     
     let shopId: string | null = null;
 
@@ -28,7 +28,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
 
     // Get location ID from query parameters
     const locationId = (request.query as any)?.locationId as string;
-    logger.info({ locationId }, "Location ID from query params");
+    logger.info({ locationId }, "/api/pos-bookings: Location ID from query params");
 
     // Resolve location name if we have a location ID
     let locationName = "Unknown Location";
@@ -51,18 +51,18 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
           
           if (locationResult?.location) {
             locationName = locationResult.location.name || `Location ${locationId}`;
-            logger.info({ locationName, locationId }, "Resolved location name");
+            logger.info({ locationName, locationId }, "/api/pos-bookings: Resolved location name");
           }
         }
       } catch (error) {
-        logger.warn({ error: error?.message, locationId }, "Failed to resolve location name");
+        logger.warn({ error: error?.message, locationId }, "/api/pos-bookings: Failed to resolve location name");
       }
     }
 
     // If no shop ID found, try to get it from query parameters
     if (!shopId) {
       const shopDomain = (request.query as any)?.shop as string;
-      logger.info({ shopDomain }, "No authenticated shop found, trying to get shop from query params");
+      logger.info({ shopDomain }, "/api/pos-bookings: No authenticated shop found, trying to get shop from query params");
       
       if (shopDomain) {
         try {
@@ -79,33 +79,34 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
           
           if (shop) {
             shopId = shop.id;
-            logger.info({ shopId, shopDomain }, "Successfully found shop by domain");
+            logger.info({ shopId, shopDomain }, "/api/pos-bookings: Successfully found shop by domain");
           } else {
-            logger.warn({ shopDomain }, "No shop found with the provided domain");
+            logger.warn({ shopDomain }, "/api/pos-bookings: No shop found with the provided domain");
           }
         } catch (error) {
-          logger.error({ error, shopDomain }, "Error looking up shop by domain");
+          logger.error({ error, shopDomain }, "/api/pos-bookings: Error looking up shop by domain");
         }
       }
     }
     
     if (!shopId) {
-      logger.warn("No shop ID available - authentication failed");
+      logger.warn("/api/pos-bookings: No shop ID available - authentication failed");
       await reply.code(401).send({ error: "Shop not authenticated" });
       return;
     }
 
-    logger.info({ shopId }, "Successfully authenticated shop, fetching booking data");
+    logger.info({ shopId }, "/api/pos-bookings: Successfully authenticated shop, fetching booking data");
 
     const now = new Date();
 
     // Fetch 5 most recent completed bookings (past)
-    logger.info("Fetching recent completed bookings");
+    logger.info("/api/pos-bookings: Fetching recent completed bookings");
     const recentBookingsData = await api.booking.findMany({
       filter: {
         shopId: { equals: shopId },
         scheduledAt: { lessThan: now.toISOString() },
         status: { notEquals: "cancelled" },
+        staff: { isSet: true },
         order: {
           financialStatus: { notEquals: "voided" }
         },
@@ -137,10 +138,8 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
             title: true
           }
         },
-        staff: {
-          id: true,
-          name: true
-        },
+        // Don't select staff relationship directly to avoid GraphQL non-null errors
+        // when legacy records point to deleted staff. We'll display a fallback label instead.
         location: {
           id: true,
           name: true,
@@ -167,7 +166,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         customerEmail: true
       }
     });
-    logger.info({ count: recentBookingsData.length }, "Fetched recent bookings");
+    logger.info({ count: recentBookingsData.length }, "/api/pos-bookings: Fetched recent bookings");
 
     // Debug logging for recent bookings customer data
     recentBookingsData.forEach((booking, index) => {
@@ -188,12 +187,13 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     });
 
     // Fetch 5 most upcoming bookings (future with pending or paid status)
-    logger.info("Fetching upcoming bookings");
+    logger.info("/api/pos-bookings: Fetching upcoming bookings");
     const upcomingBookingsData = await api.booking.findMany({
       filter: {
         shopId: { equals: shopId },
         scheduledAt: { greaterThanOrEqual: now.toISOString() },
         status: { notEquals: "cancelled" },
+        staff: { isSet: true },
         order: {
           financialStatus: { notEquals: "voided" }
         },
@@ -225,10 +225,8 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
             title: true
           }
         },
-        staff: {
-          id: true,
-          name: true
-        },
+        // Don't select staff relationship directly to avoid GraphQL non-null errors
+        // when legacy records point to deleted staff. We'll display a fallback label instead.
         location: {
           id: true,
           name: true,
@@ -255,7 +253,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         customerEmail: true
       }
     });
-    logger.info({ count: upcomingBookingsData.length }, "Fetched upcoming bookings");
+    logger.info({ count: upcomingBookingsData.length }, "/api/pos-bookings: Fetched upcoming bookings");
 
     // Debug logging for upcoming bookings customer data
     upcomingBookingsData.forEach((booking, index) => {
@@ -337,7 +335,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     logger.info({ 
       recentCount: recentBookings.length, 
       upcomingCount: upcomingBookings.length 
-    }, "Successfully processed booking data");
+    }, "/api/pos-bookings: Successfully processed booking data");
 
     // Track POS extension usage
     try {
@@ -364,7 +362,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     });
 
   } catch (error) {
-    logger.error({ error }, "Error fetching POS bookings data");
+    logger.error({ error }, "/api/pos-bookings: Error fetching POS bookings data");
     await reply.code(500).send({ error: "Internal server error" });
   }
 };

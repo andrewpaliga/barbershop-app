@@ -86,8 +86,18 @@ const Modal = () => {
         const locId = String(currentSession.locationId);
         console.log('POS current locationId:', locId);
         
+        // Get session token for authentication
+        const token = await getSessionToken();
+        console.log('POS token acquired:', token ? `length=${String(token).length}` : 'MISSING');
+        
         // Fetch location name and bookings together
-        const response = await fetch(`${config.apiBaseUrl}/api/pos-bookings?locationId=${locId}`);
+        const url = `${config.apiBaseUrl}/api/pos-bookings?locationId=${locId}`;
+        console.log('POS fetching (initial):', url);
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
         if (response.ok) {
           const data = await response.json();
           
@@ -250,19 +260,27 @@ const Modal = () => {
         setLoading(true);
         setError(null);
 
+        // Get session token for authentication
+        const token = await getSessionToken();
+        console.log('POS token (refresh):', token ? `length=${String(token).length}` : 'MISSING');
+
         const url = `${config.apiBaseUrl}/api/pos-bookings${currentLocation ? `?locationId=${currentLocation.id}` : ''}`;
+        console.log('POS fetching (refresh):', url);
         const response = await fetch(url, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
           },
         });
 
         if (!response.ok) {
+          console.warn('POS fetch non-OK:', response.status, response.statusText);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
+        console.log('POS fetch success. recentBookings:', Array.isArray(data?.recentBookings) ? data.recentBookings.length : 'n/a', 'upcoming:', Array.isArray(data?.upcomingBookings) ? data.upcomingBookings.length : 'n/a');
 
         // Map the data directly from the backend response
         const recentBookings = data.recentBookings.map((booking: any) => {
@@ -345,11 +363,16 @@ const Modal = () => {
       setUpdatingArrival(true);
       setArrivalError(null);
 
+      // Get session token for authentication
+      const token = await getSessionToken();
+
       const url = `${config.apiBaseUrl}/api/pos-booking-arrived`;
+      console.log('POS mark arrived POST:', url, 'bookingId:', appointmentId);
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ bookingId: appointmentId, arrived: true }),
       });
@@ -385,11 +408,16 @@ const Modal = () => {
       setUpdatingArrival(true);
       setArrivalError(null);
 
+      // Get session token for authentication
+      const token = await getSessionToken();
+
       const url = `${config.apiBaseUrl}/api/pos-booking-arrived`;
+      console.log('POS unmark arrived POST:', url, 'bookingId:', appointmentId);
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ bookingId: appointmentId, arrived: false }),
       });
