@@ -15,18 +15,20 @@ import {
   Section,
 } from '@shopify/ui-extensions-react/point-of-sale';
 
-// Environment-aware configuration
-const getAppConfig = () => {
-  // In production, use the production domain; in development, use development domain
-  // This could be enhanced to read from build-time environment variables
-  const isDevelopment = true; // TODO: Make this configurable via build process
-  const appDomain = isDevelopment 
+// Determine environment based on shop domain (development shops list)
+const DEV_SHOPS = [
+  'paliga-test-store.myshopify.com',
+];
+
+const getAppConfig = (shopDomain?: string) => {
+  // Default to production when the shop domain is unknown
+  const isDevelopment = shopDomain ? DEV_SHOPS.includes(String(shopDomain)) : false;
+  const appDomain = isDevelopment
     ? 'simplybook--development.gadget.app'
     : 'simplybook.gadget.app';
-  
   return {
     apiBaseUrl: `https://${appDomain}`,
-    isDevelopment
+    isDevelopment,
   };
 };
 
@@ -74,8 +76,12 @@ const Modal = () => {
   // 2) Store current location from session
   const [currentLocation, setCurrentLocation] = useState<{id: string, name: string} | null>(null);
 
-  // 3) Get configuration
-  const config = getAppConfig();
+  // 3) Get configuration based on current shop domain
+  const shopDomain = (currentSession as any)?.shopDomain 
+    || (currentSession as any)?.shop?.myshopifyDomain 
+    || (currentSession as any)?.shop?.domain 
+    || undefined;
+  const config = getAppConfig(shopDomain);
   if (config.isDevelopment) {
     console.log('POS Extension: Using development configuration', config);
   }

@@ -138,8 +138,10 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
             title: true
           }
         },
-        // Don't select staff relationship directly to avoid GraphQL non-null errors
-        // when legacy records point to deleted staff. We'll display a fallback label instead.
+        staff: {
+          id: true,
+          name: true
+        },
         location: {
           id: true,
           name: true,
@@ -225,8 +227,10 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
             title: true
           }
         },
-        // Don't select staff relationship directly to avoid GraphQL non-null errors
-        // when legacy records point to deleted staff. We'll display a fallback label instead.
+        staff: {
+          id: true,
+          name: true
+        },
         location: {
           id: true,
           name: true,
