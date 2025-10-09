@@ -1,0 +1,53 @@
+# Site settings
+title: "SimplyBook — Shopify Booking App"
+description: "SimplyBook is a general‑purpose booking app for Shopify. Perfect for barbershops, salons, personal trainers, and more. Seamless Shopify Checkout and POS integration. $9/month with a 7‑day free trial."
+author: "SimplyBook"
+email: "hello@shopifybookingapp.com"
+url: "https://andrewpaliga.github.io"
+baseurl: "/barbershop-app"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+permalink: pretty
+
+# Sass settings to suppress deprecation warnings
+sass:
+  sass_dir: _sass
+  style: compressed
+  quiet_deps: true
+  silence_deprecations: ["import", "global-builtin", "color-functions"]
+
+# Theme settings
+theme: minima
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+
+# Ensure Jekyll compiles our assets/main.scss but don't import Minima's Sass
+defaults:
+  - scope:
+      path: "assets"
+      type: "sass"
+    values:
+      layout: null
+
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+# Social media
+social:
+  name: Barbershop Pro
+  links:
+    - https://www.youtube.com/barbershoppro
+    - https://x.com/barbershoppro
+
+# SEO
+seo:
+  type: "WebSite"
+  name: "SimplyBook"
+  description: "General‑purpose booking app for Shopify with Checkout and POS integration."
+  url: "https://shopifybookingapp.com"
