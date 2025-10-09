@@ -140,10 +140,6 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
             title: true
           }
         },
-        staff: {
-          id: true,
-          name: true
-        },
         location: {
           id: true,
           name: true,
@@ -151,6 +147,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         },
         order: {
           id: true,
+          name: true,
           financialStatus: true,
           lineItems: {
             edges: {
@@ -212,10 +209,6 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
             title: true
           }
         },
-        staff: {
-          id: true,
-          name: true
-        },
         location: {
           id: true,
           name: true,
@@ -223,6 +216,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         },
         order: {
           id: true,
+          name: true,
           financialStatus: true,
           lineItems: {
             edges: {
@@ -244,30 +238,25 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     });
     logger.info({ count: upcomingBookingsData.length }, "/api/pos-bookings: Fetched upcoming bookings");
 
-    // If staff data wasn't loaded in relationships, try loading it separately
+    // Load staff data separately to avoid GraphQL non-nullable errors
     const allBookingsData = [...recentBookingsData, ...upcomingBookingsData];
-    const bookingsWithMissingStaff = allBookingsData.filter(booking => {
-      const hasStaffId = booking.staffId;
-      const hasStaffName = booking.staff?.name;
-      return hasStaffId && !hasStaffName;
-    });
-
+    
+    // Collect all unique staff IDs
+    const staffIds = [...new Set(allBookingsData.map(b => b.staffId).filter(Boolean))];
+    
     logger.info({ 
       totalBookings: allBookingsData.length,
-      bookingsWithMissingStaff: bookingsWithMissingStaff.length
+      uniqueStaffIds: staffIds.length
     }, "Staff loading analysis");
 
-    if (bookingsWithMissingStaff.length > 0) {
-      logger.info({ count: bookingsWithMissingStaff.length }, "Batch loading missing staff data");
-      
-      // Collect all unique staff IDs that need loading
-      const missingStaffIds = [...new Set(bookingsWithMissingStaff.map(b => b.staffId).filter(Boolean))];
+    if (staffIds.length > 0) {
+      logger.info({ count: staffIds.length }, "Batch loading staff data");
       
       try {
-        // Load all missing staff in a single query
+        // Load all staff in a single query
         const staffMembers = await api.staff.findMany({
           filter: {
-            id: { in: missingStaffIds },
+            id: { in: staffIds },
             shopId: { equals: shopId }
           },
           select: {
@@ -281,22 +270,26 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         
         // Assign staff data to bookings
         let successCount = 0;
-        for (const booking of bookingsWithMissingStaff) {
-          const staffMember = staffLookup.get(booking.staffId);
-          if (staffMember) {
-            (booking as any).staff = staffMember;
-            successCount++;
+        for (const booking of allBookingsData) {
+          if (booking.staffId) {
+            const staffMember = staffLookup.get(booking.staffId);
+            if (staffMember) {
+              (booking as any).staff = staffMember;
+              successCount++;
+            } else {
+              logger.warn({ bookingId: booking.id, staffId: booking.staffId }, "Staff member not found for booking");
+            }
           }
         }
         
         logger.info({ 
-          requestedStaffIds: missingStaffIds.length,
+          requestedStaffIds: staffIds.length,
           foundStaff: staffMembers.length, 
           assignedToBookings: successCount 
         }, "Batch staff loading completed");
         
       } catch (error) {
-        logger.error({ error: error?.message, missingStaffIds }, "Failed to batch load staff data");
+        logger.error({ error: (error as any)?.message, staffIds }, "Failed to batch load staff data");
       }
     }
 
@@ -320,6 +313,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
       source: booking.order ? 'web' : 'manual',
       orderFinancialStatus: booking.order?.financialStatus,
       orderId: booking.order?.id,
+      orderName: booking.order?.name,
       variantId: booking.variantId,
       lineItems: booking.order?.lineItems?.edges?.map(edge => ({
         id: edge.node.id,
@@ -349,6 +343,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
       source: booking.order ? 'web' : 'manual',
       orderFinancialStatus: booking.order?.financialStatus,
       orderId: booking.order?.id,
+      orderName: booking.order?.name,
       variantId: booking.variantId,
       lineItems: booking.order?.lineItems?.edges?.map(edge => ({
         id: edge.node.id,

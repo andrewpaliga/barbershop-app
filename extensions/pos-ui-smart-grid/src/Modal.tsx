@@ -46,6 +46,7 @@ type Appointment = {
   customerId?: string;
   variantId?: string;
   orderId?: string;
+  orderName?: string;
   lineItems?: Array<{
     id: string;
     title: string;
@@ -136,6 +137,7 @@ const Modal = () => {
             customerId: booking.customerId,
             variantId: booking.variantId,
             orderId: booking.orderId,
+            orderName: booking.orderName,
             lineItems: booking.lineItems,
           }));
 
@@ -153,6 +155,7 @@ const Modal = () => {
             customerId: booking.customerId,
             variantId: booking.variantId,
             orderId: booking.orderId,
+            orderName: booking.orderName,
             lineItems: booking.lineItems,
           }));
 
@@ -310,6 +313,7 @@ const Modal = () => {
             customerId: booking.customerId,
             variantId: booking.variantId,
             orderId: booking.orderId,
+            orderName: booking.orderName,
             lineItems: booking.lineItems,
           };
         });
@@ -335,6 +339,7 @@ const Modal = () => {
             customerId: booking.customerId,
             variantId: booking.variantId,
             orderId: booking.orderId,
+            orderName: booking.orderName,
             lineItems: booking.lineItems,
           };
         });
@@ -642,7 +647,7 @@ const Modal = () => {
                               </Stack>
                               <Text variant="body">{dateStr} at {timeStr}</Text>
                               <Text variant="body">Service: {appointment.serviceName}</Text>
-                              <Text variant="body">👤 Barber: {appointment.staffName}</Text>
+                              <Text variant="body">👤 Staff: {appointment.staffName}</Text>
                             </Stack>
                             <Icon name="chevron-right" />
                           </Stack>
@@ -685,7 +690,7 @@ const Modal = () => {
                               </Stack>
                               <Text variant="body">{dateStr} at {timeStr}</Text>
                               <Text variant="body">Service: {appointment.serviceName}</Text>
-                              <Text variant="body">👤 Barber: {appointment.staffName}</Text>
+                              <Text variant="body">👤 Staff: {appointment.staffName}</Text>
                             </Stack>
                             <Icon name="chevron-right" />
                           </Stack>
@@ -734,13 +739,13 @@ const Modal = () => {
                 </Box>
 
                 <Box padding="200">
-                  <Text variant="body">👤 Barber: {selectedAppointment.staffName}</Text>
+                  <Text variant="body">👤 Staff: {selectedAppointment.staffName}</Text>
                   {selectedAppointment.lineItems && selectedAppointment.lineItems.length > 0 ? (
                     <Box padding="100">
-                      <Text variant="body">📦 Line Items:</Text>
+                      <Text variant="body">🛒 Products in Order {selectedAppointment.orderName ? `(${selectedAppointment.orderName})` : ''}:</Text>
                       {selectedAppointment.lineItems.map((item, index) => (
                         <Text key={item.id} variant="body">
-                          • {item.title} (Qty: {item.quantity})
+                          • {item.title}{item.quantity > 1 ? ` (Qty: ${item.quantity})` : ''}
                         </Text>
                       ))}
                     </Box>
