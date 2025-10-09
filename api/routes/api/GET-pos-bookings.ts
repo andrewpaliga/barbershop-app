@@ -18,6 +18,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
   reply.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   try {
+    const startTime = Date.now();
     logger.info("/api/pos-bookings: Starting POS bookings data fetch");
     
     let shopId: string | null = null;
@@ -125,6 +126,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         status: true,
         arrived: true,
         variantId: true,
+        staffId: true,
         customer: {
           id: true,
           firstName: true,
@@ -170,24 +172,6 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     });
     logger.info({ count: recentBookingsData.length }, "/api/pos-bookings: Fetched recent bookings");
 
-    // Debug logging for recent bookings customer data
-    recentBookingsData.forEach((booking, index) => {
-      logger.info({
-        bookingIndex: index,
-        bookingId: booking.id,
-        customerRelationship: booking.customer,
-        customerNameField: booking.customerName,
-        customerEmailField: booking.customerEmail,
-        rawBookingData: {
-          id: booking.id,
-          scheduledAt: booking.scheduledAt,
-          customer: booking.customer,
-          customerName: booking.customerName,
-          customerEmail: booking.customerEmail
-        }
-      }, "Recent booking customer data debug");
-    });
-
     // Fetch 5 most upcoming bookings (future with pending or paid status)
     logger.info("/api/pos-bookings: Fetching upcoming bookings");
     const upcomingBookingsData = await api.booking.findMany({
@@ -214,6 +198,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         status: true,
         arrived: true,
         variantId: true,
+        staffId: true,
         customer: {
           id: true,
           firstName: true,
@@ -259,23 +244,61 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     });
     logger.info({ count: upcomingBookingsData.length }, "/api/pos-bookings: Fetched upcoming bookings");
 
-    // Debug logging for upcoming bookings customer data
-    upcomingBookingsData.forEach((booking, index) => {
-      logger.info({
-        bookingIndex: index,
-        bookingId: booking.id,
-        customerRelationship: booking.customer,
-        customerNameField: booking.customerName,
-        customerEmailField: booking.customerEmail,
-        rawBookingData: {
-          id: booking.id,
-          scheduledAt: booking.scheduledAt,
-          customer: booking.customer,
-          customerName: booking.customerName,
-          customerEmail: booking.customerEmail
-        }
-      }, "Upcoming booking customer data debug");
+    // If staff data wasn't loaded in relationships, try loading it separately
+    const allBookingsData = [...recentBookingsData, ...upcomingBookingsData];
+    const bookingsWithMissingStaff = allBookingsData.filter(booking => {
+      const hasStaffId = booking.staffId;
+      const hasStaffName = booking.staff?.name;
+      return hasStaffId && !hasStaffName;
     });
+
+    logger.info({ 
+      totalBookings: allBookingsData.length,
+      bookingsWithMissingStaff: bookingsWithMissingStaff.length
+    }, "Staff loading analysis");
+
+    if (bookingsWithMissingStaff.length > 0) {
+      logger.info({ count: bookingsWithMissingStaff.length }, "Batch loading missing staff data");
+      
+      // Collect all unique staff IDs that need loading
+      const missingStaffIds = [...new Set(bookingsWithMissingStaff.map(b => b.staffId).filter(Boolean))];
+      
+      try {
+        // Load all missing staff in a single query
+        const staffMembers = await api.staff.findMany({
+          filter: {
+            id: { in: missingStaffIds },
+            shopId: { equals: shopId }
+          },
+          select: {
+            id: true,
+            name: true
+          }
+        });
+        
+        // Create a lookup map for fast staff assignment
+        const staffLookup = new Map(staffMembers.map(staff => [staff.id, staff]));
+        
+        // Assign staff data to bookings
+        let successCount = 0;
+        for (const booking of bookingsWithMissingStaff) {
+          const staffMember = staffLookup.get(booking.staffId);
+          if (staffMember) {
+            (booking as any).staff = staffMember;
+            successCount++;
+          }
+        }
+        
+        logger.info({ 
+          requestedStaffIds: missingStaffIds.length,
+          foundStaff: staffMembers.length, 
+          assignedToBookings: successCount 
+        }, "Batch staff loading completed");
+        
+      } catch (error) {
+        logger.error({ error: error?.message, missingStaffIds }, "Failed to batch load staff data");
+      }
+    }
 
     // Transform the data to match the expected structure
     const recentBookings = recentBookingsData.map(booking => ({
@@ -336,9 +359,13 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
       })) || []
     }));
 
+    const endTime = Date.now();
+    const processingTime = endTime - startTime;
+    
     logger.info({ 
       recentCount: recentBookings.length, 
-      upcomingCount: upcomingBookings.length 
+      upcomingCount: upcomingBookings.length,
+      processingTimeMs: processingTime
     }, "/api/pos-bookings: Successfully processed booking data");
 
     // Track POS extension usage

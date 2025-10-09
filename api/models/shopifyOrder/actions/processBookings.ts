@@ -22,12 +22,24 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
     try {
       // Log note attributes for debugging
       if (record.noteAttributes && record.noteAttributes.length > 0) {
-        logger.info(`Note attributes: ${record.noteAttributes.map(attr => `${attr.name}=${attr.value}`).join(', ')}`);
+        logger.info(`Note attributes found:`, {
+          count: record.noteAttributes.length,
+          attributes: record.noteAttributes.map(attr => ({ name: attr.name, value: attr.value }))
+        });
+      } else {
+        logger.info(`No note attributes found for order ${record.id}`);
       }
 
       // Check if this order has the original_order_id in note attributes
       const originalOrderId = record.noteAttributes?.find(attr => attr.name === 'original_order_id')?.value;
       const originalBookingId = record.noteAttributes?.find(attr => attr.name === 'original_booking_id')?.value;
+
+      logger.info(`Parsed note attributes:`, {
+        originalOrderId: originalOrderId || 'NOT_FOUND',
+        originalBookingId: originalBookingId || 'NOT_FOUND',
+        willProcessOrderCancellation: !!originalOrderId,
+        willProcessBookingUpdate: !!originalBookingId
+      });
       
       if (originalOrderId) {
         logger.info(`Found original order ID: ${originalOrderId} in POS order ${record.id}`);
@@ -164,9 +176,91 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
           }
           
           logger.info(`Successfully cancelled original order ${originalOrderId} due to POS payment`);
-          
-          // Note: No need to update booking status to "paid" - the UI will derive payment status
-          // from the order's financialStatus in real-time, avoiding sync issues
+
+          // Now find and update the booking that was associated with the cancelled order
+          logger.info(`Searching for booking associated with cancelled order ${originalOrderId}`);
+
+          try {
+            const associatedBooking = await api.booking.findFirst({
+              filter: {
+                shopId: { equals: record.shopId },
+                order: {
+                  id: { equals: originalOrderId }
+                }
+              },
+              select: {
+                id: true,
+                status: true,
+                orderId: true,
+                customerName: true,
+                scheduledAt: true,
+                order: {
+                  id: true,
+                  name: true,
+                  financialStatus: true
+                }
+              }
+            });
+            
+            if (associatedBooking) {
+              logger.info(`Found booking ${associatedBooking.id} associated with cancelled order ${originalOrderId}`, {
+                bookingId: associatedBooking.id,
+                currentStatus: associatedBooking.status,
+                currentOrderId: associatedBooking.orderId,
+                customerName: associatedBooking.customerName,
+                scheduledAt: associatedBooking.scheduledAt
+              });
+              
+              // Update the booking to paid status and link it to the new POS order
+              const bookingUpdateData = {
+                status: "paid",
+                order: { _link: record.id }
+              };
+              
+              logger.info(`Updating booking ${associatedBooking.id} after order cancellation`, {
+                bookingId: associatedBooking.id,
+                updateData: bookingUpdateData,
+                previousOrderId: originalOrderId,
+                newOrderId: record.id,
+                newOrderName: record.name
+              });
+              
+              const updatedBooking = await api.booking.update(associatedBooking.id, bookingUpdateData);
+              
+              logger.info(`Successfully updated booking ${associatedBooking.id} to paid after cancelling original order`, {
+                bookingId: updatedBooking.id,
+                previousStatus: associatedBooking.status,
+                newStatus: updatedBooking.status,
+                previousOrderId: originalOrderId,
+                newOrderId: updatedBooking.orderId,
+                updateSuccess: true
+              });
+              
+            } else {
+              logger.warn(`No booking found associated with cancelled order ${originalOrderId}`, {
+                cancelledOrderId: originalOrderId,
+                posOrderId: record.id,
+                shopId: record.shopId,
+                troubleshooting: [
+                  'Check if booking exists for the cancelled order',
+                  'Verify the booking is linked to the correct order ID',
+                  'Check if booking was already updated by another process'
+                ]
+              });
+            }
+            
+          } catch (bookingLookupError) {
+            logger.error(`Failed to find/update booking for cancelled order ${originalOrderId}`, {
+              error: {
+                message: bookingLookupError?.message,
+                name: bookingLookupError?.name,
+                stack: bookingLookupError?.stack
+              },
+              cancelledOrderId: originalOrderId,
+              posOrderId: record.id,
+              shopId: record.shopId
+            });
+          }
           
         } catch (cancelError) {
           logger.error(`Failed to cancel order ${originalOrderId}: ${cancelError?.message}`);
@@ -177,6 +271,14 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
         logger.info(`Found original booking ID: ${originalBookingId} in POS order ${record.id}`);
         
         try {
+          // Log the search criteria before the query
+          logger.info(`Searching for booking with criteria:`, {
+            bookingId: originalBookingId,
+            shopId: record.shopId,
+            orderId: record.id,
+            orderName: record.name
+          });
+          
           // Find the original booking
           const originalBooking = await api.booking.findFirst({
             filter: {
@@ -186,28 +288,91 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
             select: {
               id: true,
               status: true,
+              orderId: true,
+              staffId: true,
+              scheduledAt: true,
+              customerName: true,
               order: {
                 id: true,
-                name: true
+                name: true,
+                financialStatus: true
               }
             }
           });
           
+          // Log the booking lookup result
           if (originalBooking) {
-            logger.info(`Found original booking ${originalBooking.id}, updating status to paid and linking to POS order`);
-            
-            // Update the booking to paid status and link it to the POS order
-            await api.booking.update(originalBooking.id, {
-              status: "paid",
-              order: { _link: record.id }
+            logger.info(`Successfully found booking ${originalBooking.id}`, {
+              bookingId: originalBooking.id,
+              currentStatus: originalBooking.status,
+              currentOrderId: originalBooking.orderId,
+              currentOrderName: originalBooking.order?.name,
+              currentOrderFinancialStatus: originalBooking.order?.financialStatus,
+              staffId: originalBooking.staffId,
+              scheduledAt: originalBooking.scheduledAt,
+              customerName: originalBooking.customerName
             });
             
-            logger.info(`Successfully updated booking ${originalBooking.id} to paid and linked to POS order ${record.id}`);
+            // Log the update operation details
+            const updateData = {
+              status: "paid",
+              order: { _link: record.id }
+            };
+            
+            logger.info(`Preparing to update booking ${originalBooking.id}`, {
+              bookingId: originalBooking.id,
+              updateData,
+              newOrderId: record.id,
+              newOrderName: record.name,
+              newOrderFinancialStatus: record.financialStatus
+            });
+            
+            // Update the booking to paid status and link it to the POS order
+            const updatedBooking = await api.booking.update(originalBooking.id, updateData);
+            
+            logger.info(`Successfully updated booking ${originalBooking.id} to paid and linked to POS order ${record.id}`, {
+              bookingId: updatedBooking.id,
+              previousStatus: originalBooking.status,
+              newStatus: updatedBooking.status,
+              previousOrderId: originalBooking.orderId,
+              newOrderId: updatedBooking.orderId,
+              updateSuccess: true
+            });
           } else {
-            logger.warn(`No booking found with ID ${originalBookingId} for shop ${record.shopId}`);
+            logger.error(`BOOKING NOT FOUND - No booking found with ID ${originalBookingId} for shop ${record.shopId}`, {
+              searchCriteria: {
+                bookingId: originalBookingId,
+                shopId: record.shopId
+              },
+              orderDetails: {
+                orderId: record.id,
+                orderName: record.name,
+                sourceName: record.sourceName,
+                financialStatus: record.financialStatus
+              },
+              troubleshootingTips: [
+                'Check if the booking ID exists in the database',
+                'Verify the shop ID matches',
+                'Check if the booking was deleted or moved to another shop'
+              ]
+            });
           }
         } catch (bookingUpdateError) {
-          logger.error(`Failed to update original booking ${originalBookingId}: ${bookingUpdateError?.message}`);
+          logger.error(`BOOKING UPDATE FAILED for booking ${originalBookingId}`, {
+            error: {
+              message: bookingUpdateError?.message,
+              name: bookingUpdateError?.name,
+              stack: bookingUpdateError?.stack
+            },
+            bookingId: originalBookingId,
+            orderId: record.id,
+            shopId: record.shopId,
+            orderDetails: {
+              name: record.name,
+              sourceName: record.sourceName,
+              financialStatus: record.financialStatus
+            }
+          });
           // Don't fail the entire process if booking update fails
         }
       } else {
