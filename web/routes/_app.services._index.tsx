@@ -195,25 +195,52 @@ export default function ProductsIndex() {
           },
           mode: "multi" as const
         }
+      ],
+      "funny": [
+        {
+          name: "Awkward Small Talk Session",
+          description: "Professional-grade uncomfortable silence and weather discussions",
+          price: 15,
+          duration: timeSlotInterval * 1,
+          mode: "single" as const
+        },
+        {
+          name: "Professional Nap Supervision",
+          description: "We watch you nap and judge your sleeping posture",
+          price: 75,
+          duration: timeSlotInterval * 2,
+          mode: "single" as const
+        },
+        {
+          name: "Dad Joke Consultation",
+          description: "Learn the ancient art of embarrassing your children",
+          durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+          durationPrices: {
+            [timeSlotInterval * 1]: 20,
+            [timeSlotInterval * 2]: 35
+          },
+          mode: "multi" as const
+        },
+        {
+          name: "Passive Aggressive Gift Wrapping",
+          description: "We'll wrap it beautifully while silently judging your gift choice",
+          price: 40,
+          duration: timeSlotInterval * 1,
+          mode: "single" as const
+        },
+        {
+          name: "Professional Procrastination Coaching",
+          description: "Learn to put things off like a true expert (starts next week)",
+          price: 60,
+          duration: timeSlotInterval * 1,
+          mode: "single" as const
+        }
       ]
     };
 
-    // If "random" is selected, pick a random subset of services across themes
-    if (theme === "random") {
-      // Flatten all services
-      const allServices = Object.values(serviceSets).flat();
-      // Sample 4-6 unique services
-      const min = 4; const max = 6;
-      const count = Math.min(allServices.length, Math.floor(Math.random() * (max - min + 1)) + min);
-      const picked: typeof allServices = [] as any;
-      const used = new Set<number>();
-      while (picked.length < count && used.size < allServices.length) {
-        const idx = Math.floor(Math.random() * allServices.length);
-        if (used.has(idx)) continue;
-        used.add(idx);
-        picked.push(allServices[idx]);
-      }
-      return { services: picked as (typeof serviceSets)[keyof typeof serviceSets], actualTheme: 'random' };
+    // If "funny" is selected, return the funny services
+    if (theme === "funny") {
+      return { services: serviceSets[theme], actualTheme: 'funny' };
     }
 
     return { services: serviceSets[theme as keyof typeof serviceSets], actualTheme: theme };
@@ -327,7 +354,7 @@ export default function ProductsIndex() {
         <EmptyState
           heading="No services found"
           action={{
-            content: isAddingEssentials ? 'Adding Services…' : 'Add Example Services',
+            content: isAddingEssentials ? 'Adding Services…' : 'Autogenerate Services',
             onAction: () => setShowThemeModal(true),
             disabled: isAddingEssentials
           }}
@@ -467,7 +494,7 @@ export default function ProductsIndex() {
                 { label: 'Hair Salon', value: 'hair salon' },
                 { label: 'Personal Trainer', value: 'personal trainer' },
                 { label: 'Massage Clinic', value: 'massage clinic' },
-                { label: 'Random', value: 'random' }
+                { label: 'Funny', value: 'funny' }
               ]}
               value={selectedTheme}
               onChange={(value) => setSelectedTheme(value)}

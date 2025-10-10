@@ -1,0 +1,27 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "e3a803ffa42eb9db60f394bf72940036"
+name = "SimplyBook Demo"
+application_url = "https://simplybook.gadget.app/api/shopify/install-or-render"
+embedded = true
+handle = "simplybook-demo"
+
+[webhooks]
+api_version = "2025-04"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_customers,read_inventory,read_locations,read_orders,read_products,read_publications,write_customers,write_inventory,write_orders,write_products,write_publications"
+
+[auth]
+redirect_urls = [
+  "https://simplybook.gadget.app/api/connections/auth/shopify/callback"
+]
+
+[app_proxy]
+url = "https://simplybook.gadget.app"
+subpath = "simplybook-api"
+prefix = "apps"
+
+[pos]
+embedded = true
