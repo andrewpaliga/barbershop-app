@@ -17,12 +17,12 @@
 <!-- Load CSS first, then override with custom properties -->
 <link rel="stylesheet" href="{{ 'bookingButton-v3.css' | asset_url }}">
 
-<div class="barbershop-booking-container">
+<div class="simplybook-booking-container">
   <!-- Booking Button -->
   <div style="display: flex; justify-content: center; width: 100%;">
     <button 
-      class="barbershop-booking-btn" 
-      id="barbershop-booking-btn"
+      class="simplybook-booking-btn" 
+      id="simplybook-booking-btn"
       style="
         background-color: {{ button_color }};
         color: {{ button_text_color }};
@@ -42,7 +42,7 @@
   </div>
 
   <!-- Booking Modal -->
-  <div class="barbershop-modal" id="barbershop-modal" style="
+  <div class="simplybook-modal" id="simplybook-modal" style="
     display: none;
     position: fixed;
     z-index: 9999;
@@ -53,7 +53,7 @@
     overflow: auto;
     background-color: rgba(0,0,0,0.5);
   ">
-    <div class="barbershop-modal-content" style="
+    <div class="simplybook-modal-content" style="
       background-color: {{ modal_background_color }};
       margin: 40px auto;
       padding: 30px;
@@ -69,7 +69,7 @@
       box-sizing: border-box;
     ">
       <!-- Close Button - Only visible during selection and calendar views -->
-      <span class="barbershop-close" id="main-close-button" style="
+      <span class="simplybook-close" id="main-close-button" style="
         color: #666;
         float: right;
         font-size: 32px;
@@ -90,7 +90,7 @@
       " onclick="closeBookingModal()">&times;</span>
 
       <!-- Modal Content -->
-      <div class="barbershop-modal-body">
+      <div class="simplybook-modal-body">
         <!-- Loading State -->
         <div id="booking-loading" style="display: none; text-align: center; padding: 40px;">
           <p style="font-size: 16px;">Loading booking options...</p>
@@ -150,16 +150,16 @@
           </div>
 
           <!-- Calendar Interface -->
-          <div class="barbershop-calendar-container">
+          <div class="simplybook-calendar-container">
             <!-- Left Sidebar -->
-            <div class="barbershop-calendar-sidebar">
+            <div class="simplybook-calendar-sidebar">
               <!-- Selected Barber Info -->
-              <div id="selected-barber-info" class="barbershop-selected-barber">
+              <div id="selected-barber-info" class="simplybook-selected-barber">
                 <!-- Barber info will be populated here -->
               </div>
 
               <!-- Service Selection -->
-              <div class="barbershop-service-menu">
+              <div class="simplybook-service-menu">
                 <h3 style="margin: 0 0 15px 0; font-size: 18px; color: #333;">Select Service</h3>
                 <div id="service-menu-list">
                   <!-- Service options will be populated here -->
@@ -167,7 +167,7 @@
               </div>
 
               <!-- Location Selection -->
-              <div class="barbershop-location-selection">
+              <div class="simplybook-location-selection">
                 <h3 style="margin: 20px 0 15px 0; font-size: 18px; color: #333;">Location</h3>
                 
                 <!-- Single location display -->
@@ -201,7 +201,7 @@
               </div>
 
               <!-- Notes -->
-              <div class="barbershop-notes-section">
+              <div class="simplybook-notes-section">
                 <h3 style="margin: 20px 0 15px 0; font-size: 18px; color: #333;">Notes</h3>
                 <textarea id="notes" rows="3" placeholder="Any special requests..." style="
                   width: 100%;
@@ -217,11 +217,11 @@
             </div>
 
             <!-- Calendar Area -->
-            <div class="barbershop-calendar-area">
+            <div class="simplybook-calendar-area">
               <!-- Calendar Header -->
-              <div class="barbershop-calendar-header">
-                <div class="barbershop-calendar-nav">
-                  <button type="button" id="prev-week" class="barbershop-nav-btn">
+              <div class="simplybook-calendar-header">
+                <div class="simplybook-calendar-nav">
+                  <button type="button" id="prev-week" class="simplybook-nav-btn">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -229,7 +229,7 @@
                   <h3 id="calendar-month-year" style="margin: 0; font-size: 18px; color: #333; flex: 1; text-align: center;">
                     <!-- Month/Year will be populated here -->
                   </h3>
-                  <button type="button" id="next-week" class="barbershop-nav-btn">
+                  <button type="button" id="next-week" class="simplybook-nav-btn">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path d="M6 4L10 8L6 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -238,20 +238,20 @@
               </div>
 
               <!-- Calendar Grid -->
-              <div class="barbershop-calendar-grid">
+              <div class="simplybook-calendar-grid">
                 <!-- Day Headers -->
-                <div class="barbershop-calendar-days">
-                  <div class="barbershop-day-header">Sun</div>
-                  <div class="barbershop-day-header">Mon</div>
-                  <div class="barbershop-day-header">Tue</div>
-                  <div class="barbershop-day-header">Wed</div>
-                  <div class="barbershop-day-header">Thu</div>
-                  <div class="barbershop-day-header">Fri</div>
-                  <div class="barbershop-day-header">Sat</div>
+                <div class="simplybook-calendar-days">
+                  <div class="simplybook-day-header">Sun</div>
+                  <div class="simplybook-day-header">Mon</div>
+                  <div class="simplybook-day-header">Tue</div>
+                  <div class="simplybook-day-header">Wed</div>
+                  <div class="simplybook-day-header">Thu</div>
+                  <div class="simplybook-day-header">Fri</div>
+                  <div class="simplybook-day-header">Sat</div>
                 </div>
 
                 <!-- Calendar Body -->
-                <div class="barbershop-calendar-body" id="calendar-body">
+                <div class="simplybook-calendar-body" id="calendar-body">
                   <!-- Calendar days and time slots will be populated here -->
                 </div>
               </div>
@@ -310,7 +310,7 @@
             position: relative;
           ">
             <!-- Close button for confirmation view -->
-            <span class="barbershop-close" style="
+            <span class="simplybook-close" style="
               color: #666;
               position: absolute;
               right: 15px;
@@ -383,14 +383,14 @@
 
 <style>
 :root {
-  --barbershop-primary: {{ primary_color }};
-  --barbershop-secondary: {{ secondary_color }};
-  --barbershop-text: {{ text_color }};
-  --barbershop-border: {{ border_color }};
-  --barbershop-background: {{ background_color }};
-  --barbershop-modal-background: {{ modal_background_color }};
-  --barbershop-button: {{ button_color }};
-  --barbershop-button-text: {{ button_text_color }};
+  --simplybook-primary: {{ primary_color }};
+  --simplybook-secondary: {{ secondary_color }};
+  --simplybook-text: {{ text_color }};
+  --simplybook-border: {{ border_color }};
+  --simplybook-background: {{ background_color }};
+  --simplybook-modal-background: {{ modal_background_color }};
+  --simplybook-button: {{ button_color }};
+  --simplybook-button-text: {{ button_text_color }};
 }
 
 {% if custom_css != blank %}

@@ -1,17 +1,17 @@
 /* CSS Custom Properties for theming */
 :root {
-  --barbershop-primary: #0066cc;
-  --barbershop-secondary: #f8f9fa;
-  --barbershop-accent: #28a745;
-  --barbershop-text: #333333;
-  --barbershop-border: #e1e5e9;
-  --barbershop-background: #ffffff;
-  --barbershop-button: #0066cc;
-  --barbershop-button-text: #ffffff;
+  --simplybook-primary: #0066cc;
+  --simplybook-secondary: #f8f9fa;
+  --simplybook-accent: #28a745;
+  --simplybook-text: #333333;
+  --simplybook-border: #e1e5e9;
+  --simplybook-background: #ffffff;
+  --simplybook-button: #0066cc;
+  --simplybook-button-text: #ffffff;
 }
 
 /* Simple CSS isolation to prevent theme inheritance */
-.barbershop-modal {
+.simplybook-modal {
   all: initial;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 14px;
@@ -19,74 +19,74 @@
   color: #333;
 }
 
-.barbershop-modal * {
+.simplybook-modal * {
   box-sizing: border-box;
 }
 
-.barbershop-booking-btn:hover {
+.simplybook-booking-btn:hover {
   opacity: 0.9;
   transform: translateY(-1px);
 }
 
-.barbershop-booking-btn:active {
+.simplybook-booking-btn:active {
   transform: translateY(0);
 }
 
-.barbershop-close:hover {
+.simplybook-close:hover {
   color: white;
-  background: var(--barbershop-text);
+  background: var(--simplybook-text);
 }
 
-.barbershop-selection-btn {
-  border: 2px solid var(--barbershop-border);
+.simplybook-selection-btn {
+  border: 2px solid var(--simplybook-border);
   border-radius: 12px;
   padding: 20px;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: var(--barbershop-background);
+  background: var(--simplybook-background);
   text-align: left;
   width: 100%;
   position: relative;
   overflow: hidden;
 }
 
-.barbershop-selection-btn:hover {
-  border-color: var(--barbershop-primary);
+.simplybook-selection-btn:hover {
+  border-color: var(--simplybook-primary);
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   transform: translateY(-2px);
 }
 
-.barbershop-selection-btn:active {
+.simplybook-selection-btn:active {
   transform: translateY(0);
 }
 
-.barbershop-service-btn {
+.simplybook-service-btn {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.barbershop-service-image {
+.simplybook-service-image {
   width: 48px;
   height: 48px;
   border-radius: 6px;
   object-fit: cover;
-  border: 2px solid var(--barbershop-border);
+  border: 2px solid var(--simplybook-border);
   flex-shrink: 0;
 }
 
-.barbershop-service-placeholder {
-  background: linear-gradient(135deg, var(--barbershop-secondary) 0%, var(--barbershop-border) 100%);
+.simplybook-service-placeholder {
+  background: linear-gradient(135deg, var(--simplybook-secondary) 0%, var(--simplybook-border) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
   font-weight: bold;
-  color: var(--barbershop-text);
+  color: var(--simplybook-text);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.barbershop-placeholder-icon {
+.simplybook-placeholder-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,40 +96,40 @@
   font-weight: 600;
 }
 
-.barbershop-service-info {
+.simplybook-service-info {
   flex: 1;
   text-align: left;
 }
 
-.barbershop-staff-btn {
+.simplybook-staff-btn {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.barbershop-staff-avatar {
+.simplybook-staff-avatar {
   width: 48px;
   height: 48px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--barbershop-border);
+  border: 2px solid var(--simplybook-border);
 }
 
-.barbershop-staff-info {
+.simplybook-staff-info {
   flex: 1;
 }
 
-.barbershop-selection-title {
+.simplybook-selection-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--barbershop-text);
+  color: var(--simplybook-text);
   margin: 0;
   line-height: 1.2;
 }
 
-.barbershop-selection-subtitle {
+.simplybook-selection-subtitle {
   font-size: 14px;
-  color: var(--barbershop-text);
+  color: var(--simplybook-text);
   margin: 6px 0 0 0;
   line-height: 1.3;
 }
@@ -139,7 +139,7 @@
   display: inline-block;
   width: 16px;
   height: 16px;
-  border: 2px solid var(--barbershop-background);
+  border: 2px solid var(--simplybook-background);
   border-radius: 50%;
   border-top-color: transparent;
   animation: spin 1s ease-in-out infinite;
@@ -150,66 +150,66 @@
   to { transform: rotate(360deg); }
 }
 
-.barbershop-selection-price {
+.simplybook-selection-price {
   font-size: 16px;
   font-weight: 600;
-  color: var(--barbershop-text);
+  color: var(--simplybook-text);
   margin: 6px 0 0 0;
 }
 
 /* Calendar Interface Styles */
-.barbershop-calendar-container {
+.simplybook-calendar-container {
   display: flex;
   gap: 30px;
   min-height: 60vh;
 }
 
-.barbershop-calendar-sidebar {
+.simplybook-calendar-sidebar {
   width: 280px;
   flex-shrink: 0;
-  background: var(--barbershop-secondary);
+  background: var(--simplybook-secondary);
   padding: 24px;
   border-radius: 12px;
-  border: 1px solid var(--barbershop-border);
+  border: 1px solid var(--simplybook-border);
 }
 
-.barbershop-selected-barber {
+.simplybook-selected-barber {
   background: white;
   padding: 16px;
   border-radius: 10px;
   margin-bottom: 24px;
-  border: 1px solid var(--barbershop-border);
+  border: 1px solid var(--simplybook-border);
 }
 
-.barbershop-selected-barber-info {
+.simplybook-selected-barber-info {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.barbershop-selected-barber-avatar {
+.simplybook-selected-barber-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--barbershop-border);
+  border: 2px solid var(--simplybook-border);
 }
 
-.barbershop-selected-barber-details h4 {
+.simplybook-selected-barber-details h4 {
   margin: 0 0 4px 0;
-  color: var(--barbershop-text);
+  color: var(--simplybook-text);
   font-size: 16px;
 }
 
-.barbershop-selected-barber-details p {
+.simplybook-selected-barber-details p {
   margin: 0;
-  color: var(--barbershop-text);
+  color: var(--simplybook-text);
   font-size: 14px;
 }
 
-.barbershop-service-menu-item {
+.simplybook-service-menu-item {
   background: white;
-  border: 1px solid var(--barbershop-border);
+  border: 1px solid var(--simplybook-border);
   border-radius: 10px;
   padding: 16px;
   margin-bottom: 12px;
@@ -217,27 +217,27 @@
   transition: all 0.2s ease;
 }
 
-.barbershop-service-menu-item:hover {
-  border-color: var(--barbershop-button);
+.simplybook-service-menu-item:hover {
+  border-color: var(--simplybook-button);
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-.barbershop-service-menu-item.selected {
-  border-color: var(--barbershop-button);
+.simplybook-service-menu-item.selected {
+  border-color: var(--simplybook-button);
   background: rgba(0,0,0,0.02);
 }
 
 /* Add down arrow to collapsed service tile */
-.barbershop-service-menu-item.selected.expandable {
+.simplybook-service-menu-item.selected.expandable {
   position: relative;
   cursor: pointer;
   background: #f8f9fa;
-  border-color: var(--barbershop-button);
-  color: var(--barbershop-text);
+  border-color: var(--simplybook-button);
+  color: var(--simplybook-text);
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
-.barbershop-service-menu-item.selected.expandable::after {
+.simplybook-service-menu-item.selected.expandable::after {
   content: "▾";
   position: absolute;
   right: 14px;
@@ -246,49 +246,49 @@
   font-size: 18px;
 }
 
-.barbershop-service-menu-item h4 {
+.simplybook-service-menu-item h4 {
   margin: 0 0 6px 0;
-  color: var(--barbershop-text);
+  color: var(--simplybook-text);
   font-size: 14px;
   font-weight: 600;
 }
 
-.barbershop-service-menu-item p {
+.simplybook-service-menu-item p {
   margin: 0;
-  color: var(--barbershop-text);
+  color: var(--simplybook-text);
   font-size: 12px;
 }
 
-.barbershop-service-menu-item .price {
-  color: var(--barbershop-text);
+.simplybook-service-menu-item .price {
+  color: var(--simplybook-text);
   font-weight: 600;
   font-size: 14px;
   margin-top: 4px;
 }
 
-.barbershop-calendar-area {
+.simplybook-calendar-area {
   flex: 1;
   background: white;
-  border: 1px solid var(--barbershop-border);
+  border: 1px solid var(--simplybook-border);
   border-radius: 12px;
   overflow: hidden;
 }
 
-.barbershop-calendar-header {
+.simplybook-calendar-header {
   padding: 24px;
   border-bottom: 1px solid #e9ecef;
-  background: var(--barbershop-secondary);
+  background: var(--simplybook-secondary);
 }
 
-.barbershop-calendar-nav {
+.simplybook-calendar-nav {
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
-.barbershop-nav-btn {
+.simplybook-nav-btn {
   background: white;
-  border: 1px solid var(--barbershop-border);
+  border: 1px solid var(--simplybook-border);
   border-radius: 6px;
   padding: 10px;
   cursor: pointer;
@@ -298,62 +298,62 @@
   transition: all 0.2s ease;
 }
 
-.barbershop-nav-btn:hover {
-  background: var(--barbershop-secondary);
-  border-color: var(--barbershop-button);
+.simplybook-nav-btn:hover {
+  background: var(--simplybook-secondary);
+  border-color: var(--simplybook-button);
 }
 
-.barbershop-calendar-grid {
+.simplybook-calendar-grid {
   padding: 24px;
 }
 
-.barbershop-calendar-days {
+.simplybook-calendar-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 2px;
   margin-bottom: 20px;
 }
 
-.barbershop-day-header {
+.simplybook-day-header {
   text-align: center;
   padding: 12px;
   font-weight: 600;
-  color: var(--barbershop-text);
+  color: var(--simplybook-text);
   font-size: 14px;
 }
 
-.barbershop-calendar-body {
+.simplybook-calendar-body {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 16px;
 }
 
-.barbershop-calendar-day {
+.simplybook-calendar-day {
   min-height: 280px;
-  border: 1px solid var(--barbershop-border);
+  border: 1px solid var(--simplybook-border);
   border-radius: 10px;
   padding: 12px;
   background: white;
 }
 
-.barbershop-calendar-day.disabled {
-  background: var(--barbershop-secondary);
+.simplybook-calendar-day.disabled {
+  background: var(--simplybook-secondary);
   opacity: 0.5;
 }
 
-.barbershop-day-number {
+.simplybook-day-number {
   font-weight: 600;
-  color: var(--barbershop-text);
+  color: var(--simplybook-text);
   margin-bottom: 12px;
   font-size: 14px;
 }
 
-.barbershop-time-slot {
+.simplybook-time-slot {
   display: block;
   width: 100%;
   padding: 6px 8px;
   margin-bottom: 5px;
-  border: 1px solid var(--barbershop-border);
+  border: 1px solid var(--simplybook-border);
   border-radius: 5px;
   background: white;
   font-size: 12px;
@@ -362,45 +362,45 @@
   text-align: center;
 }
 
-.barbershop-time-slot:hover {
+.simplybook-time-slot:hover {
   background: rgba(0,0,0,0.05);
-  border-color: var(--barbershop-button);
+  border-color: var(--simplybook-button);
 }
 
-.barbershop-time-slot.selected {
-  background: var(--barbershop-button);
-  color: var(--barbershop-button-text);
-  border-color: var(--barbershop-button);
+.simplybook-time-slot.selected {
+  background: var(--simplybook-button);
+  color: var(--simplybook-button-text);
+  border-color: var(--simplybook-button);
 }
 
-.barbershop-time-slot.unavailable {
-  background: var(--barbershop-secondary);
+.simplybook-time-slot.unavailable {
+  background: var(--simplybook-secondary);
   color: #ccc;
   cursor: not-allowed;
-  border-color: var(--barbershop-border);
+  border-color: var(--simplybook-border);
 }
 
-.barbershop-time-slot.unavailable:hover {
-  background: var(--barbershop-secondary);
-  border-color: var(--barbershop-border);
+.simplybook-time-slot.unavailable:hover {
+  background: var(--simplybook-secondary);
+  border-color: var(--simplybook-border);
 }
 
 @media (max-width: 1200px) {
-  .barbershop-calendar-container {
+  .simplybook-calendar-container {
     flex-direction: column;
   }
   
-  .barbershop-calendar-sidebar {
+  .simplybook-calendar-sidebar {
     width: 100%;
   }
   
-  .barbershop-calendar-body {
+  .simplybook-calendar-body {
     grid-template-columns: repeat(4, 1fr);
   }
 }
 
 @media (max-width: 992px) {
-  .barbershop-calendar-body {
+  .simplybook-calendar-body {
     grid-template-columns: repeat(3, 1fr);
   }
 }
@@ -415,39 +415,39 @@
   transform: translateY(0);
 }
 
-.barbershop-booking-detail-row {
+.simplybook-booking-detail-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 0;
-  border-bottom: 1px solid var(--barbershop-border);
+  border-bottom: 1px solid var(--simplybook-border);
 }
 
-.barbershop-booking-detail-row:last-child {
+.simplybook-booking-detail-row:last-child {
   border-bottom: none;
   font-weight: 600;
   font-size: inherit;
-  color: var(--barbershop-text);
+  color: var(--simplybook-text);
   /* Use existing separator from previous row; avoid double line */
   border-top: none;
   margin-top: 10px;
   padding-top: 0;
 }
 
-.barbershop-booking-detail-label {
-  color: var(--barbershop-text);
+.simplybook-booking-detail-label {
+  color: var(--simplybook-text);
   font-weight: 500;
 }
 
-.barbershop-booking-detail-value {
-  color: var(--barbershop-text);
+.simplybook-booking-detail-value {
+  color: var(--simplybook-text);
   font-weight: 600;
 }
 
 /* Barber Selection Modal Styles */
-.barbershop-barber-choice {
+.simplybook-barber-choice {
   background: white;
-  border: 2px solid var(--barbershop-border);
+  border: 2px solid var(--simplybook-border);
   border-radius: 10px;
   padding: 16px;
   cursor: pointer;
@@ -457,7 +457,7 @@
 
 /* Mobile: horizontal layout for barber choices */
 @media (max-width: 480px) {
-  .barbershop-barber-choice {
+  .simplybook-barber-choice {
     display: flex;
     align-items: center;
     text-align: left;
@@ -465,21 +465,21 @@
     gap: 12px;
   }
   
-  .barbershop-barber-choice-avatar {
+  .simplybook-barber-choice-avatar {
     width: 48px;
     height: 48px;
     margin: 0;
     flex-shrink: 0;
   }
   
-  .barbershop-barber-choice-name {
+  .simplybook-barber-choice-name {
     font-size: 16px;
     font-weight: 600;
     margin: 0 0 4px 0;
     line-height: 1.2;
   }
   
-  .barbershop-barber-choice-bio {
+  .simplybook-barber-choice-bio {
     font-size: 13px;
     margin: 0;
     line-height: 1.3;
@@ -487,7 +487,7 @@
   }
   
   /* Text content container for proper vertical centering */
-  .barbershop-barber-choice-content {
+  .simplybook-barber-choice-content {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -495,44 +495,44 @@
   }
 }
 
-.barbershop-barber-choice:hover {
-  border-color: var(--barbershop-button);
+.simplybook-barber-choice:hover {
+  border-color: var(--simplybook-button);
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   transform: translateY(-2px);
 }
 
-.barbershop-barber-choice:active {
+.simplybook-barber-choice:active {
   transform: translateY(0);
 }
 
-.barbershop-barber-choice-avatar {
+.simplybook-barber-choice-avatar {
   width: 48px;
   height: 48px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--barbershop-border);
+  border: 2px solid var(--simplybook-border);
   margin: 0 auto 12px;
 }
 
-.barbershop-barber-choice-name {
+.simplybook-barber-choice-name {
   font-size: 16px;
   font-weight: 600;
-  color: var(--barbershop-text);
+  color: var(--simplybook-text);
   margin-bottom: 6px;
 }
 
-.barbershop-barber-choice-bio {
+.simplybook-barber-choice-bio {
   font-size: 12px;
-  color: var(--barbershop-text);
+  color: var(--simplybook-text);
   line-height: 1.4;
 }
 
 @media (max-width: 768px) {
-  .barbershop-modal-content {
+  .simplybook-modal-content {
     padding: 20px;
   }
   
-  .barbershop-close {
+  .simplybook-close {
     right: 15px;
     top: 15px;
     font-size: 28px;
@@ -540,7 +540,7 @@
     height: 35px;
   }
   
-  .barbershop-booking-btn {
+  .simplybook-booking-btn {
     font-size: 14px;
   }
 
@@ -549,33 +549,33 @@
     grid-template-columns: 1fr;
   }
   
-  .barbershop-selection-btn {
+  .simplybook-selection-btn {
     padding: 20px;
   }
   
-  .barbershop-staff-avatar {
+  .simplybook-staff-avatar {
     width: 50px;
     height: 50px;
   }
   
-  .barbershop-selection-title {
+  .simplybook-selection-title {
     font-size: 20px;
   }
 
-  .barbershop-calendar-container {
+  .simplybook-calendar-container {
     gap: 20px;
   }
   
-  .barbershop-calendar-sidebar {
+  .simplybook-calendar-sidebar {
     padding: 20px;
   }
   
-  .barbershop-calendar-body {
+  .simplybook-calendar-body {
     grid-template-columns: repeat(2, 1fr);
     gap: 15px;
   }
   
-  .barbershop-calendar-day {
+  .simplybook-calendar-day {
     min-height: 300px;
     padding: 12px;
   }
@@ -607,7 +607,7 @@
     flex-direction: column;
     align-items: center;
   }
-  .barbershop-selection-btn {
+  .simplybook-selection-btn {
     width: 100%;
     max-width: 520px;
     margin-left: auto;
@@ -615,7 +615,7 @@
   }
 
   /* restore normal heading padding and just make the close button translucent */
-  .barbershop-modal-content h2 {
+  .simplybook-modal-content h2 {
     padding-right: 0;
   }
 
@@ -626,7 +626,7 @@
     align-items: center;
     gap: 15px !important;
   }
-  .barbershop-barber-choice {
+  .simplybook-barber-choice {
     width: 100%;
     max-width: 520px;
     margin-left: auto;

@@ -4,7 +4,7 @@
   This embed block loads the booking system's CSS and JavaScript globally,
   allowing merchants to add booking buttons anywhere in their theme using:
   
-  <button class="barbershop-booking-btn" data-open-booking-modal>Book Now</button>
+  <button class="simplybook-booking-btn" data-open-booking-modal>Book Now</button>
   
   Merchants should enable this in their theme editor's "App embeds" panel.
   
@@ -32,18 +32,18 @@
 <!-- Default button styling for trigger buttons -->
 <style>
 :root {
-  --barbershop-primary: {{ primary_color }};
-  --barbershop-secondary: {{ secondary_color }};
-  --barbershop-text: {{ text_color }};
-  --barbershop-border: {{ border_color }};
-  --barbershop-background: {{ background_color }};
-  --barbershop-modal-background: {{ modal_background_color }};
-  --barbershop-button: {{ button_color }};
-  --barbershop-button-text: {{ button_text_color }};
+  --simplybook-primary: {{ primary_color }};
+  --simplybook-secondary: {{ secondary_color }};
+  --simplybook-text: {{ text_color }};
+  --simplybook-border: {{ border_color }};
+  --simplybook-background: {{ background_color }};
+  --simplybook-modal-background: {{ modal_background_color }};
+  --simplybook-button: {{ button_color }};
+  --simplybook-button-text: {{ button_text_color }};
 }
 
 {% comment %} Default button styling for trigger buttons {% endcomment %}
-.barbershop-booking-btn {
+.simplybook-booking-btn {
   background-color: {{ button_color }};
   color: {{ button_text_color }};
   padding: {{ button_padding }}px {{ button_padding | times: 1.5 }}px;
@@ -58,7 +58,7 @@
   text-align: center;
 }
 
-.barbershop-booking-btn:hover {
+.simplybook-booking-btn:hover {
   opacity: 0.9;
   transform: translateY(-1px);
 }

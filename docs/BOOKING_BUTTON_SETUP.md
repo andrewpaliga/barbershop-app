@@ -34,13 +34,13 @@ Once the embed is enabled, you can add booking buttons anywhere in your theme co
 
 ```html
 <!-- Basic booking button -->
-<button class="barbershop-booking-btn" data-open-booking-modal>Book Now</button>
+<button class="simplybook-booking-btn" data-open-booking-modal>Book Now</button>
 
 <!-- Custom styled booking button -->
-<button class="barbershop-booking-btn" data-open-booking-modal style="background: #007bff; padding: 15px 30px;">Schedule Appointment</button>
+<button class="simplybook-booking-btn" data-open-booking-modal style="background: #007bff; padding: 15px 30px;">Schedule Appointment</button>
 
 <!-- As a link -->
-<a href="#" class="barbershop-booking-btn" data-open-booking-modal>Book Your Service</a>
+<a href="#" class="simplybook-booking-btn" data-open-booking-modal>Book Your Service</a>
 ```
 
 ### Common Places to Add Buttons
@@ -64,11 +64,11 @@ Include booking buttons in your footer for easy access.
 
 ### Using CSS Classes
 
-The embed provides a default `.barbershop-booking-btn` class that you can override:
+The embed provides a default `.simplybook-booking-btn` class that you can override:
 
 ```css
 /* Custom button styling */
-.barbershop-booking-btn {
+.simplybook-booking-btn {
   background: linear-gradient(45deg, #007bff, #0056b3);
   border-radius: 25px;
   padding: 12px 24px;
@@ -83,7 +83,7 @@ The embed provides a default `.barbershop-booking-btn` class that you can overri
 Override styles directly on individual buttons:
 
 ```html
-<button class="barbershop-booking-btn" data-open-booking-modal style="background: #28a745; color: white; border-radius: 8px;">
+<button class="simplybook-booking-btn" data-open-booking-modal style="background: #28a745; color: white; border-radius: 8px;">
   Reserve Now
 </button>
 ```
@@ -95,7 +95,7 @@ Override styles directly on individual buttons:
 <nav class="header-nav">
   <a href="/">Home</a>
   <a href="/services">Services</a>
-  <button class="barbershop-booking-btn" data-open-booking-modal>Book Now</button>
+  <button class="simplybook-booking-btn" data-open-booking-modal>Book Now</button>
 </nav>
 ```
 
@@ -103,7 +103,7 @@ Override styles directly on individual buttons:
 ```html
 <div class="product-cta">
   <h2>Ready to book this service?</h2>
-  <button class="barbershop-booking-btn" data-open-booking-modal style="background: #dc3545; padding: 20px 40px; font-size: 18px;">
+  <button class="simplybook-booking-btn" data-open-booking-modal style="background: #dc3545; padding: 20px 40px; font-size: 18px;">
     Book This Service
   </button>
 </div>
@@ -114,7 +114,7 @@ Override styles directly on individual buttons:
 <div class="footer-contact">
   <h3>Get in Touch</h3>
   <p>Ready to book your appointment?</p>
-  <button class="barbershop-booking-btn" data-open-booking-modal>Schedule Now</button>
+  <button class="simplybook-booking-btn" data-open-booking-modal>Schedule Now</button>
 </div>
 ```
 
@@ -122,7 +122,7 @@ Override styles directly on individual buttons:
 
 ### Button doesn't appear
 - Make sure you've enabled the app embed in Theme Settings → App embeds
-- Check that your button has the class `barbershop-booking-btn` or attribute `data-open-booking-modal`
+- Check that your button has the class `simplybook-booking-btn` or attribute `data-open-booking-modal`
 
 ### Button appears but doesn't work when clicked
 - Verify the app embed is enabled and active

@@ -69,7 +69,7 @@ function showMessage(type, message) {
 }
 
 function closeBookingModal() {
-  const modal = document.getElementById('barbershop-modal');
+  const modal = document.getElementById('simplybook-modal');
   if (modal) {
     modal.style.display = 'none';
   }
@@ -94,7 +94,7 @@ function closeBookingModal() {
   }
   
   // Clear selected time slot
-  document.querySelectorAll('.barbershop-time-slot.selected').forEach(slot => {
+  document.querySelectorAll('.simplybook-time-slot.selected').forEach(slot => {
     slot.classList.remove('selected');
   });
   
@@ -118,7 +118,7 @@ function closeConfirmationView() {
     mainCloseButton.style.display = 'flex';
   }
   
-  document.querySelectorAll('.barbershop-time-slot.selected').forEach(slot => {
+  document.querySelectorAll('.simplybook-time-slot.selected').forEach(slot => {
     slot.classList.remove('selected');
   });
   
@@ -188,13 +188,13 @@ function updateSelectedBarberInfo() {
     const staff = bookingData.staff.find(s => s.id === currentSelection.staffId);
     if (staff) {
       const avatarHtml = staff.avatar?.url 
-        ? `<img src="${staff.avatar.url}" alt="${staff.name}" class="barbershop-selected-barber-avatar">` 
-        : `<div class="barbershop-selected-barber-avatar" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: #666;">${staff.name.charAt(0)}</div>`;
+        ? `<img src="${staff.avatar.url}" alt="${staff.name}" class="simplybook-selected-barber-avatar">` 
+        : `<div class="simplybook-selected-barber-avatar" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: #666;">${staff.name.charAt(0)}</div>`;
       
       container.innerHTML = `
-        <div class="barbershop-selected-barber-info">
+        <div class="simplybook-selected-barber-info">
           ${avatarHtml}
-          <div class="barbershop-selected-barber-details">
+          <div class="simplybook-selected-barber-details">
             <h4>${staff.name}</h4>
             <p>${staff.title || 'Staff member'}</p>
           </div>
@@ -233,7 +233,7 @@ function populateServiceMenu() {
     const variant = service?.variants.find(v => v.id === currentSelection.variantId);
     if (service && variant) {
       const serviceItem = document.createElement('div');
-      serviceItem.className = 'barbershop-service-menu-item selected expandable';
+      serviceItem.className = 'simplybook-service-menu-item selected expandable';
       serviceItem.style.cursor = 'pointer';
       serviceItem.onclick = () => {
         container.setAttribute('data-collapsed', 'false');
@@ -256,7 +256,7 @@ function populateServiceMenu() {
     if (service.variants && service.variants.length > 0) {
       service.variants.forEach(variant => {
         const serviceItem = document.createElement('div');
-        serviceItem.className = 'barbershop-service-menu-item';
+        serviceItem.className = 'simplybook-service-menu-item';
         serviceItem.onclick = () => {
           selectServiceFromMenuVariant(service.id, variant.id);
           // collapse after selecting
@@ -284,11 +284,11 @@ function populateServiceMenu() {
 }
 
 function selectServiceFromMenuVariant(serviceId, variantId) {
-  document.querySelectorAll('.barbershop-service-menu-item').forEach(item => {
+  document.querySelectorAll('.simplybook-service-menu-item').forEach(item => {
     item.classList.remove('selected');
   });
   
-  event.target.closest('.barbershop-service-menu-item').classList.add('selected');
+  event.target.closest('.simplybook-service-menu-item').classList.add('selected');
   
   currentSelection.serviceId = serviceId;
   currentSelection.variantId = variantId;
@@ -318,7 +318,7 @@ function selectServiceFromMenuVariant(serviceId, variantId) {
   updateSelectedBarberInfo();
   updateCalendar();
   
-  document.querySelectorAll('.barbershop-time-slot.selected').forEach(slot => {
+  document.querySelectorAll('.simplybook-time-slot.selected').forEach(slot => {
     slot.classList.remove('selected');
   });
   currentSelection.selectedTime = null;
@@ -449,7 +449,7 @@ function renderCalendarDays() {
 
 function createCalendarDay(date) {
   const dayElement = document.createElement('div');
-  dayElement.className = 'barbershop-calendar-day';
+  dayElement.className = 'simplybook-calendar-day';
   
   const today = new Date();
   const isPast = date < today.setHours(0, 0, 0, 0);
@@ -459,7 +459,7 @@ function createCalendarDay(date) {
   }
   
   const dayNumber = document.createElement('div');
-  dayNumber.className = 'barbershop-day-number';
+  dayNumber.className = 'simplybook-day-number';
   dayNumber.textContent = date.getDate();
   dayElement.appendChild(dayNumber);
   
@@ -561,7 +561,7 @@ function formatTime(minutes) {
 
 function createTimeSlot(time, date) {
   const timeSlotElement = document.createElement('button');
-  timeSlotElement.className = 'barbershop-time-slot';
+  timeSlotElement.className = 'simplybook-time-slot';
   timeSlotElement.textContent = time;
   timeSlotElement.type = 'button';
   
@@ -749,7 +749,7 @@ function checkBookingConflictsForStaff(date, time, serviceDuration, staffId) {
 }
 
 function selectTimeSlot(time, date, element) {
-  document.querySelectorAll('.barbershop-time-slot.selected').forEach(slot => {
+  document.querySelectorAll('.simplybook-time-slot.selected').forEach(slot => {
     slot.classList.remove('selected');
   });
   
@@ -789,18 +789,18 @@ function showBarberSelectionForTimeSlot(time, date) {
     if (!staff) return;
     
     const barberChoice = document.createElement('div');
-    barberChoice.className = 'barbershop-barber-choice';
+    barberChoice.className = 'simplybook-barber-choice';
     barberChoice.onclick = () => selectBarberForTimeSlot(staffId);
     
     const avatarHtml = staff.avatar?.url 
-      ? `<img src="${staff.avatar.url}" alt="${staff.name}" class="barbershop-barber-choice-avatar">` 
-      : `<div class="barbershop-barber-choice-avatar" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #666;">${staff.name.charAt(0)}</div>`;
+      ? `<img src="${staff.avatar.url}" alt="${staff.name}" class="simplybook-barber-choice-avatar">` 
+      : `<div class="simplybook-barber-choice-avatar" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #666;">${staff.name.charAt(0)}</div>`;
     
     barberChoice.innerHTML = `
       ${avatarHtml}
-      <div class="barbershop-barber-choice-content">
-        <div class="barbershop-barber-choice-name">${staff.name}</div>
-        <div class="barbershop-barber-choice-bio">${staff.title || 'Staff member'}</div>
+      <div class="simplybook-barber-choice-content">
+        <div class="simplybook-barber-choice-name">${staff.name}</div>
+        <div class="simplybook-barber-choice-bio">${staff.title || 'Staff member'}</div>
       </div>
     `;
     
@@ -834,7 +834,7 @@ function cancelBarberSelection() {
     formContainer.style.display = 'block';
   }
   
-  document.querySelectorAll('.barbershop-time-slot.selected').forEach(slot => {
+  document.querySelectorAll('.simplybook-time-slot.selected').forEach(slot => {
     slot.classList.remove('selected');
   });
   
@@ -875,33 +875,33 @@ function showBookingConfirmation() {
   };
 
   details.innerHTML = `
-    <div class="barbershop-booking-detail-row">
-      <span class="barbershop-booking-detail-label">Service:</span>
-      <span class="barbershop-booking-detail-value">${getVariantDisplayTitle(service, variant)}</span>
+    <div class="simplybook-booking-detail-row">
+      <span class="simplybook-booking-detail-label">Service:</span>
+      <span class="simplybook-booking-detail-value">${getVariantDisplayTitle(service, variant)}</span>
     </div>
-    <div class="barbershop-booking-detail-row">
-      <span class="barbershop-booking-detail-label">Barber:</span>
-      <span class="barbershop-booking-detail-value">${staff.name}</span>
+    <div class="simplybook-booking-detail-row">
+      <span class="simplybook-booking-detail-label">Barber:</span>
+      <span class="simplybook-booking-detail-value">${staff.name}</span>
     </div>
-    <div class="barbershop-booking-detail-row">
-      <span class="barbershop-booking-detail-label">Date & Time:</span>
-      <span class="barbershop-booking-detail-value">${formatDatePretty(currentSelection.selectedDate)} at ${formatTime12Hour(currentSelection.selectedTime)}</span>
+    <div class="simplybook-booking-detail-row">
+      <span class="simplybook-booking-detail-label">Date & Time:</span>
+      <span class="simplybook-booking-detail-value">${formatDatePretty(currentSelection.selectedDate)} at ${formatTime12Hour(currentSelection.selectedTime)}</span>
     </div>
-    <div class="barbershop-booking-detail-row">
-      <span class="barbershop-booking-detail-label">Location:</span>
-      <span class="barbershop-booking-detail-value">${location.name}</span>
+    <div class="simplybook-booking-detail-row">
+      <span class="simplybook-booking-detail-label">Location:</span>
+      <span class="simplybook-booking-detail-value">${location.name}</span>
     </div>
-    <div class="barbershop-booking-detail-row">
-      <span class="barbershop-booking-detail-label">Duration:</span>
-      <span class="barbershop-booking-detail-value">${variant.duration || 60} minutes</span>
+    <div class="simplybook-booking-detail-row">
+      <span class="simplybook-booking-detail-label">Duration:</span>
+      <span class="simplybook-booking-detail-value">${variant.duration || 60} minutes</span>
     </div>
-    ${notes ? `<div class="barbershop-booking-detail-row">
-      <span class="barbershop-booking-detail-label">Notes:</span>
-      <span class="barbershop-booking-detail-value">${notes}</span>
+    ${notes ? `<div class="simplybook-booking-detail-row">
+      <span class="simplybook-booking-detail-label">Notes:</span>
+      <span class="simplybook-booking-detail-value">${notes}</span>
     </div>` : ''}
-    <div class="barbershop-booking-detail-row">
-      <span class="barbershop-booking-detail-label">Total:</span>
-      <span class="barbershop-booking-detail-value">$${variant.price || 'N/A'}</span>
+    <div class="simplybook-booking-detail-row">
+      <span class="simplybook-booking-detail-label">Total:</span>
+      <span class="simplybook-booking-detail-value">$${variant.price || 'N/A'}</span>
     </div>
   `;
   
@@ -936,7 +936,7 @@ function cancelBooking() {
     mainCloseButton.style.display = 'flex';
   }
   
-  document.querySelectorAll('.barbershop-time-slot.selected').forEach(slot => {
+  document.querySelectorAll('.simplybook-time-slot.selected').forEach(slot => {
     slot.classList.remove('selected');
   });
   
@@ -1168,7 +1168,7 @@ function selectStaff(staffId) {
 
 async function openBookingModal() {
   
-  const modal = document.getElementById('barbershop-modal');
+  const modal = document.getElementById('simplybook-modal');
   if (!modal) {
     return;
   }
@@ -1241,10 +1241,10 @@ try {
     window.openBookingModal = openBookingModal;
     // Robust binding that works across Online Store 2.0 dynamic rendering
     function bindBookingButton() {
-      var buttons = document.querySelectorAll('#barbershop-booking-btn, .barbershop-booking-btn, [data-open-booking-modal]');
+      var buttons = document.querySelectorAll('#simplybook-booking-btn, .simplybook-booking-btn, [data-open-booking-modal]');
       if (!buttons || buttons.length === 0) return;
       buttons.forEach(function(btn){
-        if (btn.__barbershopBound) return;
+        if (btn.__simplybookBound) return;
         // Remove inline onclick to avoid double-firing or blocked inline handlers
         if (btn.hasAttribute && btn.hasAttribute('onclick')) {
           try { btn.removeAttribute('onclick'); } catch(_) {}
@@ -1256,7 +1256,7 @@ try {
             openBookingModal();
           }
         });
-        btn.__barbershopBound = true;
+        btn.__simplybookBound = true;
       });
     }
 
@@ -1274,7 +1274,7 @@ try {
     document.addEventListener('click', function(e){
       var target = e.target;
       if (!target) return;
-      var btn = target.closest && target.closest('#barbershop-booking-btn, .barbershop-booking-btn, [data-open-booking-modal]');
+      var btn = target.closest && target.closest('#simplybook-booking-btn, .simplybook-booking-btn, [data-open-booking-modal]');
       if (btn) {
         if (typeof openBookingModal === 'function') {
           e.preventDefault();
@@ -1443,7 +1443,7 @@ function populateServiceButtons() {
     if (service.variants && service.variants.length > 0) {
       service.variants.forEach((variant) => {
         const button = document.createElement('button');
-        button.className = 'barbershop-selection-btn barbershop-service-btn';
+        button.className = 'simplybook-selection-btn simplybook-service-btn';
         button.onclick = () => selectService(service.id, variant.id);
         
         // Use variant image if available, otherwise fallback to product image
@@ -1453,17 +1453,17 @@ function populateServiceButtons() {
         const imageUrl = variantImage ? variant.image.url : (productImage ? service.image.url : null);
         
         const imageHtml = hasImage 
-          ? `<img src="${imageUrl}" alt="${service.title} - ${variant.title}" class="barbershop-service-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="barbershop-service-image barbershop-service-placeholder" style="display: none;"><div class="barbershop-placeholder-icon">${service.title.charAt(0).toUpperCase()}</div></div>`
-          : `<div class="barbershop-service-image barbershop-service-placeholder"><div class="barbershop-placeholder-icon">${service.title.charAt(0).toUpperCase()}</div></div>`;
+          ? `<img src="${imageUrl}" alt="${service.title} - ${variant.title}" class="simplybook-service-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="simplybook-service-image simplybook-service-placeholder" style="display: none;"><div class="simplybook-placeholder-icon">${service.title.charAt(0).toUpperCase()}</div></div>`
+          : `<div class="simplybook-service-image simplybook-service-placeholder"><div class="simplybook-placeholder-icon">${service.title.charAt(0).toUpperCase()}</div></div>`;
         
         const durationText = variant.duration ? `${variant.duration} minutes` : '';
-        const priceHtml = variant.price ? `<div class="barbershop-selection-price">$${variant.price}</div>` : '';
+        const priceHtml = variant.price ? `<div class="simplybook-selection-price">$${variant.price}</div>` : '';
         
         button.innerHTML = `
           ${imageHtml}
-          <div class="barbershop-service-info">
-            <div class="barbershop-selection-title">${service.title}</div>
-            ${durationText ? `<div class="barbershop-selection-subtitle">${durationText}</div>` : ''}
+          <div class="simplybook-service-info">
+            <div class="simplybook-selection-title">${service.title}</div>
+            ${durationText ? `<div class="simplybook-selection-subtitle">${durationText}</div>` : ''}
             ${priceHtml}
           </div>
         `;
@@ -1502,18 +1502,18 @@ function populateStaffButtons() {
   
   availableStaff.forEach((staff) => {
     const button = document.createElement('button');
-    button.className = 'barbershop-selection-btn barbershop-staff-btn';
+    button.className = 'simplybook-selection-btn simplybook-staff-btn';
     button.onclick = () => selectStaff(staff.id);
     
     const avatarHtml = staff.avatar?.url 
-      ? `<img src="${staff.avatar.url}" alt="${staff.name}" class="barbershop-staff-avatar">` 
-      : `<div class="barbershop-staff-avatar" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #666;">${staff.name.charAt(0)}</div>`;
+      ? `<img src="${staff.avatar.url}" alt="${staff.name}" class="simplybook-staff-avatar">` 
+      : `<div class="simplybook-staff-avatar" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #666;">${staff.name.charAt(0)}</div>`;
     
     button.innerHTML = `
       ${avatarHtml}
-      <div class="barbershop-staff-info">
-        <div class="barbershop-selection-title">${staff.name}</div>
-        <div class="barbershop-selection-subtitle">${staff.title || 'Staff member'}</div>
+      <div class="simplybook-staff-info">
+        <div class="simplybook-selection-title">${staff.name}</div>
+        <div class="simplybook-selection-subtitle">${staff.title || 'Staff member'}</div>
       </div>
     `;
     
@@ -1539,7 +1539,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   
   window.onclick = function(event) {
-    const modal = document.getElementById('barbershop-modal');
+    const modal = document.getElementById('simplybook-modal');
     if (event.target === modal) {
       closeBookingModal();
     }
