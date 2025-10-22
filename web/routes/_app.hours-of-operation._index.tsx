@@ -337,7 +337,7 @@ export default function HoursOfOperation() {
         />
       </Card>
       <FooterHelp>
-        Learn more about <a href="https://shopifybookingapp.com/docs/#hours-of-operation">SimplyBook hours of operation</a>.
+        Learn more about <a href="https://thesimplybookapp.com/docs/#hours-of-operation">SimplyBook hours of operation</a>.
       </FooterHelp>
     </Page>
   );

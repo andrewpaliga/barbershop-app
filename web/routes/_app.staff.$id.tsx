@@ -1467,7 +1467,7 @@ export default function StaffEdit() {
         </Card>
       </BlockStack>
       <FooterHelp>
-        Learn more about <Link url="https://shopifybookingapp.com/docs/#staff-management">SimplyBook staff management</Link>.
+        Learn more about <Link url="https://thesimplybookapp.com/docs/#staff-management">SimplyBook staff management</Link>.
       </FooterHelp>
     </Page>
   );

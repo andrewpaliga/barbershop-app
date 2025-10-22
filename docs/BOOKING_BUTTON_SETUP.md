@@ -136,8 +136,8 @@ Override styles directly on individual buttons:
 
 ## Need Help?
 
-- Visit our documentation: [shopifybookingapp.com/docs](https://shopifybookingapp.com/docs)
-- Contact support: hello@shopifybookingapp.com
+- Visit our documentation: [thesimplybookapp.com/docs](https://thesimplybookapp.com/docs)
+- Contact support: hello@thesimplybookapp.com
 - Check our setup guide for detailed instructions
 
 ## Quick Reference

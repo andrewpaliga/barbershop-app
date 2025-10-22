@@ -195,7 +195,7 @@ export default function Index() {
           {/* Footer Help - Always visible */}
           <Layout.Section>
             <FooterHelp>
-              Learn more about <Link url="https://shopifybookingapp.com/docs/">SimplyBook documentation</Link>.
+              Learn more about <Link url="https://thesimplybookapp.com/docs/">SimplyBook documentation</Link>.
             </FooterHelp>
           </Layout.Section>
         </Layout>
@@ -297,7 +297,7 @@ export default function Index() {
                               <Button 
                                 variant="secondary" 
                                 onClick={() => {
-                                  window.open("https://www.shopifybookingapp.com/docs/#adding-the-booking-button-to-your-store", "_blank");
+                                  window.open("https://www.thesimplybookapp.com/docs/#adding-the-booking-button-to-your-store", "_blank");
                                 }}
                               >
                                 View Instructions
@@ -468,7 +468,7 @@ export default function Index() {
         {/* Footer Help - Always visible */}
         <Layout.Section>
           <FooterHelp>
-            Learn more about <Link url="https://shopifybookingapp.com/">SimplyBook</Link>.
+            Learn more about <Link url="https://thesimplybookapp.com/">SimplyBook</Link>.
           </FooterHelp>
         </Layout.Section>
       </Layout>

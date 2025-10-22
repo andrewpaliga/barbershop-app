@@ -302,7 +302,7 @@ export default function Settings() {
         </div>
       )}
       <FooterHelp>
-        Learn more about <Link url="https://shopifybookingapp.com/docs/#settings">SimplyBook settings</Link>.
+        Learn more about <Link url="https://thesimplybookapp.com/docs/#settings">SimplyBook settings</Link>.
       </FooterHelp>
     </Page>
   );

@@ -505,7 +505,7 @@ export default function ProductsIndex() {
         </Modal.Section>
       </Modal>
       <FooterHelp>
-        Learn more about <Link url="https://shopifybookingapp.com/docs/#services-management">SimplyBook services</Link>.
+        Learn more about <Link url="https://thesimplybookapp.com/docs/#services-management">SimplyBook services</Link>.
       </FooterHelp>
     </Page>
   );

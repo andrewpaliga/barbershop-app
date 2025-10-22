@@ -17,10 +17,11 @@ Welcome to SimplyBook, the comprehensive booking solution for your Shopify store
 5. [Schedule Management](#schedule-management)
 6. [Settings](#settings)
 7. [Adding the Booking Widget](#adding-the-booking-widget-to-your-store)
-8. [Customer Booking Experience](#customer-booking-experience)
-9. [POS Integration](#pos-integration)
-10. [Best Practices](#best-practices)
-11. [Support](#support)
+8. [Advanced: Using App Embed Blocks](#advanced-using-app-embed-blocks)
+9. [Customer Booking Experience](#customer-booking-experience)
+10. [POS Integration](#pos-integration)
+11. [Best Practices](#best-practices)
+12. [Support](#support)
 
 ---
 
@@ -258,6 +259,87 @@ _In the theme editor, open the Apps tab and select the Booking Button from Simpl
 | **Colors** | Match your store's branding |
 | **Padding** | Adjust spacing around the button |
 | **Button Text** | Change from default "Book Now" to your preferred text |
+
+---
+
+## Advanced: Using App Embed Blocks
+
+For merchants who want more control over button placement and styling, SimplyBook offers an **App Embed Block** that loads the booking system globally without requiring a visible app block.
+
+### What is an App Embed Block?
+
+An App Embed Block loads SimplyBook's CSS and JavaScript assets on every page of your store, allowing you to add custom booking buttons anywhere in your theme code.
+
+### Step 1: Enable the App Embed
+
+**Step-by-step process:**
+
+1. **Open Theme Editor**
+   - Go to **Online Store** → **Themes** → **Customize**
+
+2. **Navigate to App Embeds**
+   - In the theme editor, look for **"App embeds"** in the left sidebar
+   - This is usually at the bottom of the theme settings
+
+3. **Enable SimplyBook Booking Embed**
+   - Find **"SimplyBook Booking Embed"** in the list
+   - Toggle it **ON**
+
+4. **Save changes**
+   - Click **"Save"** to apply
+
+### Step 2: Add Custom Booking Buttons
+
+Once the embed is enabled, you can add booking buttons anywhere in your theme using these methods:
+
+#### Method 1: Using CSS Classes
+
+Add this HTML anywhere in your theme templates:
+
+```html
+<button class="simplybook-booking-btn" data-open-booking-modal>
+  Book Now
+</button>
+```
+
+#### Method 2: Using Data Attributes
+
+For more flexibility, use the data attribute:
+
+```html
+<button data-open-booking-modal>
+  Schedule Appointment
+</button>
+```
+
+#### Method 3: Custom Styling
+
+You can style your custom buttons with CSS:
+
+```css
+.simplybook-booking-btn {
+  background: #007bff;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.simplybook-booking-btn:hover {
+  background: #0056b3;
+}
+```
+
+### Troubleshooting
+
+**If your custom buttons aren't working:**
+
+1. **Check App Embed is enabled** - Verify "SimplyBook Booking Embed" is ON in App embeds
+2. **Verify CSS classes** - Ensure you're using `simplybook-booking-btn` or `data-open-booking-modal`
+3. **Check JavaScript** - Make sure the embed block is loading the required JavaScript
+4. **Test in different browsers** - Some themes may have JavaScript conflicts
 
 ---
 

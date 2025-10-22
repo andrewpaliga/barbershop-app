@@ -376,7 +376,7 @@ export default function NewService() {
       </form>
       <div style={{ marginTop: '16px' }}>
         <FooterHelp>
-          Learn more about <Link url="https://shopifybookingapp.com/docs/#services-management">SimplyBook services</Link>.
+          Learn more about <Link url="https://thesimplybookapp.com/docs/#services-management">SimplyBook services</Link>.
         </FooterHelp>
       </div>
     </Page>

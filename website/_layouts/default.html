@@ -125,10 +125,10 @@
       "publisher": {
         "@type": "Organization",
         "name": "SimplyBook",
-        "url": "https://shopifybookingapp.com",
+        "url": "https://thesimplybookapp.com",
         "contactPoint": {
           "@type": "ContactPoint",
-          "email": "hello@shopifybookingapp.com",
+          "email": "hello@thesimplybookapp.com",
           "contactType": "customer support"
         }
       }
@@ -176,6 +176,9 @@
           <p>&copy; {{ 'now' | date: "%Y" }} {{ site.title }}. All rights reserved.</p>
           <p class="mt-2">
             <a href="mailto:{{ site.email }}" class="hover:underline">{{ site.email }}</a>
+          </p>
+          <p class="mt-2">
+            <a href="{{ '/privacy' | absolute_url }}" class="hover:underline">Privacy Policy</a>
           </p>
         </div>
       </footer>

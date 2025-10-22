@@ -2,7 +2,7 @@
 title: "SimplyBook — Shopify Booking App"
 description: "SimplyBook is a general‑purpose booking app for Shopify. Perfect for barbershops, salons, personal trainers, and more. Seamless Shopify Checkout and POS integration. $9/month with a 7‑day free trial."
 author: "SimplyBook"
-email: "hello@shopifybookingapp.com"
+email: "hello@thesimplybookapp.com"
 url: "https://andrewpaliga.github.io"
 baseurl: "/barbershop-app"
 
@@ -50,4 +50,4 @@ seo:
   type: "WebSite"
   name: "SimplyBook"
   description: "General‑purpose booking app for Shopify with Checkout and POS integration."
-  url: "https://shopifybookingapp.com"
+  url: "https://thesimplybookapp.com"

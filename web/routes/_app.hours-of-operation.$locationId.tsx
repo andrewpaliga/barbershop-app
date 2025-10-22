@@ -696,7 +696,7 @@ export default function LocationHours() {
         </Card>
       </BlockStack>
       <FooterHelp>
-        Learn more about <Link url="https://shopifybookingapp.com/docs/#hours-of-operation">SimplyBook hours of operation</Link>.
+        Learn more about <Link url="https://thesimplybookapp.com/docs/#hours-of-operation">SimplyBook hours of operation</Link>.
       </FooterHelp>
     </Page>
   );
