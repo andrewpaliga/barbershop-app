@@ -8,7 +8,7 @@ export default function ProductsIndex() {
   const [helpSectionOpen, setHelpSectionOpen] = useState(false);
   const [isAddingEssentials, setIsAddingEssentials] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState("barber shop");
+  const [selectedTheme, setSelectedTheme] = useState("barbershop");
   const navigate = useNavigate();
   
   // Get the current shop's domain once for all product links
@@ -52,7 +52,7 @@ export default function ProductsIndex() {
   // Function to get services based on theme
   const getServicesByTheme = (theme: string, timeSlotInterval: number) => {
     const serviceSets = {
-      "barber shop": [
+      "barbershop": [
         {
           name: "Haircut",
           description: "Professional haircut service",
@@ -490,7 +490,7 @@ export default function ProductsIndex() {
             <Select
               label="Business Type"
               options={[
-                { label: 'Barber Shop', value: 'barber shop' },
+                { label: 'Barbershop', value: 'barbershop' },
                 { label: 'Hair Salon', value: 'hair salon' },
                 { label: 'Personal Trainer', value: 'personal trainer' },
                 { label: 'Massage Clinic', value: 'massage clinic' },
