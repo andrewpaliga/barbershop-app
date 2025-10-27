@@ -13,7 +13,7 @@ Welcome to SimplyBook, the comprehensive booking solution for your Shopify store
 1. [Getting Started](#getting-started)
 2. [Staff Management](#staff-management)
 3. [Services Management](#services-management)
-4. [Hours of Operation](#hours-of-operation)
+4. [Locations](#locations)
 5. [Schedule Management](#schedule-management)
 6. [Settings](#settings)
 7. [Adding the Booking Widget](#adding-the-booking-widget-to-your-store)
@@ -33,7 +33,7 @@ When you first install SimplyBook, you'll be greeted by a dashboard that guides 
 |---------|---------|
 | **Staff** | Manage your team members |
 | **Services** | Create and manage bookable services |
-| **Hours of Operation** | Set business hours and holidays |
+| **Locations** | Manage locations and operating hours |
 | **Schedule** | View and manage appointments |
 | **Settings** | Configure app preferences |
 
@@ -138,7 +138,7 @@ To sell the same service in different lengths, add a variant option named **"Dur
 
 ---
 
-## Hours of Operation
+## Locations
 
 Configure when your business is open and when customers can book appointments.
 
@@ -146,8 +146,8 @@ Configure when your business is open and when customers can book appointments.
 
 **Step-by-step process:**
 
-1. **Navigate to Hours of Operation**
-   - Click on "Hours of Operation" in the main navigation
+1. **Navigate to Locations**
+   - Click on "Locations" in the main navigation
 
 2. **View your locations**
    - You'll see all your Shopify locations listed

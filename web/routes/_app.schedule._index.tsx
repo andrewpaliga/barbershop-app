@@ -154,6 +154,7 @@ export default function SchedulePage() {
   const [currentWeek, setCurrentWeek] = useState(() => getWeekStart(new Date()));
   const [selectedStaffId, setSelectedStaffId] = useState("");
   const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [selectedLocationId, setSelectedLocationId] = useState("");
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<{
     date: Date;
@@ -222,6 +223,7 @@ export default function SchedulePage() {
           }
         }
       }),
+      ...(selectedLocationId && { locationId: { equals: selectedLocationId } }),
     },
     select: {
       id: true,
@@ -238,6 +240,12 @@ export default function SchedulePage() {
         email: true,
       },
       notes: true,
+      locationId: true,
+      location: {
+        id: true,
+        name: true,
+        timeZone: true,
+      },
       staff: {
         id: true,
         name: true,
@@ -352,13 +360,13 @@ export default function SchedulePage() {
   // Get bookings for a specific day and time slot
   const getBookingsForSlot = useCallback(
     (date: Date, hour: number, minute: number) => {
-      if (!bookings || !locations?.length) {
+      if (!bookings) {
         return [];
       }
 
       const slotBookings = bookings.filter((booking) => {
         // Get the location for this booking to determine timezone
-        const bookingLocation = locations.find(loc => loc.id === booking.locationId);
+        const bookingLocation = booking.location || locations?.find(loc => loc.id === booking.locationId);
         const locationTimezone = bookingLocation?.timeZone;
         
         // Convert UTC booking time to location timezone for comparison
@@ -642,6 +650,14 @@ export default function SchedulePage() {
     }) || []),
   ];
 
+  const locationFilterOptions = [
+    { label: "All Locations", value: "" },
+    ...(locations?.map((l) => ({ 
+      label: l.name + (l.address1 || l.city ? ` (${[l.address1, l.city].filter(Boolean).join(", ")})` : ""), 
+      value: l.id 
+    })) || []),
+  ];
+
   const locationOptions = [
     { label: "Select location", value: "" },
     ...(locations?.map((l) => ({ 
@@ -801,6 +817,17 @@ export default function SchedulePage() {
                       onChange={setSelectedServiceId}
                     />
                   </Box>
+                  {locations && locations.length > 1 && (
+                    <Box minWidth="120px">
+                      <Select
+                        label=""
+                        placeholder="Filter by location"
+                        options={locationFilterOptions}
+                        value={selectedLocationId}
+                        onChange={setSelectedLocationId}
+                      />
+                    </Box>
+                  )}
                 </InlineStack>
               </InlineStack>
 
@@ -878,9 +905,10 @@ export default function SchedulePage() {
                             
                             // Find bookings that start exactly at this time slot
                             const startingBookings = slotBookings.filter((booking) => {
-                              const bookingLocation = locations?.find(loc => loc.id === booking.locationId);
+                              const bookingLocation = booking.location || locations?.find(loc => loc.id === booking.locationId);
                               const locationTimezone = bookingLocation?.timeZone;
                               
+                              if (!booking.scheduledAt) return false;
                               const bookingUTCDate = new Date(booking.scheduledAt);
                               const bookingStartDate = locationTimezone 
                                 ? convertUTCToLocationTime(bookingUTCDate, locationTimezone)
@@ -912,9 +940,10 @@ export default function SchedulePage() {
                             if (occupiedSlots.has(i)) {
                               const slotBookings = getBookingsForSlot(date, hour, minute);
                               const startingBookings = slotBookings.filter((booking) => {
-                                const bookingLocation = locations?.find(loc => loc.id === booking.locationId);
+                                const bookingLocation = booking.location || locations?.find(loc => loc.id === booking.locationId);
                                 const locationTimezone = bookingLocation?.timeZone;
                                 
+                                if (!booking.scheduledAt) return false;
                                 const bookingUTCDate = new Date(booking.scheduledAt);
                                 const bookingStartDate = locationTimezone 
                                   ? convertUTCToLocationTime(bookingUTCDate, locationTimezone)
@@ -1403,6 +1432,16 @@ export default function SchedulePage() {
                       <Text as="p" variant="bodyMd">${selectedBooking.totalPrice}</Text>
                     </BlockStack>
                   </InlineStack>
+                  {locations && locations.length > 1 && (
+                    <InlineStack gap="400">
+                      <BlockStack gap="100">
+                        <Text as="p" variant="bodyMd" fontWeight="bold">Location</Text>
+                        <Text as="p" variant="bodyMd">
+                          {selectedBooking.location?.name || 'No location'}
+                        </Text>
+                      </BlockStack>
+                    </InlineStack>
+                  )}
                 </BlockStack>
               </Card>
 
@@ -1440,15 +1479,6 @@ export default function SchedulePage() {
                     ]}
                   />
                 )}
-
-                <TextField
-                  label="Total Price"
-                  value={selectedBooking.totalPrice?.toString() || "0"}
-                  onChange={(value) => setSelectedBooking(prev => ({ ...prev, totalPrice: parseInt(value) || 0 }))}
-                  type="number"
-                  prefix="$"
-                  autoComplete="off"
-                />
 
                 <TextField
                   label="Notes"

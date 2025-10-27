@@ -129,7 +129,7 @@ const TIME_OPTIONS = (() => {
   return times;
 })();
 
-export default function LocationHours() {
+export default function LocationDetail() {
   const { locationId } = useParams();
   const navigate = useNavigate();
   
@@ -198,7 +198,39 @@ export default function LocationHours() {
           const hours = typeof locationHours.operatingHours === 'string' 
             ? JSON.parse(locationHours.operatingHours) 
             : locationHours.operatingHours;
-          setOperatingHours({ ...operatingHours, ...hours });
+          
+          // Remove old string-format fields if present
+          const cleanHours = { ...hours };
+          delete cleanHours.monday;
+          delete cleanHours.tuesday;
+          delete cleanHours.wednesday;
+          delete cleanHours.thursday;
+          delete cleanHours.friday;
+          delete cleanHours.saturday;
+          delete cleanHours.sunday;
+          
+          console.log('Loading hours:', cleanHours);
+          
+          // Ensure weekdays/weekends exist for backward compatibility
+          if (!cleanHours.weekdays && cleanHours.days) {
+            // Try to infer from monday if it exists
+            const monday = cleanHours.days.monday || cleanHours.days.Monday;
+            if (monday) {
+              cleanHours.weekdays = { enabled: monday.enabled, from: monday.from, to: monday.to };
+            }
+          }
+          if (!cleanHours.weekends && cleanHours.days) {
+            // Try to infer from saturday if it exists
+            const saturday = cleanHours.days.saturday || cleanHours.days.Saturday;
+            if (saturday) {
+              cleanHours.weekends = { enabled: saturday.enabled, from: saturday.from, to: saturday.to };
+            }
+          }
+          
+          // Only update if we have valid data
+          if (cleanHours.mode && (cleanHours.mode === 'weekdays_weekends' || cleanHours.mode === 'individual_days')) {
+            setOperatingHours(cleanHours as OperatingHours);
+          }
         } catch (e) {
           console.error("Error parsing operating hours:", e);
         }
@@ -335,9 +367,49 @@ export default function LocationHours() {
 
   const handleSave = async () => {
     try {
+      // Clean up the operating hours based on mode
+      let cleanOperatingHours;
+      
+      if (operatingHours.mode === 'weekdays_weekends') {
+        // Update all individual days to match weekdays/weekends settings
+        const updatedDays: { [key: string]: { enabled: boolean; from: string; to: string } } = {};
+        
+        // Weekdays (Monday-Friday)
+        const weekdaysList = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+        weekdaysList.forEach(day => {
+          updatedDays[day] = {
+            enabled: operatingHours.weekdays.enabled,
+            from: operatingHours.weekdays.from,
+            to: operatingHours.weekdays.to
+          };
+        });
+        
+        // Weekends (Saturday-Sunday)
+        const weekendsList = ['saturday', 'sunday'];
+        weekendsList.forEach(day => {
+          updatedDays[day] = {
+            enabled: operatingHours.weekends.enabled,
+            from: operatingHours.weekends.from,
+            to: operatingHours.weekends.to
+          };
+        });
+        
+        cleanOperatingHours = {
+          mode: operatingHours.mode,
+          weekdays: operatingHours.weekdays,
+          weekends: operatingHours.weekends,
+          days: updatedDays
+        };
+      } else {
+        cleanOperatingHours = {
+          mode: operatingHours.mode,
+          days: operatingHours.days
+        };
+      }
+      
       await saveLocationHours({
         locationId: locationId!,
-        operatingHours: JSON.stringify(operatingHours),
+        operatingHours: JSON.stringify(cleanOperatingHours),
         holidayClosures: JSON.stringify(holidayClosures),
       });
     } catch (error) {
@@ -366,7 +438,7 @@ export default function LocationHours() {
 
   if (fetchingHours || fetchingLocation) {
     return (
-      <Page title="Loading...">
+      <Page title="Location">
         <Card>
           <Text as="p" variant="bodyMd">
             Loading location details...
@@ -378,7 +450,7 @@ export default function LocationHours() {
 
   if (hoursError || locationError) {
     return (
-      <Page title="Error">
+      <Page title="Location">
         <Card>
           <Banner>
             <Text as="p" variant="bodyMd">
@@ -397,19 +469,19 @@ export default function LocationHours() {
           <Button
             variant="plain"
             icon={ArrowLeftIcon}
-            onClick={() => navigate("/hours-of-operation")}
-            accessibilityLabel="Go back to Hours of Operation"
+            onClick={() => navigate("/locations")}
+            accessibilityLabel="Go back to Locations"
           />
           <Text as="h1" variant="headingLg">
-            Hours of Operation - {location?.name || "Location"}
+            Locations - {location?.name || "Location"}
           </Text>
         </InlineStack>
       }
       titleMetadata={<Text as="span" variant="bodyMd" tone="subdued">Configure operating hours and holidays</Text>}
       breadcrumbs={[
         {
-          content: "Hours of Operation",
-          url: "/hours-of-operation",
+          content: "Locations",
+          url: "/locations",
         },
       ]}
       primaryAction={{
@@ -459,7 +531,7 @@ export default function LocationHours() {
         <Card>
           <BlockStack gap="500">
             <Text as="h2" variant="headingMd">
-              Days and Hours of Operation
+              Days and Hours
             </Text>
             <Text as="p" variant="bodyMd" tone="subdued">
               These are the times your customers can reach your team.
@@ -696,7 +768,7 @@ export default function LocationHours() {
         </Card>
       </BlockStack>
       <FooterHelp>
-        Learn more about <Link url="https://thesimplybookapp.com/docs/#hours-of-operation">SimplyBook hours of operation</Link>.
+        Learn more about <Link url="https://thesimplybookapp.com/docs/#locations">SimplyBook locations</Link>.
       </FooterHelp>
     </Page>
   );

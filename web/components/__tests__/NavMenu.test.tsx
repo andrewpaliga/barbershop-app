@@ -27,7 +27,7 @@ describe('NavMenu', () => {
     expect(screen.getByText('Shop Information')).toBeInTheDocument();
     expect(screen.getByText('Staff')).toBeInTheDocument();
     expect(screen.getByText('Services')).toBeInTheDocument();
-    expect(screen.getByText('Hours of Operation')).toBeInTheDocument();
+    expect(screen.getByText('Locations')).toBeInTheDocument();
     expect(screen.getByText('Schedule')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
   });
@@ -44,8 +44,8 @@ describe('NavMenu', () => {
     const servicesLink = screen.getByText('Services');
     expect(servicesLink).toHaveAttribute('href', '/services');
     
-    const hoursLink = screen.getByText('Hours of Operation');
-    expect(hoursLink).toHaveAttribute('href', '/hours-of-operation');
+    const hoursLink = screen.getByText('Locations');
+    expect(hoursLink).toHaveAttribute('href', '/locations');
     
     const scheduleLink = screen.getByText('Schedule');
     expect(scheduleLink).toHaveAttribute('href', '/schedule');

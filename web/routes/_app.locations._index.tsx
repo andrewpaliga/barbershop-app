@@ -15,7 +15,7 @@ import {
 } from "@shopify/polaris";
 import { Link, useNavigate } from "@remix-run/react";
 
-export default function HoursOfOperation() {
+export default function Locations() {
   const navigate = useNavigate();
   const [{ data: locations, fetching: locationsFetching, error: locationsError }] = useFindMany(api.shopifyLocation, {
     select: {
@@ -37,16 +37,27 @@ export default function HoursOfOperation() {
       holidayClosures: true,
     },
   });
+  
+  // Debug: log all locationHours
+  React.useEffect(() => {
+    if (locationHours) {
+      console.log('All locationHours from API:', locationHours);
+    }
+  }, [locationHours]);
 
   // Create a map of locationId to hours for easy lookup
   const hoursMap = useMemo(() => {
     if (!locationHours) return new Map();
     const map = new Map();
     locationHours.forEach((hours) => {
-      map.set(hours.locationId, hours);
+      // For each location, store the most recent record
+      if (!map.has(hours.locationId)) {
+        map.set(hours.locationId, hours);
+      }
     });
+    console.log('hoursMap:', Array.from(map.entries()));
     return map;
-  }, [locationHours]);
+  }, [locationHours, locations]);
 
   // Helper function to get current time in a specific timezone
   const getCurrentTimeInTimezone = (timezone: string) => {
@@ -135,9 +146,9 @@ export default function HoursOfOperation() {
     // Handle different operating hours structures
     if (parsedOperatingHours.mode === 'weekdays_weekends') {
       const isWeekend = dayOfWeek === 'saturday' || dayOfWeek === 'sunday';
-      if (isWeekend && parsedOperatingHours.weekends) {
+      if (isWeekend && parsedOperatingHours.weekends && parsedOperatingHours.weekends.enabled) {
         todayHours = parsedOperatingHours.weekends;
-      } else if (!isWeekend && parsedOperatingHours.weekdays) {
+      } else if (!isWeekend && parsedOperatingHours.weekdays && parsedOperatingHours.weekdays.enabled) {
         todayHours = parsedOperatingHours.weekdays;
       }
     } else if (parsedOperatingHours.mode === 'individual_days' && parsedOperatingHours.days) {
@@ -162,13 +173,21 @@ export default function HoursOfOperation() {
       todayHours = parseTimeString(todayHours);
     }
     
-    if (!todayHours || !todayHours.enabled || !todayHours.from || !todayHours.to) {
+    if (!todayHours || !todayHours.enabled) {
+      return false;
+    }
+    
+    // Support both 'from/to' and 'start/end' naming conventions
+    const fromTime = todayHours.from || todayHours.start;
+    const toTime = todayHours.to || todayHours.end;
+    
+    if (!fromTime || !toTime) {
       return false;
     }
     
     const currentMinutes = timeToMinutes(timeString);
-    const startMinutes = timeToMinutes(todayHours.from);
-    const endMinutes = timeToMinutes(todayHours.to);
+    const startMinutes = timeToMinutes(fromTime);
+    const endMinutes = timeToMinutes(toTime);
     
     return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
   };
@@ -188,39 +207,64 @@ export default function HoursOfOperation() {
     // Get current day in the location's timezone
     const { dayOfWeek } = getCurrentTimeInTimezone(locationTimeZone);
     
+    console.log('Getting hours for dayOfWeek:', dayOfWeek, 'mode:', parsedOperatingHours.mode);
+    console.log('Weekdays:', parsedOperatingHours.weekdays, 'Weekends:', parsedOperatingHours.weekends);
+    
     let todayHours = null;
     
     // Handle different operating hours structures
     if (parsedOperatingHours.mode === 'weekdays_weekends') {
       const isWeekend = dayOfWeek === 'saturday' || dayOfWeek === 'sunday';
-      if (isWeekend && parsedOperatingHours.weekends) {
+      if (isWeekend && parsedOperatingHours.weekends && parsedOperatingHours.weekends.enabled) {
         todayHours = parsedOperatingHours.weekends;
-      } else if (!isWeekend && parsedOperatingHours.weekdays) {
+      } else if (!isWeekend && parsedOperatingHours.weekdays && parsedOperatingHours.weekdays.enabled) {
         todayHours = parsedOperatingHours.weekdays;
       }
     } else if (parsedOperatingHours.mode === 'individual_days' && parsedOperatingHours.days) {
       todayHours = parsedOperatingHours.days[dayOfWeek];
-    } else {
-      // Fallback: try direct property access for the day of week
-      todayHours = parsedOperatingHours[dayOfWeek];
-      
-      // If that doesn't work, try checking if the structure has days property without mode
-      if (!todayHours && parsedOperatingHours.days) {
-        todayHours = parsedOperatingHours.days[dayOfWeek];
-      }
-      
-      // Additional fallback: check if the entire structure is just the day's hours
-      if (!todayHours && parsedOperatingHours.enabled !== undefined) {
-        todayHours = parsedOperatingHours;
+    } else if (parsedOperatingHours.days) {
+      // Old format with days but no mode - use days
+      todayHours = parsedOperatingHours.days[dayOfWeek];
+    } else if (parsedOperatingHours.enabled !== undefined) {
+      // Entire structure is just the day's hours
+      todayHours = parsedOperatingHours;
+    } else if (parsedOperatingHours[dayOfWeek]) {
+      // LAST RESORT: OLD STRING FORMAT (monday: "10am-6pm")
+      // This is deprecated and should be removed
+      const oldFormatValue = parsedOperatingHours[dayOfWeek];
+      if (typeof oldFormatValue === 'string') {
+        // This will be converted by parseTimeString below
+        todayHours = oldFormatValue;
+      } else if (typeof oldFormatValue === 'object') {
+        todayHours = oldFormatValue;
       }
     }
+    
+    console.log('Found todayHours:', todayHours);
     
     // After finding todayHours, convert string format to object format if needed
     if (typeof todayHours === 'string') {
       todayHours = parseTimeString(todayHours);
+      console.log('Converted string to object:', todayHours);
     }
     
-    if (!todayHours || !todayHours.enabled || !todayHours.from || !todayHours.to) return "Closed";
+    console.log('Final todayHours before checks:', todayHours);
+    
+    if (!todayHours || !todayHours.enabled) {
+      console.log('Returning Closed - todayHours:', todayHours);
+      return "Closed";
+    }
+    
+    // Support both 'from/to' and 'start/end' naming conventions
+    const fromTime = todayHours.from || todayHours.start;
+    const toTime = todayHours.to || todayHours.end;
+    
+    console.log('fromTime:', fromTime, 'toTime:', toTime);
+    
+    if (!fromTime || !toTime) {
+      console.log('Returning Closed - missing fromTime or toTime');
+      return "Closed";
+    }
     
     // Convert 24-hour to 12-hour format
     const formatTime = (time: string) => {
@@ -231,7 +275,7 @@ export default function HoursOfOperation() {
       return `${displayHour}:${minutes} ${ampm}`;
     };
     
-    return `${formatTime(todayHours.from)} - ${formatTime(todayHours.to)}`;
+    return `${formatTime(fromTime)} - ${formatTime(toTime)}`;
   };
 
   // Prepare table rows
@@ -244,6 +288,11 @@ export default function HoursOfOperation() {
       const operatingHours = locationHoursRecord?.operatingHours;
       const locationTimeZone = location.timeZone || 'UTC';
       
+      if (location.name === 'Downtown') {
+        console.log('Downtown locationHoursRecord:', locationHoursRecord);
+        console.log('Downtown operatingHours:', operatingHours);
+      }
+      
       const isOpen = isLocationOpen(operatingHours, locationTimeZone, location.name);
       const todaysHours = getTodaysHours(operatingHours, locationTimeZone);
       const address = [location.address1, location.address2, location.city]
@@ -251,7 +300,7 @@ export default function HoursOfOperation() {
         .join(", ");
 
       return [
-        <Link key={location.id} to={`/hours-of-operation/${location.id}`}>
+        <Link key={location.id} to={`/locations/${location.id}`}>
           <Button variant="plain" textAlign="left">
             {location.name}
           </Button>
@@ -265,7 +314,7 @@ export default function HoursOfOperation() {
           key={`action-${location.id}`}
           variant="primary" 
           size="slim"
-          onClick={() => navigate(`/hours-of-operation/${location.id}`)}
+          onClick={() => navigate(`/locations/${location.id}`)}
         >
           Configure Hours
         </Button>,
@@ -278,7 +327,7 @@ export default function HoursOfOperation() {
 
   if (fetching) {
     return (
-      <Page title="Hours of Operation">
+      <Page title="Locations">
         <Card>
           <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
             <Spinner size="large" />
@@ -290,7 +339,7 @@ export default function HoursOfOperation() {
 
   if (error) {
     return (
-      <Page title="Hours of Operation">
+      <Page title="Locations">
         <Banner tone="critical">
           <Text as="p">Error loading data: {error.message}</Text>
         </Banner>
@@ -300,7 +349,7 @@ export default function HoursOfOperation() {
 
   if (!locations || locations.length === 0) {
     return (
-      <Page title="Hours of Operation">
+      <Page title="Locations">
         <Card>
           <EmptyState
             heading="No locations found"
@@ -316,7 +365,7 @@ export default function HoursOfOperation() {
   }
 
   return (
-    <Page title="Hours of Operation">
+    <Page title="Locations">
       <Card>
         <DataTable
           columnContentTypes={[
@@ -337,7 +386,7 @@ export default function HoursOfOperation() {
         />
       </Card>
       <FooterHelp>
-        Learn more about <a href="https://thesimplybookapp.com/docs/#hours-of-operation">SimplyBook hours of operation</a>.
+        Learn more about <a href="https://thesimplybookapp.com/docs/#locations">SimplyBook locations</a>.
       </FooterHelp>
     </Page>
   );
