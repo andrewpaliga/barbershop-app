@@ -16,7 +16,7 @@
     "shopify:info": "shopify app info"
   },
   "dependencies": {
-    "@gadget-client/barbershop": "link:.gadget/client",
+    "@gadget-client/simplybook": "link:.gadget/client",
     "@gadgetinc/react": "^0.21.1",
     "@gadgetinc/react-shopify-app-bridge": "^0.18.4",
     "@remix-run/node": "^2.15.3",

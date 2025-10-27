@@ -150,7 +150,7 @@ export default function Index() {
       title: "Enable POS extension",
       description: "Allow staff to manage bookings from Shopify POS",
       completed: config?.posExtensionUsed || false,
-      action: () => window.open("https://help.shopify.com/en/manual/pos", "_blank"),
+      action: () => window.open("https://thesimplybookapp.com/docs/#pos-integration", "_blank"),
       buttonText: "Setup POS"
     }
   ];

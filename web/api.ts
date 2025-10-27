@@ -1,5 +1,7 @@
-// Sets up the API client for interacting with your backend.
-// For your API reference, visit: https://docs.gadget.dev/api/barbershop
-import { Client } from "@gadget-client/barbershop";
+// Export the Client class for the GadgetProvider
+export { Client } from "@gadget-client/simplybook";
 
-export const api = new Client();
+// Create a basic API client instance for use in components
+// This instance will have session token authentication when used within the GadgetProvider context
+import { Client as GadgetClient } from "@gadget-client/simplybook";
+export const api = new GadgetClient();

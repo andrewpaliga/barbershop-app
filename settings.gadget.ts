@@ -8,7 +8,6 @@ export const settings: GadgetSettings = {
       shopify: {
         apiVersion: "2025-04",
         enabledModels: [
-          "shopifyCustomer",
           "shopifyLocation",
           "shopifyOrder",
           "shopifyOrderLineItem",
@@ -18,10 +17,12 @@ export const settings: GadgetSettings = {
         type: "partner",
         scopes: [
           "read_locations",
-          "write_customers",
           "write_inventory",
           "write_orders",
           "write_products",
+          "read_inventory",
+          "read_orders",
+          "read_products",
         ],
       },
     },

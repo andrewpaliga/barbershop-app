@@ -10,7 +10,7 @@ import { Provider as GadgetReactProvider } from "@gadgetinc/react";
 import "./app.css";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import { Suspense } from "react";
-import { api } from "./api";
+import { Client, api } from "./api";
 import { AdaptorLink } from "./components/AdaptorLink";
 import { FullPageSpinner } from "./components/FullPageSpinner";
 import { Component, ErrorInfo, ReactNode } from "react";
@@ -98,9 +98,9 @@ export default function App() {
     <GadgetProvider
       type={AppType.Embedded}
       shopifyApiKey={shopifyApiKey ?? ""}
-      api={api}
       location={location}
       shopifyInstallState={gadgetConfig?.shopifyInstallState}
+      api={api}
     >
       <GadgetReactProvider api={api}>
         <AppProvider i18n={enTranslations} linkComponent={AdaptorLink}>
