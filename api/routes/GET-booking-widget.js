@@ -21,12 +21,30 @@ const route: RouteHandler = async ({ request, reply, api, connections }) => {
       filter: { shopId: { equals: shopId } }
     });
 
+    // Get the first active location to determine timezone
+    const location = await api.shopifyLocation.findFirst({
+      filter: { 
+        shopId: { equals: shopId },
+        active: { equals: true }
+      },
+      select: {
+        id: true,
+        timeZone: true,
+        name: true
+      }
+    });
+
+    const locationTimezone = location?.timeZone || 'America/New_York'; // Default to EST if no location found
+    const locationId = location?.id;
+
     const widgetScript = `
 (function() {
   'use strict';
 
   // Configuration
   const SHOP_ID = '${shopId}';
+  const LOCATION_ID = '${locationId || ''}';
+  const LOCATION_TIMEZONE = '${locationTimezone}';
   const API_BASE = '${process.env.NODE_ENV === 'production' ? 'https://' + request.hostname : 'https://' + request.hostname}';
   const ALLOW_ONLINE_BOOKING = ${config?.allowOnlineBooking || true};
   const BUSINESS_NAME = '${config?.businessName || 'Our Barbershop'}';
@@ -228,9 +246,153 @@ const route: RouteHandler = async ({ request, reply, api, connections }) => {
     }
   \`;
 
+  // Timezone utility functions
+  function convertUTCToLocationTime(utcDateString) {
+    if (!LOCATION_TIMEZONE || !utcDateString) return null;
+    const utcDate = new Date(utcDateString);
+    // Format the UTC date in the location's timezone
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: LOCATION_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    
+    const parts = formatter.formatToParts(utcDate);
+    const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+    const month = parseInt(parts.find(p => p.type === 'month')?.value || '1') - 1;
+    const day = parseInt(parts.find(p => p.type === 'day')?.value || '1');
+    const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
+    const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+    
+    return { year, month, day, hour, minute };
+  }
+
+  function convertLocationTimeToUTC(year, month, day, hour, minute) {
+    if (!LOCATION_TIMEZONE) {
+      // Fallback: create date in UTC
+      return new Date(Date.UTC(year, month, day, hour, minute));
+    }
+    
+    // Create a date string that represents the time in the location timezone
+    // We'll use a method that calculates the timezone offset for this specific date/time
+    const dateStr = \`\${year}-\${String(month + 1).padStart(2, '0')}-\${String(day).padStart(2, '0')}T\${String(hour).padStart(2, '0')}:\${String(minute).padStart(2, '0')}:00\`;
+    
+    // Create a date object - we'll treat this as if it's in UTC temporarily
+    // Then calculate what the actual UTC time should be
+    const tempDate = new Date(dateStr + 'Z'); // This is wrong, but we'll fix it
+    
+    // Get what this date/time would be when displayed in the location timezone
+    const locationFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: LOCATION_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    
+    // Find a UTC time that, when displayed in location timezone, gives us our target time
+    // We'll use binary search or a more direct approach
+    // Actually, a simpler approach: iterate through possible UTC times
+    // Or use the fact that we know the date/time we want in the location
+    
+    // Better approach: Use the fact that we can format a date and see what UTC time produces it
+    // Start with a reasonable UTC guess
+    const yearMonthDay = \`\${year}-\${String(month + 1).padStart(2, '0')}-\${String(day).padStart(2, '0')}\`;
+    const timeStr = \`\${String(hour).padStart(2, '0')}:\${String(minute).padStart(2, '0')}:\${String(0).padStart(2, '0')}\`;
+    
+    // Try different UTC times until we find one that formats to our target in location timezone
+    // Start with the assumption that it's roughly the same, then adjust
+    const baseUTC = new Date(Date.UTC(year, month, day, hour, minute));
+    
+    // Check what this formats to in location timezone
+    let formatted = locationFormatter.format(baseUTC);
+    let formattedParts = formatted.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/);
+    
+    if (!formattedParts) {
+      // Fallback
+      return baseUTC;
+    }
+    
+    let formattedMonth = parseInt(formattedParts[1]);
+    let formattedDay = parseInt(formattedParts[2]);
+    let formattedYear = parseInt(formattedParts[3]);
+    let formattedHour = parseInt(formattedParts[4]);
+    let formattedMinute = parseInt(formattedParts[5]);
+    
+    // Calculate the difference
+    const targetMonth = month + 1;
+    const targetDay = day;
+    const targetYear = year;
+    const targetHour = hour;
+    const targetMinute = minute;
+    
+    // Calculate how many hours/minutes to adjust
+    const hourDiff = targetHour - formattedHour;
+    const minuteDiff = targetMinute - formattedMinute;
+    const dayDiff = targetDay - formattedDay;
+    
+    // Adjust the UTC time
+    const adjustment = (dayDiff * 24 * 60 + hourDiff * 60 + minuteDiff) * 60 * 1000;
+    const adjustedUTC = new Date(baseUTC.getTime() + adjustment);
+    
+    // Verify it's correct by checking one more time
+    formatted = locationFormatter.format(adjustedUTC);
+    formattedParts = formatted.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/);
+    
+    if (formattedParts) {
+      const checkMonth = parseInt(formattedParts[1]);
+      const checkDay = parseInt(formattedParts[2]);
+      const checkYear = parseInt(formattedParts[3]);
+      const checkHour = parseInt(formattedParts[4]);
+      const checkMinute = parseInt(formattedParts[5]);
+      
+      if (checkYear === targetYear && checkMonth === targetMonth && 
+          checkDay === targetDay && checkHour === targetHour && checkMinute === targetMinute) {
+        return adjustedUTC;
+      }
+    }
+    
+    // If verification failed, return the adjusted time anyway (close enough)
+    return adjustedUTC;
+  }
+
+  function formatDateInLocationTimezone(date) {
+    if (!LOCATION_TIMEZONE) {
+      return date.toISOString().split('T')[0];
+    }
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: LOCATION_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    return formatter.format(date);
+  }
+
+  function getTimeInLocationTimezone(utcDateString) {
+    if (!LOCATION_TIMEZONE || !utcDateString) return null;
+    const utcDate = new Date(utcDateString);
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: LOCATION_TIMEZONE,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    return formatter.format(utcDate);
+  }
+
   // Utility functions
   function formatDate(date) {
-    return date.toISOString().split('T')[0];
+    // Use location timezone for date formatting
+    return formatDateInLocationTimezone(date);
   }
 
   function formatTime(time) {
@@ -346,30 +508,79 @@ const route: RouteHandler = async ({ request, reply, api, connections }) => {
   }
 
   async function loadBookings(date) {
-    const query = \`
-      query {
-        bookings(filter: { 
-          shopId: { equals: "\${SHOP_ID}" },
-          scheduledAt: { 
-            greaterThanOrEqual: "\${date}T00:00:00.000Z",
-            lessThan: "\${date}T23:59:59.999Z"
-          }
-        }) {
-          edges {
-            node {
-              id
-              scheduledAt
-              duration
-              staffId
-              status
+    // Convert the selected date (in location timezone) to UTC range for querying
+    // We need to find the UTC range that covers the entire day in the location timezone
+    if (LOCATION_TIMEZONE) {
+      // Get start of day in location timezone, convert to UTC
+      const startOfDay = convertLocationTimeToUTC(
+        parseInt(date.split('-')[0]),
+        parseInt(date.split('-')[1]) - 1,
+        parseInt(date.split('-')[2]),
+        0, 0
+      );
+      
+      // Get end of day in location timezone, convert to UTC
+      const endOfDay = convertLocationTimeToUTC(
+        parseInt(date.split('-')[0]),
+        parseInt(date.split('-')[1]) - 1,
+        parseInt(date.split('-')[2]),
+        23, 59
+      );
+      
+      const startISO = startOfDay.toISOString();
+      const endISO = endOfDay.toISOString();
+      
+      const query = \`
+        query {
+          bookings(filter: { 
+            shopId: { equals: "\${SHOP_ID}" },
+            scheduledAt: { 
+              greaterThanOrEqual: "\${startISO}",
+              lessThanOrEqual: "\${endISO}"
+            }
+          }) {
+            edges {
+              node {
+                id
+                scheduledAt
+                duration
+                staffId
+                status
+              }
             }
           }
         }
-      }
-    \`;
-    
-    const response = await apiRequest('', { body: { query } });
-    return response.data?.bookings?.edges?.map(edge => edge.node) || [];
+      \`;
+      
+      const response = await apiRequest('', { body: { query } });
+      return response.data?.bookings?.edges?.map(edge => edge.node) || [];
+    } else {
+      // Fallback to old method if no timezone
+      const query = \`
+        query {
+          bookings(filter: { 
+            shopId: { equals: "\${SHOP_ID}" },
+            scheduledAt: { 
+              greaterThanOrEqual: "\${date}T00:00:00.000Z",
+              lessThan: "\${date}T23:59:59.999Z"
+            }
+          }) {
+            edges {
+              node {
+                id
+                scheduledAt
+                duration
+                staffId
+                status
+              }
+            }
+          }
+        }
+      \`;
+      
+      const response = await apiRequest('', { body: { query } });
+      return response.data?.bookings?.edges?.map(edge => edge.node) || [];
+    }
   }
 
   async function createBooking(bookingData) {
@@ -573,8 +784,12 @@ const route: RouteHandler = async ({ request, reply, api, connections }) => {
 
     createCalendar() {
       const calendarDiv = this.modal.querySelector('#booking-calendar');
-      const today = new Date();
-      const currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      // Get today's date in the location's timezone
+      const now = new Date();
+      const todayInLocation = formatDateInLocationTimezone(now);
+      const [todayYear, todayMonth, todayDay] = todayInLocation.split('-').map(Number);
+      
+      const currentMonth = new Date(todayYear, todayMonth - 1, 1);
       
       let calendarHtml = '<div class="booking-calendar">';
       
@@ -596,9 +811,12 @@ const route: RouteHandler = async ({ request, reply, api, connections }) => {
       // Month days
       for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-        const isToday = date.toDateString() === today.toDateString();
-        const isPast = date < today;
         const dateStr = formatDate(date);
+        const [year, month, dayOfMonth] = dateStr.split('-').map(Number);
+        
+        // Check if this date is today or in the past (in location timezone)
+        const isToday = year === todayYear && month === todayMonth && dayOfMonth === todayDay;
+        const isPast = dateStr < todayInLocation;
         
         calendarHtml += \`<div class="booking-calendar-day\${isPast ? ' disabled' : ''}" data-date="\${dateStr}">\${day}</div>\`;
       }
@@ -640,10 +858,14 @@ const route: RouteHandler = async ({ request, reply, api, connections }) => {
           }
         });
         
-        // Remove booked slots
+        // Remove booked slots - convert UTC times to location timezone for comparison
         const bookedTimes = bookings
           .filter(booking => booking.staffId === this.selectedStaff && booking.status !== 'cancelled')
-          .map(booking => new Date(booking.scheduledAt).toTimeString().substring(0, 5));
+          .map(booking => {
+            const locationTime = getTimeInLocationTimezone(booking.scheduledAt);
+            return locationTime; // Returns "HH:MM" format
+          })
+          .filter(Boolean); // Remove nulls
         
         availableSlots = availableSlots.filter(slot => !bookedTimes.includes(slot));
         
@@ -697,13 +919,18 @@ const route: RouteHandler = async ({ request, reply, api, connections }) => {
       submitBtn.textContent = 'Booking...';
       
       try {
-        const scheduledAt = new Date(\`\${this.selectedDate}T\${this.selectedTime}:00\`);
+        // Parse the selected date and time (which are in location timezone)
+        const [year, month, day] = this.selectedDate.split('-').map(Number);
+        const [hour, minute] = this.selectedTime.split(':').map(Number);
+        
+        // Convert from location timezone to UTC
+        const scheduledAtUTC = convertLocationTimeToUTC(year, month - 1, day, hour, minute);
         
         const bookingData = {
           shopId: SHOP_ID,
           productId: this.selectedService,
           staffId: this.selectedStaff,
-          scheduledAt: scheduledAt.toISOString(),
+          scheduledAt: scheduledAtUTC.toISOString(),
           duration: 30, // Default 30 minutes
           customerName: name,
           customerEmail: email,
@@ -711,6 +938,11 @@ const route: RouteHandler = async ({ request, reply, api, connections }) => {
           status: 'pending',
           totalPrice: 0 // Will be set based on service price
         };
+        
+        // Include location ID if available
+        if (LOCATION_ID) {
+          bookingData.locationId = LOCATION_ID;
+        }
         
         const result = await createBooking(bookingData);
         

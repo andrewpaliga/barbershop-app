@@ -29,35 +29,117 @@ export default function Locations() {
     },
   });
 
-  const [{ data: locationHours, fetching: hoursFetching, error: hoursError }] = useFindMany(api.locationHours, {
+  // Fetch location hours rules (recurring weekly hours)
+  const [{ data: locationHoursRules, fetching: rulesFetching, error: rulesError }] = useFindMany(api.locationHoursRule, {
     select: {
       id: true,
       locationId: true,
-      operatingHours: true,
-      holidayClosures: true,
+      weekday: true,
+      openTime: true,
+      closeTime: true,
+    },
+  });
+
+  // Fetch location hours exceptions (holidays, special hours)
+  const [{ data: locationHoursExceptions, fetching: exceptionsFetching, error: exceptionsError }] = useFindMany(api.locationHoursException, {
+    select: {
+      id: true,
+      locationId: true,
+      startDate: true,
+      endDate: true,
+      closedAllDay: true,
+      openTime: true,
+      closeTime: true,
+      reason: true,
     },
   });
   
-  // Debug: log all locationHours
-  React.useEffect(() => {
-    if (locationHours) {
-      console.log('All locationHours from API:', locationHours);
-    }
-  }, [locationHours]);
-
-  // Create a map of locationId to hours for easy lookup
+  // Combine rules and exceptions into a format similar to the old structure
   const hoursMap = useMemo(() => {
-    if (!locationHours) return new Map();
     const map = new Map();
-    locationHours.forEach((hours) => {
-      // For each location, store the most recent record
-      if (!map.has(hours.locationId)) {
-        map.set(hours.locationId, hours);
-      }
-    });
-    console.log('hoursMap:', Array.from(map.entries()));
+    
+    if (!locations) return map;
+
+    for (const location of locations) {
+      // Get rules for this location
+      const rules = locationHoursRules?.filter(r => r.locationId === location.id) || [];
+      
+      // Get exceptions for this location
+      const exceptions = locationHoursExceptions?.filter(e => e.locationId === location.id) || [];
+
+      // Convert rules to operatingHours format
+      const operatingHours = rulesToOperatingHours(rules);
+      
+      // Convert exceptions to holidayClosures format
+      const holidayClosures = exceptionsToHolidayClosures(exceptions);
+
+      map.set(location.id, {
+        operatingHours,
+        holidayClosures,
+      });
+    }
+
     return map;
-  }, [locationHours, locations]);
+  }, [locations, locationHoursRules, locationHoursExceptions]);
+
+  // Helper to convert rules to operatingHours JSON format
+  const rulesToOperatingHours = (rules: any[]) => {
+    if (rules.length === 0) {
+      return null;
+    }
+
+    const weekdaysToDay: Record<number, string> = {
+      0: "monday",
+      1: "tuesday",
+      2: "wednesday",
+      3: "thursday",
+      4: "friday",
+      5: "saturday",
+      6: "sunday",
+    };
+
+    const days: any = {};
+    
+    // Initialize all days as disabled
+    Object.values(weekdaysToDay).forEach(day => {
+      days[day] = { enabled: false, from: "09:00", to: "17:00" };
+    });
+
+    // Set enabled days from rules
+    for (const rule of rules) {
+      const dayName = weekdaysToDay[rule.weekday];
+      if (dayName && rule.openTime && rule.closeTime) {
+        days[dayName] = {
+          enabled: true,
+          from: rule.openTime,
+          to: rule.closeTime,
+        };
+      }
+    }
+
+    return { mode: "individual_days", days };
+  };
+
+  // Helper to convert exceptions to holidayClosures array
+  const exceptionsToHolidayClosures = (exceptions: any[]) => {
+    return exceptions.map(exception => {
+      const result: any = {
+        name: exception.reason || "Holiday closure",
+        date: exception.startDate,
+      };
+      
+      if (exception.endDate !== exception.startDate) {
+        result.endDate = exception.endDate;
+      }
+      
+      if (!exception.closedAllDay) {
+        result.openTime = exception.openTime;
+        result.closeTime = exception.closeTime;
+      }
+      
+      return result;
+    });
+  };
 
   // Helper function to get current time in a specific timezone
   const getCurrentTimeInTimezone = (timezone: string) => {
@@ -322,8 +404,8 @@ export default function Locations() {
     });
   }, [locations, hoursMap, navigate]);
 
-  const fetching = locationsFetching || hoursFetching;
-  const error = locationsError || hoursError;
+  const fetching = locationsFetching || rulesFetching || exceptionsFetching;
+  const error = locationsError || rulesError || exceptionsError;
 
   if (fetching) {
     return (

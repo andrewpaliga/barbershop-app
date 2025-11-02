@@ -1,109 +1,130 @@
 import { ActionOptions } from "gadget-server";
 
+/**
+ * This action migrates location hours from JSON storage to relational storage.
+ * It converts the old operatingHours JSON structure to locationHoursRule records
+ * and the old holidayClosures JSON structure to locationHoursException records.
+ */
 export const run: ActionRun = async ({ params, logger, api, connections }) => {
-  logger.info("Starting saveLocationHours action", { locationId: params.locationId });
-
-  // Validate required parameters
-  if (!params.locationId) {
-    throw new Error("locationId is required");
-  }
-
-  // Parse JSON string parameters
-  let operatingHours;
-  let holidayClosures;
-
-  try {
-    operatingHours = params.operatingHours ? JSON.parse(params.operatingHours) : {};
-  } catch (error) {
-    logger.error("Failed to parse operatingHours JSON", { operatingHours: params.operatingHours });
-    throw new Error("Invalid operatingHours JSON format");
-  }
-
-  try {
-    holidayClosures = params.holidayClosures ? JSON.parse(params.holidayClosures) : [];
-  } catch (error) {
-    logger.error("Failed to parse holidayClosures JSON", { holidayClosures: params.holidayClosures });
-    throw new Error("Invalid holidayClosures JSON format");
-  }
-
-  // Get shop ID from Shopify connection
   const shopId = connections.shopify.currentShopId;
   if (!shopId) {
     throw new Error("No shop found in current context");
   }
 
-  logger.info("Processing location hours", { 
-    locationId: params.locationId, 
-    shopId,
-    hasOperatingHours: !!operatingHours,
-    hasHolidayClosures: Array.isArray(holidayClosures) && holidayClosures.length > 0
+  logger.info("Starting migration of location hours to relational structure");
+
+  // Find all existing locationHours records
+  const locationHoursRecords = await api.locationHours.findMany({
+    filter: { shopId: { equals: shopId } },
+    select: {
+      id: true,
+      locationId: true,
+      operatingHours: true,
+      holidayClosures: true,
+      shopId: true,
+    },
   });
 
-  // Clear existing rules and exceptions for this location
-  const existingRules = await api.locationHoursRule.findMany({
-    filter: { locationId: { equals: params.locationId } }
-  });
-  const existingExceptions = await api.locationHoursException.findMany({
-    filter: { locationId: { equals: params.locationId } }
-  });
+  logger.info(`Found ${locationHoursRecords.length} location hours records to migrate`);
 
-  for (const rule of existingRules) {
-    await api.locationHoursRule.delete(rule.id);
+  let migratedCount = 0;
+  let rulesCreated = 0;
+  let exceptionsCreated = 0;
+  const results = [];
+
+  for (const locationHours of locationHoursRecords) {
+    try {
+      const locationId = locationHours.locationId;
+
+      // Parse JSON fields
+      let operatingHours;
+      let holidayClosures;
+
+      try {
+        operatingHours = typeof locationHours.operatingHours === 'string'
+          ? JSON.parse(locationHours.operatingHours)
+          : locationHours.operatingHours;
+      } catch (e) {
+        logger.warn(`Failed to parse operatingHours for location ${locationId}`);
+        continue;
+      }
+
+      try {
+        holidayClosures = typeof locationHours.holidayClosures === 'string'
+          ? JSON.parse(locationHours.holidayClosures)
+          : locationHours.holidayClosures;
+      } catch (e) {
+        logger.warn(`Failed to parse holidayClosures for location ${locationId}`);
+        holidayClosures = [];
+      }
+
+      // Convert operatingHours to locationHoursRule records
+      const rulesThisLocation = await migrateOperatingHours(
+        api,
+        shopId,
+        locationId,
+        operatingHours,
+        logger
+      );
+      rulesCreated += rulesThisLocation;
+
+      // Convert holidayClosures to locationHoursException records
+      const exceptionsThisLocation = await migrateHolidayClosures(
+        api,
+        shopId,
+        locationId,
+        holidayClosures,
+        logger
+      );
+      exceptionsCreated += exceptionsThisLocation;
+
+      migratedCount++;
+      results.push({
+        locationId,
+        rulesCreated: rulesThisLocation,
+        exceptionsCreated: exceptionsThisLocation,
+        status: "success",
+      });
+
+      logger.info(`Migrated location ${locationId}: ${rulesThisLocation} rules, ${exceptionsThisLocation} exceptions`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`Failed to migrate location ${locationHours.locationId}: ${errorMessage}`);
+      results.push({
+        locationId: locationHours.locationId,
+        status: "failed",
+        error: errorMessage,
+      });
+    }
   }
-  for (const exception of existingExceptions) {
-    await api.locationHoursException.delete(exception.id);
-  }
 
-  logger.info(`Cleared ${existingRules.length} existing rules and ${existingExceptions.length} exceptions`);
-
-  // Create new locationHoursRule records from operatingHours
-  const rulesCreated = await saveOperatingHours(
-    api,
-    shopId,
-    params.locationId,
-    operatingHours,
-    logger
-  );
-
-  // Create new locationHoursException records from holidayClosures
-  const exceptionsCreated = await saveHolidayClosures(
-    api,
-    shopId,
-    params.locationId,
-    holidayClosures,
-    logger
-  );
-
-  logger.info("Successfully saved location hours", { 
-    locationId: params.locationId,
+  const summary = {
+    totalLocations: locationHoursRecords.length,
+    locationsMigrated: migratedCount,
     rulesCreated,
-    exceptionsCreated
-  });
-
-  return {
-    success: true,
-    locationId: params.locationId,
-    shopId,
-    rulesCreated,
-    exceptionsCreated
+    exceptionsCreated,
+    results,
   };
+
+  logger.info(`Migration completed: ${migratedCount} locations migrated, ${rulesCreated} rules, ${exceptionsCreated} exceptions`);
+  return summary;
 };
 
 /**
- * Saves operating hours as locationHoursRule records
+ * Migrates operating hours JSON to locationHoursRule records
  */
-async function saveOperatingHours(
+async function migrateOperatingHours(
   api: any,
   shopId: string,
   locationId: string,
   operatingHours: any,
   logger: any
 ): Promise<number> {
+  let rulesCreated = 0;
+
   if (!operatingHours) {
     return 0;
   }
-
-  let rulesCreated = 0;
 
   // Handle different operating hours structures
   if (operatingHours.mode === "individual_days" && operatingHours.days) {
@@ -183,20 +204,20 @@ async function saveOperatingHours(
 }
 
 /**
- * Saves holiday closures as locationHoursException records
+ * Migrates holiday closures JSON to locationHoursException records
  */
-async function saveHolidayClosures(
+async function migrateHolidayClosures(
   api: any,
   shopId: string,
   locationId: string,
   holidayClosures: any[],
   logger: any
 ): Promise<number> {
+  let exceptionsCreated = 0;
+
   if (!Array.isArray(holidayClosures) || holidayClosures.length === 0) {
     return 0;
   }
-
-  let exceptionsCreated = 0;
 
   for (const closure of holidayClosures) {
     try {
@@ -207,12 +228,12 @@ async function saveHolidayClosures(
       if (typeof closure === "string") {
         // Old format: just a holiday name string
         reason = closure;
-        // For string-based closures, we'll skip (don't have actual dates)
+        // We don't have the actual date, so skip
         continue;
       } else {
         // Custom closure with date
         startDate = closure.date || closure.startDate;
-        endDate = closure.endDate || closure.date || startDate; // Single day closure if only date provided
+        endDate = closure.date || closure.endDate; // Single day closure
         reason = closure.name || closure.reason || "Holiday closure";
       }
 
@@ -241,11 +262,10 @@ async function saveHolidayClosures(
 }
 
 export const params = {
-  locationId: { type: "string" },
-  operatingHours: { type: "string" },
-  holidayClosures: { type: "string" }
+  dryRun: { type: "boolean", default: false },
 };
 
 export const options: ActionOptions = {
-  returnType: true
+  returnType: true,
 };
+
