@@ -176,7 +176,7 @@ function updateSelectedBarberInfo() {
   
   // Auto-select single professional if there's only one with availability
   const availableStaff = (bookingData && Array.isArray(bookingData.staff))
-    ? bookingData.staff.filter(function (s) { return s && hasStaffAvailabilityInNext3Months(s.id); })
+    ? bookingData.staff.filter(function (s) { return s && s.isActive === true && hasStaffAvailabilityInNext3Months(s.id, currentSelection.locationId); })
     : [];
   
   if (availableStaff.length === 1 && !currentSelection.staffId) {
@@ -297,7 +297,7 @@ function selectServiceFromMenuVariant(serviceId, variantId) {
   // If there's only one active professional, auto-select them for convenience
   try {
     const activeStaff = (bookingData && Array.isArray(bookingData.staff))
-      ? bookingData.staff.filter(function (s) { return s && s.isActive !== false; })
+      ? bookingData.staff.filter(function (s) { return s && s.isActive === true; })
       : [];
     if (activeStaff.length === 1) {
       currentSelection.staffId = activeStaff[0].id;
@@ -474,21 +474,159 @@ function createCalendarDay(date) {
   return dayElement;
 }
 
+// Helper to get location hours for a specific date
+function getLocationHoursForDate(date, locationId) {
+  if (!bookingData || !locationId) return null;
+  
+  const location = bookingData.locations?.find(loc => loc.id === locationId);
+  if (!location) return null;
+  
+  const dayOfWeek = getDayOfWeek(date);
+  const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+  
+  // Check for exceptions first (holidays, special hours)
+  if (bookingData.locationHoursExceptions) {
+    const exception = bookingData.locationHoursExceptions.find(ex => {
+      if (ex.locationId !== locationId) return false;
+      const startDate = new Date(ex.startDate).toISOString().split('T')[0];
+      const endDate = new Date(ex.endDate).toISOString().split('T')[0];
+      return dateStr >= startDate && dateStr <= endDate;
+    });
+    
+    if (exception) {
+      if (exception.closedAllDay) return null;
+      if (exception.openTime && exception.closeTime) {
+        return { startTime: exception.openTime, endTime: exception.closeTime };
+      }
+    }
+  }
+  
+  // Check for location hours rules
+  if (bookingData.locationHoursRules) {
+    // Match the weekday numbering used in saveLocationHours.ts:
+    // monday: 0, tuesday: 1, wednesday: 2, thursday: 3, friday: 4, saturday: 5, sunday: 6
+    const weekdayMap = { monday: 0, tuesday: 1, wednesday: 2, thursday: 3, friday: 4, saturday: 5, sunday: 6 };
+    const weekdayNum = weekdayMap[dayOfWeek];
+    
+    const matchingRules = bookingData.locationHoursRules.filter(r => {
+      // Compare location IDs as strings to handle both string and number formats
+      const ruleLocationId = String(r.locationId);
+      const targetLocationId = String(locationId);
+      if (ruleLocationId !== targetLocationId || r.weekday !== weekdayNum) return false;
+      const now = new Date();
+      const validFrom = r.validFrom ? new Date(r.validFrom) : null;
+      const validTo = r.validTo ? new Date(r.validTo) : null;
+      if (validFrom && now < validFrom) return false;
+      if (validTo && now > validTo) return false;
+      return true;
+    });
+    
+    console.log(`[getLocationHoursForDate] Checking rules for ${dayOfWeek} (weekday ${weekdayNum}) at location ${locationId}:`, {
+      allRulesForLocation: bookingData.locationHoursRules.filter(r => r.locationId === locationId),
+      matchingRules: matchingRules
+    });
+    
+    if (matchingRules.length > 0) {
+      // Use the most recent rule (highest validFrom date, or first if no validFrom)
+      const rule = matchingRules.sort((a, b) => {
+        const aFrom = a.validFrom ? new Date(a.validFrom).getTime() : 0;
+        const bFrom = b.validFrom ? new Date(b.validFrom).getTime() : 0;
+        return bFrom - aFrom;
+      })[0];
+      
+      if (rule && rule.openTime && rule.closeTime) {
+        console.log(`[getLocationHoursForDate] Using rule for ${dayOfWeek} at location ${locationId}:`, {
+          openTime: rule.openTime,
+          closeTime: rule.closeTime,
+          weekday: rule.weekday,
+          ruleId: rule.id,
+          validFrom: rule.validFrom,
+          validTo: rule.validTo
+        });
+        return { startTime: rule.openTime, endTime: rule.closeTime };
+      }
+    } else {
+      console.log(`[getLocationHoursForDate] No matching rules found for ${dayOfWeek} (weekday ${weekdayNum}) at location ${locationId}, falling back to legacy operatingHours`);
+    }
+  }
+  
+  // Fallback to legacy operatingHours from location
+  if (location.operatingHours) {
+    let operatingHours = location.operatingHours;
+    if (typeof operatingHours === 'string') {
+      try {
+        operatingHours = JSON.parse(operatingHours);
+      } catch (e) {
+        return null;
+      }
+    }
+    
+    // Handle different formats
+    if (operatingHours.mode === 'individual_days' && operatingHours.days) {
+      const dayHours = operatingHours.days[dayOfWeek];
+      if (dayHours && dayHours.enabled) {
+        return { startTime: dayHours.from, endTime: dayHours.to };
+      }
+    } else if (operatingHours.mode === 'weekdays_weekends') {
+      const isWeekend = dayOfWeek === 'saturday' || dayOfWeek === 'sunday';
+      const hours = isWeekend ? operatingHours.weekends : operatingHours.weekdays;
+      if (hours && hours.enabled) {
+        return { startTime: hours.from, endTime: hours.to };
+      }
+    } else if (operatingHours[dayOfWeek]) {
+      // Legacy format: { monday: { isOpen: true, startTime: "09:00", endTime: "18:00" } }
+      const dayHours = operatingHours[dayOfWeek];
+      if (dayHours && (dayHours.isOpen || dayHours.enabled)) {
+        return { 
+          startTime: dayHours.startTime || dayHours.from || '09:00',
+          endTime: dayHours.endTime || dayHours.to || '17:00'
+        };
+      }
+    }
+  }
+  
+  return null;
+}
+
 function generateTimeSlots(date) {
   if (!currentSelection.serviceId || !currentSelection.locationId || !bookingData) {
+    console.log('[generateTimeSlots] Missing required data:', {
+      serviceId: currentSelection.serviceId,
+      locationId: currentSelection.locationId,
+      hasBookingData: !!bookingData
+    });
     return [];
   }
   
   const qualifiedStaff = getQualifiedStaffForService(currentSelection.serviceId);
   if (qualifiedStaff.length === 0) {
+    console.log('[generateTimeSlots] No qualified staff found');
     return [];
   }
   
   const dayOfWeek = getDayOfWeek(date);
   const aggregatedSlots = new Set();
   
-  // Generate time slots for the given date
+  // Get location hours for this date
+  const locationHours = getLocationHoursForDate(date, currentSelection.locationId);
+  const locationStartTime = locationHours ? parseTime(locationHours.startTime) : null;
+  const locationEndTime = locationHours ? parseTime(locationHours.endTime) : null;
   
+  console.log('[generateTimeSlots] Debug info:', {
+    date: date.toISOString().split('T')[0],
+    dayOfWeek,
+    locationId: currentSelection.locationId,
+    qualifiedStaffCount: qualifiedStaff.length,
+    qualifiedStaffIds: qualifiedStaff,
+    hasLocationHours: !!locationHours,
+    locationHours: locationHours,
+    locationStartTime,
+    locationEndTime,
+    locationStartTimeFormatted: locationStartTime !== null ? formatTime(locationStartTime) : null,
+    locationEndTimeFormatted: locationEndTime !== null ? formatTime(locationEndTime) : null
+  });
+  
+  // Generate time slots for the given date
   qualifiedStaff.forEach(staffId => {
     // First, try to find specific date availability for the exact date being checked
     const dateAvailability = bookingData.staffDateAvailability.find(avail => {
@@ -517,28 +655,71 @@ function generateTimeSlots(date) {
       avail.staffId === staffId &&
       (avail.locationId === currentSelection.locationId || !avail.locationId) &&
       avail.dayOfWeek && Array.isArray(avail.dayOfWeek) && avail.dayOfWeek.includes(dayOfWeek) &&
-      avail.isAvailable
+      (avail.isAvailable !== false)
     );
     
-    // Use specific date availability if available, otherwise fall back to weekly availability
-    const availability = dateAvailability || staffAvailability;
+    console.log(`[generateTimeSlots] Staff ${staffId}:`, {
+      hasDateAvailability: !!dateAvailability,
+      dateAvailability: dateAvailability,
+      hasStaffAvailability: !!staffAvailability,
+      staffAvailability: staffAvailability,
+      allStaffAvailability: bookingData.staffAvailability.filter(a => a.staffId === staffId)
+    });
     
     // Use specific date availability if available, otherwise fall back to weekly availability
+    let availability = dateAvailability || staffAvailability;
     
-    if (availability) {
-      const startTime = parseTime(availability.startTime);
-      const endTime = parseTime(availability.endTime);
-      const timeSlotInterval = bookingData.timeSlotInterval || 30;
-      
-      // Generate time slots that align with the interval
-      for (let minutes = startTime; minutes < endTime; minutes += timeSlotInterval) {
-        const time = formatTime(minutes);
-        aggregatedSlots.add(time);
-      }
+    const hasDefinedAvailability = staffHasDefinedAvailability(staffId, currentSelection.locationId);
+    const noLocationSelected = !currentSelection.locationId;
+
+    if (!availability && locationHours && (noLocationSelected || !hasDefinedAvailability)) {
+      console.log(`[generateTimeSlots] Staff ${staffId}: Using location hours as fallback`);
+      availability = { startTime: locationHours.startTime, endTime: locationHours.endTime };
     }
+    
+    // If we still don't have availability, skip this staff member
+    if (!availability) {
+      console.log(`[generateTimeSlots] Staff ${staffId}: No availability found, skipping`);
+      return; // Continue to next staff member
+    }
+    
+    let startTime = parseTime(availability.startTime);
+    let endTime = parseTime(availability.endTime);
+    
+    // Always constrain to location hours if they exist (even if we have staff availability)
+    if (locationStartTime !== null && startTime < locationStartTime) {
+      console.log(`[generateTimeSlots] Staff ${staffId}: Constraining startTime from ${formatTime(startTime)} to ${formatTime(locationStartTime)}`);
+      startTime = locationStartTime;
+    }
+    if (locationEndTime !== null && endTime > locationEndTime) {
+      console.log(`[generateTimeSlots] Staff ${staffId}: Constraining endTime from ${formatTime(endTime)} to ${formatTime(locationEndTime)}`);
+      endTime = locationEndTime;
+    }
+    
+    // Only generate slots if we have a valid time range
+    if (startTime >= endTime) {
+      console.log(`[generateTimeSlots] Staff ${staffId}: Invalid time range (startTime ${formatTime(startTime)} >= endTime ${formatTime(endTime)}), skipping`);
+      return; // Skip if invalid time range
+    }
+    
+    const timeSlotInterval = bookingData.timeSlotInterval || 30;
+    
+    console.log(`[generateTimeSlots] Staff ${staffId}: Generating slots from ${formatTime(startTime)} to ${formatTime(endTime)}, interval: ${timeSlotInterval} minutes`);
+    
+    // Generate time slots that align with the interval
+    // Note: The loop condition is < endTime, so we generate slots up to but not including the end time
+    // This means if endTime is 4 PM (960 minutes), the last slot will be 3:30 PM (930 minutes) with a 30-minute interval
+    const generatedSlots = [];
+    for (let minutes = startTime; minutes < endTime; minutes += timeSlotInterval) {
+      const time = formatTime(minutes);
+      generatedSlots.push(time);
+      aggregatedSlots.add(time);
+    }
+    console.log(`[generateTimeSlots] Staff ${staffId}: Generated ${generatedSlots.length} slots:`, generatedSlots);
   });
   
   const sortedSlots = Array.from(aggregatedSlots).sort();
+  console.log('[generateTimeSlots] Final slots:', sortedSlots);
   return sortedSlots;
 }
 
@@ -549,8 +730,27 @@ function getDayOfWeek(date) {
 
 function parseTime(timeString) {
   if (!timeString) return 0;
+  
+  // Handle 12-hour format (e.g., "1:00 PM" or "1:00PM")
+  const trimmed = timeString.trim().toUpperCase();
+  const hasAM = trimmed.includes('AM');
+  const hasPM = trimmed.includes('PM');
+  
+  if (hasAM || hasPM) {
+    const timePart = trimmed.replace(/\s*(AM|PM)/, '');
+    const [hours, minutes] = timePart.split(':').map(Number);
+    let hour24 = hours;
+    if (hasPM && hours !== 12) {
+      hour24 = hours + 12;
+    } else if (hasAM && hours === 12) {
+      hour24 = 0;
+    }
+    return hour24 * 60 + (minutes || 0);
+  }
+  
+  // Handle 24-hour format (e.g., "13:00" or "1:00")
   const [hours, minutes] = timeString.split(':').map(Number);
-  return hours * 60 + minutes;
+  return hours * 60 + (minutes || 0);
 }
 
 function formatTime(minutes) {
@@ -617,6 +817,9 @@ function isTimeSlotAvailableForStaff(time, date, staffId) {
 
   const dayOfWeek = getDayOfWeek(date);
   
+  // Get location hours for this date as fallback
+  const locationHours = getLocationHoursForDate(date, currentSelection.locationId);
+  
   // First, try to find specific date availability for the exact date being checked
   const dateAvailability = bookingData.staffDateAvailability.find(avail => {
     if (avail.staffId !== staffId || (avail.locationId && avail.locationId !== currentSelection.locationId)) {
@@ -647,13 +850,21 @@ function isTimeSlotAvailableForStaff(time, date, staffId) {
     avail.staffId === staffId &&
     (avail.locationId === currentSelection.locationId || !avail.locationId) &&
     avail.dayOfWeek && avail.dayOfWeek.includes(dayOfWeek) &&
-    avail.isAvailable
+    (avail.isAvailable !== false)
   );
   
   // Use specific date availability if available, otherwise fall back to weekly availability
-  const availability = dateAvailability || staffAvailability;
+  let availability = dateAvailability || staffAvailability;
   
-  if (!availability || !availability.isAvailable) {
+  const hasDefinedAvailability = staffHasDefinedAvailability(staffId, currentSelection.locationId);
+  const noLocationSelected = !currentSelection.locationId;
+
+  if (!availability && locationHours && (noLocationSelected || !hasDefinedAvailability)) {
+    console.log(`[generateTimeSlots] Staff ${staffId}: Using location hours as fallback`);
+    availability = { startTime: locationHours.startTime, endTime: locationHours.endTime };
+  }
+  
+  if (!availability || (availability.isAvailable !== undefined && availability.isAvailable === false)) {
     return false;
   }
   
@@ -685,23 +896,77 @@ function getServiceDuration() {
   return (variant && variant.duration) ? variant.duration : (bookingData.timeSlotInterval || 60);
 }
 
+function staffHasAvailabilityForLocation(staffId, locationId) {
+  if (!locationId) {
+    return true;
+  }
+  
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const threeMonthsFromNow = new Date(todayStart.getTime() + (90 * 24 * 60 * 60 * 1000));
+  
+  const hasWeekly = Array.isArray(bookingData?.staffAvailability) && bookingData.staffAvailability.some(avail =>
+    avail.staffId === staffId &&
+    avail.locationId === locationId &&
+    (avail.isAvailable !== false) &&
+    avail.dayOfWeek && Array.isArray(avail.dayOfWeek) && avail.dayOfWeek.length > 0
+  );
+  
+  if (hasWeekly) {
+    return true;
+  }
+  
+  const hasDateAvailability = Array.isArray(bookingData?.staffDateAvailability) && bookingData.staffDateAvailability.some(dateAvail => {
+    if (dateAvail.staffId !== staffId || dateAvail.locationId !== locationId || dateAvail.isAvailable === false) {
+      return false;
+    }
+    
+    const availDate = new Date(dateAvail.date);
+    const availDateLocal = new Date(
+      availDate.getUTCFullYear(),
+      availDate.getUTCMonth(),
+      availDate.getUTCDate()
+    );
+    return availDateLocal >= todayStart && availDateLocal <= threeMonthsFromNow;
+  });
+  
+  return hasDateAvailability;
+}
+
 function getQualifiedStaffForService(serviceId) {
   if (!bookingData || !bookingData.staff || !Array.isArray(bookingData.staff)) {
+    console.log('[getQualifiedStaffForService] No booking data or staff array');
     return [];
   }
   
+  console.log('[getQualifiedStaffForService] All staff:', bookingData.staff.map(s => ({
+    id: s.id,
+    name: s.name,
+    isActive: s.isActive
+  })));
+  
   if (currentSelection.staffId) {
     const selectedStaff = bookingData.staff.find(staff => staff.id === currentSelection.staffId);
-    if (selectedStaff && selectedStaff.isActive !== false) {
+    if (
+      selectedStaff &&
+      (selectedStaff.isActive === true || selectedStaff.isActive === undefined) &&
+      staffHasAvailabilityForLocation(selectedStaff.id, currentSelection.locationId)
+    ) {
+      console.log('[getQualifiedStaffForService] Selected staff found:', selectedStaff.id);
       return [selectedStaff.id];
     } else {
+      console.log('[getQualifiedStaffForService] Selected staff not found, inactive, or unavailable at location:', currentSelection.staffId);
       return [];
     }
   }
   
+  // Since API already filters for active staff, treat undefined as active but require location availability
   const filteredStaff = bookingData.staff.filter(staff => {
-    return staff.isActive !== false;
+    const isActive = staff.isActive === true || staff.isActive === undefined;
+    return isActive && staffHasAvailabilityForLocation(staff.id, currentSelection.locationId);
   });
+  
+  console.log('[getQualifiedStaffForService] Filtered staff count:', filteredStaff.length, filteredStaff.map(s => s.id));
   
   return filteredStaff.map(staff => staff.id);
 }
@@ -961,18 +1226,52 @@ async function confirmBooking() {
     const variant = service?.variants.find(v => v.id === currentSelection.variantId);
     const notes = document.getElementById('notes').value;
     
+    // Get the selected location's timezone
+    const locationTimezone = location?.timeZone || 'America/New_York';
+    
+    // Parse the selected date and time
     const selectedDate = new Date(currentSelection.selectedDate);
     const [timeHours, timeMinutes] = currentSelection.selectedTime.split(':').map(Number);
     
-    const scheduledAt = new Date(
-      selectedDate.getFullYear(),
-      selectedDate.getMonth(),
-      selectedDate.getDate(),
-      timeHours,
-      timeMinutes,
-      0,
-      0
-    );
+    // Convert the selected time (in location timezone) to UTC
+    // Create a date string in ISO format for the location timezone
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth() + 1;
+    const day = selectedDate.getDate();
+    
+    // Create a date string representing the local time in the location's timezone
+    const dateTimeStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(timeHours).padStart(2, '0')}:${String(timeMinutes).padStart(2, '0')}:00`;
+    
+    // Use Intl.DateTimeFormat to convert from location timezone to UTC
+    // We'll find the UTC time that produces our target time in the location timezone
+    let scheduledAtUTC = null;
+    
+    // Try different UTC hours until we find one that formats to our target in location timezone
+    for (let utcHour = 0; utcHour < 24; utcHour++) {
+      const testUTC = new Date(Date.UTC(year, month - 1, day, utcHour, timeMinutes, 0));
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: locationTimezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+      const formatted = formatter.format(testUTC);
+      if (formatted === `${String(timeHours).padStart(2, '0')}:${String(timeMinutes).padStart(2, '0')}`) {
+        scheduledAtUTC = testUTC;
+        break;
+      }
+    }
+    
+    // Fallback: if we couldn't find a match, estimate based on common timezone offsets
+    if (!scheduledAtUTC) {
+      // For Pacific Time (UTC-8 in winter, UTC-7 in summer), add hours
+      // For Eastern Time (UTC-5 in winter, UTC-4 in summer), add hours
+      const offsetHours = locationTimezone.includes('Los_Angeles') ? 8 : 
+                          locationTimezone.includes('New_York') ? 5 : 5; // Default to EST
+      scheduledAtUTC = new Date(Date.UTC(year, month - 1, day, timeHours + offsetHours, timeMinutes, 0));
+    }
+    
+    const scheduledAt = scheduledAtUTC;
     
     const shopifyVariantId = variant.shopifyVariantId || variant.variantId;
     
@@ -1082,62 +1381,64 @@ function formatTime12Hour(timeString) {
   }
 }
 
-function hasStaffAvailabilityInNext3Months(staffId) {
-  if (!bookingData || !bookingData.staffAvailability || !bookingData.locations) {
+function hasStaffAvailabilityInNext3Months(staffId, locationId) {
+  if (!bookingData) {
+    return false;
+  }
+  
+  const targetLocationId = locationId || currentSelection.locationId;
+  if (!targetLocationId) {
     return false;
   }
   
   const today = new Date();
-  const threeMonthsFromNow = new Date(today.getTime() + (90 * 24 * 60 * 60 * 1000));
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const threeMonthsFromNow = new Date(todayStart.getTime() + (90 * 24 * 60 * 60 * 1000));
   
-  const hasRegularAvailability = bookingData.staffAvailability.some(avail => 
-    avail.staffId === staffId && 
-    avail.isAvailable &&
-    avail.dayOfWeek && 
-    Array.isArray(avail.dayOfWeek) && 
-    avail.dayOfWeek.length > 0
+  const hasWeeklyAvailability = Array.isArray(bookingData.staffAvailability) && bookingData.staffAvailability.some(avail =>
+    avail.staffId === staffId &&
+    avail.locationId === targetLocationId &&
+    (avail.isAvailable !== false) &&
+    avail.dayOfWeek && Array.isArray(avail.dayOfWeek) && avail.dayOfWeek.length > 0
   );
   
-  if (!hasRegularAvailability) {
-    if (bookingData.staffDateAvailability) {
-      return bookingData.staffDateAvailability.some(dateAvail => {
-        if (dateAvail.staffId !== staffId || !dateAvail.isAvailable) {
-          return false;
-        }
-        
-        const availDate = new Date(dateAvail.date);
-        const availDateLocal = new Date(
-          availDate.getUTCFullYear(),
-          availDate.getUTCMonth(),
-          availDate.getUTCDate()
-        );
-        return availDateLocal >= today && availDateLocal <= threeMonthsFromNow;
-      });
-    }
-    return false;
+  if (hasWeeklyAvailability) {
+    return true;
   }
   
-  if (bookingData.staffDateAvailability) {
-    const unavailableDays = bookingData.staffDateAvailability.filter(dateAvail => {
-      if (dateAvail.staffId !== staffId || dateAvail.isAvailable) {
-        return false;
-      }
-      
-      const availDate = new Date(dateAvail.date);
-      const availDateLocal = new Date(
-        availDate.getUTCFullYear(),
-        availDate.getUTCMonth(),
-        availDate.getUTCDate()
-      );
-      return availDateLocal >= today && availDateLocal <= threeMonthsFromNow;
-    }).length;
-    
-    if (unavailableDays > 80) {
+  const hasDateAvailability = Array.isArray(bookingData.staffDateAvailability) && bookingData.staffDateAvailability.some(dateAvail => {
+    if (dateAvail.staffId !== staffId || dateAvail.locationId !== targetLocationId || dateAvail.isAvailable === false) {
       return false;
     }
-  }
+    
+    const availDate = new Date(dateAvail.date);
+    const availDateLocal = new Date(
+      availDate.getUTCFullYear(),
+      availDate.getUTCMonth(),
+      availDate.getUTCDate()
+    );
+    return availDateLocal >= todayStart && availDateLocal <= threeMonthsFromNow;
+  });
   
-  return true;
+  return hasDateAvailability;
+}
+
+function staffHasDefinedAvailability(staffId, locationId) {
+  const hasWeekly = Array.isArray(bookingData?.staffAvailability) && bookingData.staffAvailability.some(avail =>
+    avail.staffId === staffId &&
+    (avail.locationId === locationId || !avail.locationId)
+  );
+
+  if (hasWeekly) {
+    return true;
+  }
+
+  const hasDate = Array.isArray(bookingData?.staffDateAvailability) && bookingData.staffDateAvailability.some(avail =>
+    avail.staffId === staffId &&
+    (avail.locationId === locationId || !avail.locationId)
+  );
+
+  return hasDate;
 }
 
 function selectService(serviceId, variantId) {
@@ -1218,7 +1519,7 @@ async function openBookingModal() {
     // If there's only one active professional, reflect that selection in the sidebar
     try {
       const activeStaff = (bookingData && Array.isArray(bookingData.staff))
-        ? bookingData.staff.filter(function (s) { return s && s.isActive !== false; })
+        ? bookingData.staff.filter(function (s) { return s && s.isActive === true; })
         : [];
       if (activeStaff.length === 1) {
         currentSelection.staffId = activeStaff[0].id;
@@ -1484,7 +1785,7 @@ function populateStaffButtons() {
   }
   
   const availableStaff = bookingData.staff.filter(staff => {
-    return hasStaffAvailabilityInNext3Months(staff.id);
+    return staff.isActive === true && hasStaffAvailabilityInNext3Months(staff.id, currentSelection.locationId);
   });
   
   // Quick check: hide professional section if only 1 staff has availability

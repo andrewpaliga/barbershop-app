@@ -936,7 +936,8 @@ const route: RouteHandler = async ({ request, reply, api, connections }) => {
           customerEmail: email,
           notes: notes || null,
           status: 'pending',
-          totalPrice: 0 // Will be set based on service price
+          totalPrice: 0, // Will be set based on service price
+          locationTimeZone: LOCATION_TIMEZONE // Store timezone explicitly
         };
         
         // Include location ID if available

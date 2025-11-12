@@ -43,6 +43,18 @@ export const permissions: GadgetPermissions = {
             update: true,
           },
         },
+        locationHoursException: {
+          read: {
+            filter:
+              "accessControl/filters/shopify/locationHoursException.gelly",
+          },
+        },
+        locationHoursRule: {
+          read: {
+            filter:
+              "accessControl/filters/shopify/locationHoursRule.gelly",
+          },
+        },
         shopifyCustomer: {
           read: {
             filter:

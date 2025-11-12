@@ -30,6 +30,9 @@ import {
 import { useFindMany, useAction } from "@gadgetinc/react";
 import { api } from "../api";
 
+const useFindManyAny: any = useFindMany;
+const useActionAny: any = useAction;
+
 // Helper function to get start of week (Sunday)
 const getWeekStart = (date: Date) => {
   const d = new Date(date);
@@ -43,6 +46,46 @@ const formatTime = (hour: number, minute: number) => {
   const period = hour >= 12 ? "PM" : "AM";
   const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
   return `${displayHour}:${minute.toString().padStart(2, "0")} ${period}`;
+};
+
+const getTimezoneCode = (ianaTimezone: string | null | undefined): string => {
+  if (!ianaTimezone) return "EST";
+
+  try {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: ianaTimezone,
+      timeZoneName: "short",
+    });
+
+    const parts = formatter.formatToParts(now);
+    const tzName = parts.find((part) => part.type === "timeZoneName")?.value;
+    if (tzName) {
+      return tzName;
+    }
+  } catch (error) {
+    // Fallback to mapping if Intl fails
+  }
+
+  const timezoneMap: Record<string, string> = {
+    "America/New_York": "EST",
+    "America/Chicago": "CST",
+    "America/Denver": "MST",
+    "America/Los_Angeles": "PST",
+    "America/Phoenix": "MST",
+    "America/Anchorage": "AKST",
+    "Pacific/Honolulu": "HST",
+    "America/Toronto": "EST",
+    "America/Vancouver": "PST",
+    "Europe/London": "GMT",
+    "Europe/Paris": "CET",
+    "Asia/Shanghai": "CST",
+    "Asia/Tokyo": "JST",
+    "Australia/Sydney": "AEST",
+    UTC: "UTC",
+  };
+
+  return timezoneMap[ianaTimezone] || "EST";
 };
 
 // Helper function to extract duration from variant title
@@ -59,6 +102,55 @@ const generateTimeSlots = () => {
     slots.push({ hour, minute: 30 });
   }
   return slots;
+};
+
+const formatDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const formatDateTimeInTimezone = (
+  utcDate: Date,
+  timezone?: string | null,
+  options?: { includeSeconds?: boolean; hour12?: boolean }
+): string => {
+  const timeOptions: Intl.DateTimeFormatOptions = {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: options?.hour12 ?? true,
+  };
+
+  if (options?.includeSeconds) {
+    timeOptions.second = "2-digit";
+  }
+
+  if (!timezone) {
+    return `${utcDate.toLocaleDateString()} at ${utcDate.toLocaleTimeString([], timeOptions)}`;
+  }
+
+  const dateFormatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  });
+
+  const timeFormatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    ...timeOptions,
+  });
+
+  return `${dateFormatter.format(utcDate)} at ${timeFormatter.format(utcDate)}`;
+};
+
+type ProcessedBooking = {
+  original: any;
+  dayKey: string;
+  startMinutes: number;
+  endMinutes: number;
+  duration: number;
 };
 
 // Get booking status color
@@ -168,6 +260,8 @@ export default function SchedulePage() {
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
+  const timeSlots = useMemo(() => generateTimeSlots(), []);
+
   // Set mounted flag after component mounts on client
   useEffect(() => {
     setMounted(true);
@@ -209,7 +303,7 @@ export default function SchedulePage() {
   weekEnd.setDate(weekEnd.getDate() + 7);
   weekEnd.setHours(23, 59, 59, 999);
 
-  const [{ data: bookings, fetching: fetchingBookings, error: bookingsError }, refetchBookings] = useFindMany(api.booking, {
+  const [{ data: bookings, fetching: fetchingBookings, error: bookingsError }, refetchBookings] = useFindManyAny(api.booking, {
     filter: {
       scheduledAt: {
         greaterThanOrEqual: weekStart.toISOString(),
@@ -270,18 +364,20 @@ export default function SchedulePage() {
       },
     },
   });
+  const bookingsList = useMemo(() => (bookings ?? []) as any[], [bookings]);
 
   // Fetch staff for filters
-  const [{ data: staff }] = useFindMany(api.staff, {
+  const [{ data: staff }] = useFindManyAny(api.staff, {
     filter: { isActive: { equals: true } },
     select: {
       id: true,
       name: true,
     },
   });
+  const staffList = useMemo(() => (staff ?? []) as any[], [staff]);
 
   // Fetch services (products with productType "Service")
-  const [{ data: services }] = useFindMany(api.shopifyProduct, {
+  const [{ data: services }] = useFindManyAny(api.shopifyProduct, {
     filter: { 
       productType: { 
         in: ["Service", "service", "SERVICE"] 
@@ -301,9 +397,10 @@ export default function SchedulePage() {
       },
     },
   });
+  const servicesList = useMemo(() => (services ?? []) as any[], [services]);
 
   // Fetch locations
-  const [{ data: locations }] = useFindMany(api.shopifyLocation, {
+  const [{ data: locations }] = useFindManyAny(api.shopifyLocation, {
     filter: { 
       active: { equals: true },
       offersServices: { equals: true }
@@ -316,9 +413,10 @@ export default function SchedulePage() {
       timeZone: true,
     },
   });
+  const locationsList = useMemo(() => (locations ?? []) as any[], [locations]);
 
   // Fetch customers
-  const [{ data: customers, error: customersError, fetching: fetchingCustomers }] = useFindMany(api.shopifyCustomer, {
+  const [{ data: customers, error: customersError, fetching: fetchingCustomers }] = useFindManyAny(api.shopifyCustomer, {
     select: {
       id: true,
       firstName: true,
@@ -328,17 +426,96 @@ export default function SchedulePage() {
     },
     search: customerSearch
   });
-
-
+  const customersList = useMemo(() => (customers ?? []) as any[], [customers]);
 
   // Create booking action
-  const [{ fetching: creatingBooking }, createBooking] = useAction(api.booking.create);
+  const [{ fetching: creatingBooking }, createBooking] = useActionAny(api.booking.create);
   
   // Update booking action
-  const [{ fetching: updatingBooking }, updateBooking] = useAction(api.booking.update);
+  const [{ fetching: updatingBooking }, updateBooking] = useActionAny(api.booking.update);
   
   // Delete booking action
-  const [{ fetching: deletingBooking }, deleteBooking] = useAction(api.booking.delete);
+  const [{ fetching: deletingBooking }, deleteBooking] = useActionAny(api.booking.delete);
+
+  const locationMap = useMemo(() => {
+    const map = new Map<string, any>();
+    locationsList.forEach((location: any) => {
+      if (location?.id) {
+        map.set(location.id, location);
+      }
+    });
+    return map;
+  }, [locationsList]);
+
+  const scheduleTimezone = useMemo(() => {
+    if (selectedLocationId) {
+      const selectedLocation = locationMap.get(selectedLocationId);
+      if (selectedLocation?.timeZone) {
+        return selectedLocation.timeZone;
+      }
+    }
+    return locationsList[0]?.timeZone || "America/New_York";
+  }, [selectedLocationId, locationMap, locationsList]);
+ 
+  const processedBookings = useMemo(() => {
+    if (!bookingsList.length) return [] as ProcessedBooking[];
+
+    return bookingsList
+      .filter((booking) => booking?.scheduledAt)
+      .map((booking) => {
+        const startDateInScheduleTz = convertUTCToLocationTime(new Date(booking.scheduledAt), scheduleTimezone);
+        const dayKey = formatDateKey(startDateInScheduleTz);
+        const startMinutes = startDateInScheduleTz.getHours() * 60 + startDateInScheduleTz.getMinutes();
+        const duration = booking.duration || 60;
+        const endMinutes = startMinutes + duration;
+
+        return {
+          original: booking,
+          dayKey,
+          startMinutes,
+          endMinutes,
+          duration,
+        } as ProcessedBooking;
+      });
+  }, [bookingsList, scheduleTimezone]);
+
+  const bookingsByDayStart = useMemo(() => {
+    const map = new Map<string, Map<number, ProcessedBooking[]>>();
+    processedBookings.forEach((entry) => {
+      let dayMap = map.get(entry.dayKey);
+      if (!dayMap) {
+        dayMap = new Map();
+        map.set(entry.dayKey, dayMap);
+      }
+      const list = dayMap.get(entry.startMinutes);
+      if (list) {
+        list.push(entry);
+      } else {
+        dayMap.set(entry.startMinutes, [entry]);
+      }
+    });
+    return map;
+  }, [processedBookings]);
+
+  const bookingsByDaySlot = useMemo(() => {
+    const map = new Map<string, Map<number, ProcessedBooking[]>>();
+    processedBookings.forEach((entry) => {
+      let dayMap = map.get(entry.dayKey);
+      if (!dayMap) {
+        dayMap = new Map();
+        map.set(entry.dayKey, dayMap);
+      }
+      for (let minute = entry.startMinutes; minute < entry.endMinutes; minute += 30) {
+        const list = dayMap.get(minute);
+        if (list) {
+          list.push(entry);
+        } else {
+          dayMap.set(minute, [entry]);
+        }
+      }
+    });
+    return map;
+  }, [processedBookings]);
 
   // Navigation handlers
   const goToPreviousWeek = useCallback(() => {
@@ -360,37 +537,21 @@ export default function SchedulePage() {
   // Get bookings for a specific day and time slot
   const getBookingsForSlot = useCallback(
     (date: Date, hour: number, minute: number) => {
-      if (!bookings) {
+      const dayKey = formatDateKey(date);
+      const daySlots = bookingsByDaySlot.get(dayKey);
+      if (!daySlots) {
         return [];
       }
 
-      const slotBookings = bookings.filter((booking) => {
-        // Get the location for this booking to determine timezone
-        const bookingLocation = booking.location || locations?.find(loc => loc.id === booking.locationId);
-        const locationTimezone = bookingLocation?.timeZone;
-        
-        // Convert UTC booking time to location timezone for comparison
-        const bookingUTCDate = new Date(booking.scheduledAt);
-        const bookingStartDate = locationTimezone 
-          ? convertUTCToLocationTime(bookingUTCDate, locationTimezone)
-          : bookingUTCDate;
-        
-        // Calculate booking end time by adding duration in minutes
-        const bookingEndDate = new Date(bookingStartDate);
-        bookingEndDate.setMinutes(bookingEndDate.getMinutes() + (booking.duration || 60));
-        
-        // Create the slot time in the same date context
-        const slotDate = new Date(date);
-        slotDate.setHours(hour, minute, 0, 0);
-        
-        // Check if the slot falls within the booking's duration range
-        // Slot should be >= booking start AND < booking end
-        return slotDate >= bookingStartDate && slotDate < bookingEndDate;
-      });
+      const slotStart = hour * 60 + minute;
+      const entries = daySlots.get(slotStart);
+      if (!entries || entries.length === 0) {
+        return [];
+      }
 
-      return slotBookings;
+      return entries.map((entry) => entry.original);
     },
-    [bookings, locations]
+    [bookingsByDaySlot]
   );
 
 
@@ -418,7 +579,7 @@ export default function SchedulePage() {
     if (!selectedTimeSlot) return;
 
     // Get the selected location's timezone
-    const selectedLocation = locations?.find(loc => loc.id === formData.locationId);
+    const selectedLocation = locationMap.get(formData.locationId);
     const locationTimezone = selectedLocation?.timeZone;
 
     // Create the scheduled time in location timezone, then convert to UTC
@@ -515,11 +676,11 @@ export default function SchedulePage() {
     } catch (error) {
       // Handle error silently or show user-friendly message
     }
-  }, [selectedTimeSlot, createBooking, formData, locations]);
+  }, [selectedTimeSlot, createBooking, formData, locationMap]);
 
   // Handle form field changes
   const handleFormChange = useCallback((field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
   }, []);
 
   // Handle modal close
@@ -633,65 +794,63 @@ export default function SchedulePage() {
     setSelectedBooking(null);
   }, []);
 
-  const timeSlots = generateTimeSlots();
-
   // Staff and service options for filters
   const staffOptions = [
     { label: "All Staff", value: "" },
-    ...(staff?.map((s) => ({ label: s.name, value: s.id })) || []),
+    ...staffList.map((s: any) => ({ label: s.name, value: s.id })),
   ];
 
   const serviceOptions = [
     { label: "All Services", value: "" },
-    ...(services?.map((s) => {
+    ...servicesList.map((s: any) => {
       const firstVariant = s.variants?.edges?.[0]?.node;
       const price = firstVariant?.price ? `$${firstVariant.price}` : 'Price TBD';
       return { label: `${s.title} - ${price}`, value: s.id };
-    }) || []),
+    }),
   ];
 
   const locationFilterOptions = [
     { label: "All Locations", value: "" },
-    ...(locations?.map((l) => ({ 
-      label: l.name + (l.address1 || l.city ? ` (${[l.address1, l.city].filter(Boolean).join(", ")})` : ""), 
-      value: l.id 
-    })) || []),
+    ...locationsList.map((l: any) => ({
+      label: l.name + (l.address1 || l.city ? ` (${[l.address1, l.city].filter(Boolean).join(", ")})` : ""),
+      value: l.id,
+    })),
   ];
 
   const locationOptions = [
     { label: "Select location", value: "" },
-    ...(locations?.map((l) => ({ 
-      label: l.name + (l.address1 || l.city ? ` (${[l.address1, l.city].filter(Boolean).join(", ")})` : ""), 
-      value: l.id 
-    })) || []),
+    ...locationsList.map((l: any) => ({
+      label: l.name + (l.address1 || l.city ? ` (${[l.address1, l.city].filter(Boolean).join(", ")})` : ""),
+      value: l.id,
+    })),
   ];
 
   // Helper function to get service price
   const getServicePrice = useCallback((serviceId: string, variantId?: string) => {
-    if (!services || !serviceId) return 0;
-    const service = services.find(s => s.id === serviceId);
+    if (!serviceId) return 0;
+    const service = servicesList.find((s: any) => s.id === serviceId);
     if (!service?.variants?.edges) return 0;
     
     const variant = variantId 
-      ? service.variants.edges.find(edge => edge.node.id === variantId)?.node
+      ? service.variants.edges.find((edge: any) => edge.node.id === variantId)?.node
       : service.variants.edges[0]?.node;
     
     return variant?.price ? parseFloat(variant.price) : 0;
-  }, [services]);
+  }, [servicesList]);
 
   // Helper function to get variant duration
   const getVariantDuration = useCallback((serviceId: string, variantId: string) => {
-    if (!services || !serviceId || !variantId) return 15;
-    const service = services.find(s => s.id === serviceId);
-    const variant = service?.variants?.edges?.find(edge => edge.node.id === variantId)?.node;
+    if (!serviceId || !variantId) return 15;
+    const service = servicesList.find((s: any) => s.id === serviceId);
+    const variant = service?.variants?.edges?.find((edge: any) => edge.node.id === variantId)?.node;
     return variant?.title ? extractDurationFromTitle(variant.title) : 15;
-  }, [services]);
+  }, [servicesList]);
 
   // Handle service selection and variant management
   const handleServiceChange = useCallback((serviceId: string) => {
     handleFormChange("productId", serviceId);
     
-    if (!services || !serviceId) {
+    if (!serviceId) {
       setAvailableVariants([]);
       setShowVariantDropdown(false);
       handleFormChange("variantId", "");
@@ -700,8 +859,8 @@ export default function SchedulePage() {
       return;
     }
 
-    const service = services.find(s => s.id === serviceId);
-    const variants = service?.variants?.edges?.map(edge => edge.node) || [];
+    const service = servicesList.find((s: any) => s.id === serviceId);
+    const variants = service?.variants?.edges?.map((edge: any) => edge.node) || [];
     
     setAvailableVariants(variants);
     
@@ -726,7 +885,7 @@ export default function SchedulePage() {
       handleFormChange("duration", "15");
       handleFormChange("totalPrice", "0");
     }
-  }, [services, handleFormChange, getServicePrice]);
+  }, [servicesList, handleFormChange, getServicePrice]);
 
   // Handle variant selection
   const handleVariantChange = useCallback((variantId: string) => {
@@ -747,32 +906,32 @@ export default function SchedulePage() {
 
   // Auto-select first service when services are loaded
   useEffect(() => {
-    if (services && services.length > 0 && !formData.productId) {
-      const firstService = services[0];
+    if (servicesList.length > 0 && !formData.productId) {
+      const firstService = servicesList[0];
       handleServiceChange(firstService.id);
     }
-  }, [services, formData.productId, handleServiceChange]);
+  }, [servicesList, formData.productId, handleServiceChange]);
 
   // Auto-select single location when modal opens
   useEffect(() => {
-    if (locations && locations.length === 1 && !formData.locationId && showBookingModal) {
-      handleFormChange("locationId", locations[0].id);
+    if (locationsList.length === 1 && !formData.locationId && showBookingModal) {
+      handleFormChange("locationId", locationsList[0].id);
     }
-  }, [locations, formData.locationId, showBookingModal, handleFormChange]);
+  }, [locationsList, formData.locationId, showBookingModal, handleFormChange]);
 
   // Auto-select single staff when modal opens
   useEffect(() => {
-    if (staff && staff.length === 1 && !formData.staffId && showBookingModal) {
-      handleFormChange("staffId", staff[0].id);
+    if (staffList.length === 1 && !formData.staffId && showBookingModal) {
+      handleFormChange("staffId", staffList[0].id);
     }
-  }, [staff, formData.staffId, showBookingModal, handleFormChange]);
+  }, [staffList, formData.staffId, showBookingModal, handleFormChange]);
 
   return (
     <Page
       title="Schedule"
       primaryAction={{
         content: "New Booking",
-        icon: PlusIcon,
+        icon: PlusIcon as any,
         onAction: () => {
           // Reset customer state when opening new booking modal
           setCustomerSearch("");
@@ -790,9 +949,9 @@ export default function SchedulePage() {
               <InlineStack align="space-between" blockAlign="center">
                 <InlineStack gap="200">
                   <ButtonGroup>
-                    <Button icon={ChevronLeftIcon} onClick={goToPreviousWeek} />
+                    <Button icon={ChevronLeftIcon as any} onClick={goToPreviousWeek} />
                     <Button onClick={goToToday}>Today</Button>
-                    <Button icon={ChevronRightIcon} onClick={goToNextWeek} />
+                    <Button icon={ChevronRightIcon as any} onClick={goToNextWeek} />
                   </ButtonGroup>
                   <Text as="h2" variant="headingMd">
                     {mounted ? `${weekDates[0].toLocaleDateString()} - ${weekDates[6].toLocaleDateString()}` : 'Loading...'}
@@ -838,8 +997,20 @@ export default function SchedulePage() {
                 <div style={{ backgroundColor: "#e1e3e5" }}>
                   {/* Header row */}
                   <div style={{ display: "flex", gap: "1px", marginBottom: "1px" }}>
-                    <div style={{ width: "80px", backgroundColor: "white", padding: "8px", fontWeight: "bold" }}>
+                    <div style={{ width: "80px", backgroundColor: "white", padding: "8px", fontWeight: "bold", position: "relative" }}>
                       Time
+                      {mounted && (
+                        <div
+                          style={{
+                            fontSize: "0.7em",
+                            color: "#666",
+                            fontWeight: "normal",
+                            marginTop: "2px",
+                          }}
+                        >
+                          {getTimezoneCode(scheduleTimezone)}
+                        </div>
+                      )}
                     </div>
                     <div style={{ display: "flex", flex: 1, gap: "1px" }}>
                       {weekDates.map((date) => (
@@ -892,161 +1063,127 @@ export default function SchedulePage() {
                       {weekDates.map((date) => {
                         // Helper function to render slots for this specific day
                         const renderDaySlots = () => {
-                          const daySlots = [];
-                          let slotIndex = 0;
+                          const daySlots: JSX.Element[] = [];
+                          const occupiedSlots = new Set<number>();
+                          const dayKey = formatDateKey(date);
+                          const startingMap = bookingsByDayStart.get(dayKey);
+                          const slotMap = bookingsByDaySlot.get(dayKey);
 
-                          // Track which slots are occupied by continuing bookings
-                          const occupiedSlots = new Set();
-
-                          // First pass: identify all occupied slots
                           for (let i = 0; i < timeSlots.length; i++) {
                             const { hour, minute } = timeSlots[i];
-                            const slotBookings = getBookingsForSlot(date, hour, minute);
-                            
-                            // Find bookings that start exactly at this time slot
-                            const startingBookings = slotBookings.filter((booking) => {
-                              const bookingLocation = booking.location || locations?.find(loc => loc.id === booking.locationId);
-                              const locationTimezone = bookingLocation?.timeZone;
-                              
-                              if (!booking.scheduledAt) return false;
-                              const bookingUTCDate = new Date(booking.scheduledAt);
-                              const bookingStartDate = locationTimezone 
-                                ? convertUTCToLocationTime(bookingUTCDate, locationTimezone)
-                                : bookingUTCDate;
-                              
-                              const slotDate = new Date(date);
-                              slotDate.setHours(hour, minute, 0, 0);
-                              
-                              return bookingStartDate.getTime() === slotDate.getTime();
-                            });
+                            const slotStart = hour * 60 + minute;
 
-                            if (startingBookings.length > 0) {
-                              const primaryBooking = startingBookings[0];
-                              const duration = primaryBooking.duration || 60;
-                              const slotsToOccupy = Math.ceil(duration / 30);
-                              
-                              // Mark this slot and subsequent slots as occupied
-                              for (let j = 0; j < slotsToOccupy && (i + j) < timeSlots.length; j++) {
-                                occupiedSlots.add(i + j);
-                              }
-                            }
-                          }
-
-                          // Second pass: render slots
-                          for (let i = 0; i < timeSlots.length; i++) {
-                            const { hour, minute } = timeSlots[i];
-
-                            // Skip slots that are in the middle of a booking
                             if (occupiedSlots.has(i)) {
-                              const slotBookings = getBookingsForSlot(date, hour, minute);
-                              const startingBookings = slotBookings.filter((booking) => {
-                                const bookingLocation = booking.location || locations?.find(loc => loc.id === booking.locationId);
-                                const locationTimezone = bookingLocation?.timeZone;
-                                
-                                if (!booking.scheduledAt) return false;
-                                const bookingUTCDate = new Date(booking.scheduledAt);
-                                const bookingStartDate = locationTimezone 
-                                  ? convertUTCToLocationTime(bookingUTCDate, locationTimezone)
-                                  : bookingUTCDate;
-                                
-                                const slotDate = new Date(date);
-                                slotDate.setHours(hour, minute, 0, 0);
-                                
-                                return bookingStartDate.getTime() === slotDate.getTime();
+                              continue;
+                            }
+
+                            const startingEntries = startingMap?.get(slotStart) || [];
+
+                            if (startingEntries.length > 0) {
+                              startingEntries.forEach((entry) => {
+                                const slotsToOccupy = Math.ceil(entry.duration / 30);
+                                for (let j = 1; j < slotsToOccupy && i + j < timeSlots.length; j++) {
+                                  occupiedSlots.add(i + j);
+                                }
                               });
 
-                              // Only render if this is where the booking starts
-                              if (startingBookings.length > 0) {
-                                // Calculate the maximum height needed for all bookings
-                                const maxDuration = Math.max(...startingBookings.map(booking => booking.duration || 60));
-                                const maxSlotsSpanned = Math.ceil(maxDuration / 30);
-                                const height = (maxSlotsSpanned * 50) + (maxSlotsSpanned - 1);
+                              const maxSlotsSpanned = Math.max(
+                                ...startingEntries.map((entry) => Math.ceil(entry.duration / 30))
+                              );
+                              const height = (maxSlotsSpanned * 50) + (maxSlotsSpanned - 1);
 
-                                daySlots.push(
-                                  <div
-                                    key={`${date.toDateString()}-${hour}-${minute}`}
-                                    style={{
-                                      height: `${height}px`,
-                                      display: "flex",
-                                      gap: "2px",
-                                      boxSizing: "border-box",
-                                      overflow: "hidden",
-                                    }}
-                                  >
-                                    {startingBookings.map((booking, index) => {
-                                      const bookingDuration = booking.duration || 60;
-                                      const bookingSlotsSpanned = Math.ceil(bookingDuration / 30);
-                                      const bookingHeight = (bookingSlotsSpanned * 50) + (bookingSlotsSpanned - 1);
-                                      
-                                      return (
-                                        <div
-                                          key={`${booking.id}-${index}`}
-                                          style={{
-                                            height: `${bookingHeight}px`,
-                                            backgroundColor: "#e3f2fd",
-                                            border: "1px solid #0070f3",
-                                            borderRadius: "4px",
-                                            cursor: "pointer",
-                                            overflow: "hidden",
-                                            boxSizing: "border-box",
-                                            flex: 1,
-                                            minWidth: 0,
-                                          }}
-                                          onClick={() => handleBookingClick(booking)}
-                                          title={`${date.toDateString()} ${formatTime(hour, minute)} - ${booking?.variant?.product?.title} (${booking?.duration}min)`}
-                                        >
-                                          <Box padding="50">
-                                            <BlockStack gap="25">
-                                              {(() => {
-                                                const paymentStatus = booking.order?.financialStatus
-                                                  ? (booking.order.financialStatus === 'paid' ? 'paid' : 'not_paid')
-                                                  : booking.status;
-                                                return (
-                                                  <Badge tone={getStatusColor(paymentStatus) as any}>
-                                                    {paymentStatus}
-                                                  </Badge>
-                                                );
-                                              })()}
-                                              <Text as="p" variant="bodyXs" fontWeight="bold">
-                                                {booking.variant?.product?.title}
-                                              </Text>
-                                              <Text as="p" variant="bodyXs">
-                                                {booking.customer?.displayName || 
-                                                 (booking.customer?.firstName && booking.customer?.lastName ? 
-                                                  `${booking.customer.firstName} ${booking.customer.lastName}` : '') || 
-                                                 booking.customerName || 'No customer'}
-                                              </Text>
-                                              <Text as="p" variant="bodyXs" tone="subdued">
-                                                {booking.staff?.name}
-                                              </Text>
-                                              <Text as="p" variant="bodyXs" tone="subdued">
-                                                {booking.duration}min
-                                              </Text>
-                                            </BlockStack>
-                                          </Box>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                );
-                              }
-                            } else {
-                              // Empty slot - render clickable area
                               daySlots.push(
                                 <div
                                   key={`${date.toDateString()}-${hour}-${minute}`}
                                   style={{
-                                    height: "50px",
-                                    backgroundColor: "white",
-                                    cursor: "pointer",
-                                    border: "1px solid transparent",
+                                    height: `${height}px`,
+                                    display: "flex",
+                                    gap: "2px",
                                     boxSizing: "border-box",
+                                    overflow: "hidden",
                                   }}
-                                  onClick={() => handleTimeSlotClick(date, hour, minute)}
-                                  title={`${date.toDateString()} ${formatTime(hour, minute)} - Click to book`}
-                                />
+                                >
+                                  {startingEntries.map((entry, index) => {
+                                    const booking = entry.original;
+                                    const bookingSlotsSpanned = Math.ceil(entry.duration / 30);
+                                    const bookingHeight = (bookingSlotsSpanned * 50) + (bookingSlotsSpanned - 1);
+
+                                    return (
+                                      <div
+                                        key={`${booking.id}-${index}`}
+                                        style={{
+                                          height: `${bookingHeight}px`,
+                                          backgroundColor: "#e3f2fd",
+                                          border: "1px solid #0070f3",
+                                          borderRadius: "4px",
+                                          cursor: "pointer",
+                                          overflow: "hidden",
+                                          boxSizing: "border-box",
+                                          flex: 1,
+                                          minWidth: 0,
+                                        }}
+                                        onClick={() => handleBookingClick(booking)}
+                                        title={`${date.toDateString()} ${formatTime(hour, minute)} - ${booking?.variant?.product?.title} (${booking?.duration}min)`}
+                                      >
+                                        <Box padding={"50" as any}>
+                                          <BlockStack gap={"25" as any}>
+                                            {(() => {
+                                              const paymentStatus = booking.order?.financialStatus
+                                                ? (booking.order.financialStatus === "paid" ? "paid" : "not_paid")
+                                                : booking.status;
+                                              return (
+                                                <Badge tone={getStatusColor(paymentStatus) as any}>
+                                                  {paymentStatus}
+                                                </Badge>
+                                              );
+                                            })()}
+                                            <Text as="p" variant="bodyXs" fontWeight="bold">
+                                              {booking.variant?.product?.title}
+                                            </Text>
+                                            <Text as="p" variant="bodyXs">
+                                              {booking.customer?.displayName ||
+                                                (booking.customer?.firstName && booking.customer?.lastName
+                                                  ? `${booking.customer.firstName} ${booking.customer.lastName}`
+                                                  : "") ||
+                                                booking.customerName ||
+                                                "No customer"}
+                                            </Text>
+                                            <Text as="p" variant="bodyXs" tone="subdued">
+                                              {booking.staff?.name}
+                                            </Text>
+                                            <Text as="p" variant="bodyXs" tone="subdued">
+                                              {booking.duration}min
+                                            </Text>
+                                          </BlockStack>
+                                        </Box>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
                               );
+
+                              continue;
                             }
+
+                            const continuingEntries = slotMap?.get(slotStart);
+                            if (continuingEntries && continuingEntries.length > 0) {
+                              continue;
+                            }
+
+                            daySlots.push(
+                              <div
+                                key={`${date.toDateString()}-${hour}-${minute}`}
+                                style={{
+                                  height: "50px",
+                                  backgroundColor: "white",
+                                  cursor: "pointer",
+                                  border: "1px solid transparent",
+                                  boxSizing: "border-box",
+                                }}
+                                onClick={() => handleTimeSlotClick(date, hour, minute)}
+                                title={`${date.toDateString()} ${formatTime(hour, minute)} - Click to book`}
+                              />
+                            );
                           }
 
                           return daySlots;
@@ -1136,34 +1273,34 @@ export default function SchedulePage() {
 
                 {/* Customer Suggestions */}
                 {showCustomerSuggestions && (
-                  <Box
-                    paddingBlockStart="100"
-                    style={{
-                      position: "absolute",
-                      top: "100%",
-                      left: 0,
-                      right: 0,
-                      zIndex: 1000,
-                      backgroundColor: "white",
-                      border: "1px solid #ccc",
-                      borderRadius: "4px",
-                      maxHeight: "200px",
-                      overflowY: "auto",
-                    }}
-                  >
-                    {customers?.length ? (
+                  <Box paddingBlockStart="100">
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: 0,
+                        right: 0,
+                        zIndex: 1000,
+                        backgroundColor: "white",
+                        border: "1px solid #ccc",
+                        borderRadius: "4px",
+                        maxHeight: "200px",
+                        overflowY: "auto",
+                      }}
+                    >
+                    {customersList.length ? (
                       <BlockStack gap="0">
-                        {customers?.slice(0, 5).map((customer) => (
-                          <Box
+                        {customersList.slice(0, 5).map((customer: any) => (
+                          <div
                             key={customer.id}
-                            padding="200"
                             style={{
+                              padding: "var(--p-space-200)",
                               cursor: "pointer",
                               borderBottom: "1px solid #f0f0f0",
                             }}
                             onClick={() => handleCustomerSelect(customer)}
                           >
-                            <BlockStack gap="50">
+                            <BlockStack gap="100">
                               <Text as="p" variant="bodyMd">
                                 {customer.displayName || `${customer.firstName || ""} ${customer.lastName || ""}`.trim() || "Unnamed Customer"}
                               </Text>
@@ -1173,11 +1310,11 @@ export default function SchedulePage() {
                                 </Text>
                               )}
                             </BlockStack>
-                          </Box>
+                          </div>
                         ))}
-                        <Box
-                          padding="200"
+                        <div
                           style={{
+                            padding: "var(--p-space-200)",
                             cursor: "pointer",
                             backgroundColor: "#f9f9f9",
                           }}
@@ -1186,23 +1323,21 @@ export default function SchedulePage() {
                           <Text as="p" variant="bodyMd">
                             + Create new customer
                           </Text>
-                        </Box>
+                        </div>
                       </BlockStack>
                     ) : (
-                      <Box padding="200">
+                      <div style={{ padding: "var(--p-space-200)" }}>
                         <BlockStack gap="200">
                           <Text as="p" variant="bodyMd">
                             No customers found
                           </Text>
-                          <Button
-                            fullWidth
-                            onClick={handleCreateNewCustomer}
-                          >
+                          <Button fullWidth onClick={handleCreateNewCustomer}>
                             Create new customer
                           </Button>
                         </BlockStack>
-                      </Box>
+                      </div>
                     )}
+                    </div>
                   </Box>
                 )}
               </Box>
@@ -1210,7 +1345,7 @@ export default function SchedulePage() {
               <BlockStack gap="300">
                 <InlineStack align="space-between" blockAlign="center">
                   <Text as="h3" variant="headingSm">New Customer</Text>
-                  <Button plain onClick={handleCancelNewCustomer}>Cancel</Button>
+                  <Button variant="plain" onClick={handleCancelNewCustomer}>Cancel</Button>
                 </InlineStack>
                 <InlineStack gap="200">
                   <Box width="50%">
@@ -1245,7 +1380,7 @@ export default function SchedulePage() {
                   }}
                   options={[
                     { label: "Select staff member", value: "" },
-                    ...(staff?.map((s) => ({ label: s.name, value: s.id })) || [])
+                    ...staffList.map((s: any) => ({ label: s.name, value: s.id })),
                   ]}
                   requiredIndicator
                 />
@@ -1257,11 +1392,11 @@ export default function SchedulePage() {
                   onChange={handleServiceChange}
                   options={[
                     { label: "Select service", value: "" },
-                    ...(services?.map((s) => {
+                    ...servicesList.map((s: any) => {
                       const firstVariant = s.variants?.edges?.[0]?.node;
-                      const price = firstVariant?.price ? `$${firstVariant.price}` : 'Price TBD';
+                      const price = firstVariant?.price ? `$${firstVariant.price}` : "Price TBD";
                       return { label: `${s.title} - ${price}`, value: s.id };
-                    }) || [])
+                    }),
                   ]}
                   requiredIndicator
                 />
@@ -1284,7 +1419,7 @@ export default function SchedulePage() {
                 onChange={handleVariantChange}
                 options={[
                   { label: "Select duration", value: "" },
-                  ...availableVariants.map((variant) => {
+                  ...availableVariants.map((variant: any) => {
                     const duration = extractDurationFromTitle(variant.title || "");
                     return { 
                       label: variant.title || `${duration} min`, 
@@ -1303,6 +1438,7 @@ export default function SchedulePage() {
                     value={formData.duration}
                     readOnly
                     disabled
+                    autoComplete="off"
                     helpText="Duration is set based on selected service variant"
                   />
                 </Box>
@@ -1312,6 +1448,7 @@ export default function SchedulePage() {
                     value={`$${formData.totalPrice}`}
                     readOnly
                     disabled
+                    autoComplete="off"
                     helpText="Price is automatically calculated based on selected service"
                   />
                 </Box>
@@ -1325,6 +1462,7 @@ export default function SchedulePage() {
                 value={`$${formData.totalPrice}`}
                 readOnly
                 disabled
+                autoComplete="off"
                 helpText="Price will be set when you select a duration variant"
               />
             )}
@@ -1383,18 +1521,14 @@ export default function SchedulePage() {
                     <BlockStack gap="100">
                       <Text as="p" variant="bodyMd" fontWeight="bold">Date & Time</Text>
                       <Text as="p" variant="bodyMd">
-                        {mounted ? (() => {
-                          const utcDate = new Date(selectedBooking.scheduledAt);
-                          const bookingLocation = locations?.find(loc => loc.id === selectedBooking.location?.id || selectedBooking.locationId);
-                          const locationTimezone = bookingLocation?.timeZone;
-                          const localDate = locationTimezone 
-                            ? convertUTCToLocationTime(utcDate, locationTimezone)
-                            : utcDate;
-                          return `${localDate.toLocaleDateString()} at ${localDate.toLocaleTimeString([], {
-                            hour: "numeric",
-                            minute: "2-digit",
-                          })}`;
-                        })() : 'Loading...'}
+                        {mounted
+                          ? (() => {
+                              const utcDate = new Date(selectedBooking.scheduledAt);
+                              const bookingLocation = locationMap.get(selectedBooking.location?.id || selectedBooking.locationId);
+                              const locationTimezone = bookingLocation?.timeZone;
+                              return formatDateTimeInTimezone(utcDate, locationTimezone);
+                            })()
+                          : "Loading..."}
                       </Text>
                     </BlockStack>
                     <BlockStack gap="100">
@@ -1471,7 +1605,7 @@ export default function SchedulePage() {
                   <Select
                     label="Payment Status"
                     value={selectedBooking.status}
-                    onChange={(value) => setSelectedBooking(prev => ({ ...prev, status: value }))}
+                    onChange={(value) => setSelectedBooking((prev: any) => ({ ...prev, status: value }))}
                     options={[
                       { label: "Pending", value: "pending" },
                       { label: "Paid", value: "paid" },
@@ -1483,7 +1617,7 @@ export default function SchedulePage() {
                 <TextField
                   label="Notes"
                   value={selectedBooking.notes || ""}
-                  onChange={(value) => setSelectedBooking(prev => ({ ...prev, notes: value }))}
+                  onChange={(value) => setSelectedBooking((prev: any) => ({ ...prev, notes: value }))}
                   multiline={3}
                   autoComplete="off"
                   placeholder="Any special requirements or notes..."

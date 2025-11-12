@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "@remix-run/react";
+import { useParams, useNavigate } from "@remix-run/react";
 import {
   Page,
   Card,
@@ -20,7 +20,7 @@ import {
   Link,
 } from "@shopify/polaris";
 import { ArrowLeftIcon } from "@shopify/polaris-icons";
-import { useFindOne, useFindFirst, useGlobalAction, useAction } from "@gadgetinc/react";
+import { useFindOne, useFindMany, useGlobalAction, useAction } from "@gadgetinc/react";
 import { api } from "../api";
 
 interface OperatingHours {
@@ -133,14 +133,28 @@ export default function LocationDetail() {
   const { locationId } = useParams();
   const navigate = useNavigate();
   
-  // Fetch location hours data
-  const [{ data: locationHours, fetching: fetchingHours, error: hoursError }] = useFindFirst(api.locationHours, {
+  // Fetch location hours rules (recurring weekly hours)
+  const [{ data: locationHoursRules, fetching: fetchingRules, error: rulesError }] = useFindMany(api.locationHoursRule, {
     filter: { locationId: { equals: locationId! } },
     select: {
       id: true,
-      operatingHours: true,
-      holidayClosures: true,
-      locationId: true,
+      weekday: true,
+      openTime: true,
+      closeTime: true,
+    },
+  });
+
+  // Fetch location hours exceptions (holidays, special hours)
+  const [{ data: locationHoursExceptions, fetching: fetchingExceptions, error: exceptionsError }] = useFindMany(api.locationHoursException, {
+    filter: { locationId: { equals: locationId! } },
+    select: {
+      id: true,
+      startDate: true,
+      endDate: true,
+      closedAllDay: true,
+      openTime: true,
+      closeTime: true,
+      reason: true,
     },
   });
 
@@ -152,6 +166,7 @@ export default function LocationDetail() {
       timeZone: true,
       countryCode: true,
       offersServices: true,
+      operatingHours: true,
     },
   });
 
@@ -191,62 +206,175 @@ export default function LocationDetail() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [offersServices, setOffersServices] = useState(true);
 
-  useEffect(() => {
-    if (locationHours) {
-      if (locationHours.operatingHours) {
-        try {
-          const hours = typeof locationHours.operatingHours === 'string' 
-            ? JSON.parse(locationHours.operatingHours) 
-            : locationHours.operatingHours;
-          
-          // Remove old string-format fields if present
-          const cleanHours = { ...hours };
-          delete cleanHours.monday;
-          delete cleanHours.tuesday;
-          delete cleanHours.wednesday;
-          delete cleanHours.thursday;
-          delete cleanHours.friday;
-          delete cleanHours.saturday;
-          delete cleanHours.sunday;
-          
-          console.log('Loading hours:', cleanHours);
-          
-          // Ensure weekdays/weekends exist for backward compatibility
-          if (!cleanHours.weekdays && cleanHours.days) {
-            // Try to infer from monday if it exists
-            const monday = cleanHours.days.monday || cleanHours.days.Monday;
-            if (monday) {
-              cleanHours.weekdays = { enabled: monday.enabled, from: monday.from, to: monday.to };
-            }
-          }
-          if (!cleanHours.weekends && cleanHours.days) {
-            // Try to infer from saturday if it exists
-            const saturday = cleanHours.days.saturday || cleanHours.days.Saturday;
-            if (saturday) {
-              cleanHours.weekends = { enabled: saturday.enabled, from: saturday.from, to: saturday.to };
-            }
-          }
-          
-          // Only update if we have valid data
-          if (cleanHours.mode && (cleanHours.mode === 'weekdays_weekends' || cleanHours.mode === 'individual_days')) {
-            setOperatingHours(cleanHours as OperatingHours);
-          }
-        } catch (e) {
-          console.error("Error parsing operating hours:", e);
-        }
-      }
-      if (locationHours.holidayClosures) {
-        try {
-          const closures = typeof locationHours.holidayClosures === 'string' 
-            ? JSON.parse(locationHours.holidayClosures) 
-            : locationHours.holidayClosures;
-          setHolidayClosures(Array.isArray(closures) ? closures : []);
-        } catch (e) {
-          console.error("Error parsing holiday closures:", e);
-        }
+  // Helper to convert rules to operatingHours format
+  const rulesToOperatingHours = (rules: any[]): OperatingHours | null => {
+    if (!rules || rules.length === 0) {
+      return null;
+    }
+
+    const weekdaysToDay: Record<number, string> = {
+      0: "monday",
+      1: "tuesday",
+      2: "wednesday",
+      3: "thursday",
+      4: "friday",
+      5: "saturday",
+      6: "sunday",
+    };
+
+    const days: any = {};
+    
+    // Initialize all days as disabled
+    Object.values(weekdaysToDay).forEach(day => {
+      days[day] = { enabled: false, from: "09:00", to: "17:00" };
+    });
+
+    // Set enabled days from rules
+    for (const rule of rules) {
+      const dayName = weekdaysToDay[rule.weekday];
+      if (dayName && rule.openTime && rule.closeTime) {
+        days[dayName] = {
+          enabled: true,
+          from: rule.openTime,
+          to: rule.closeTime,
+        };
       }
     }
-  }, [locationHours]);
+
+    // Check if we can use weekdays/weekends mode
+    const weekdayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const weekendNames = ['saturday', 'sunday'];
+    
+    // Get enabled weekdays
+    const enabledWeekdays = weekdayNames.filter(day => days[day]?.enabled);
+    const enabledWeekends = weekendNames.filter(day => days[day]?.enabled);
+    
+    // Check if all enabled weekdays have the same hours
+    const weekdaysHaveSameHours = enabledWeekdays.length > 0 && enabledWeekdays.every(day => 
+      days[day].from === days[enabledWeekdays[0]].from && 
+      days[day].to === days[enabledWeekdays[0]].to
+    );
+    
+    // Check if all enabled weekends have the same hours
+    const weekendsHaveSameHours = enabledWeekends.length > 0 && enabledWeekends.every(day => 
+      days[day].from === days[enabledWeekends[0]].from && 
+      days[day].to === days[enabledWeekends[0]].to
+    );
+    
+    // Check if all weekdays are either all enabled or all disabled
+    const allWeekdaysSameState = weekdayNames.every(day => days[day].enabled) || weekdayNames.every(day => !days[day].enabled);
+    
+    // Check if all weekends are either all enabled or all disabled  
+    const allWeekendsSameState = weekendNames.every(day => days[day].enabled) || weekendNames.every(day => !days[day].enabled);
+    
+    // Use weekdays_weekends mode if the pattern matches
+    if (allWeekdaysSameState && allWeekendsSameState && weekdaysHaveSameHours && weekendsHaveSameHours) {
+      const weekdaysConfig = enabledWeekdays.length > 0 
+        ? { enabled: true, from: days[enabledWeekdays[0]].from, to: days[enabledWeekdays[0]].to }
+        : { enabled: false, from: "09:00", to: "17:00" };
+      
+      const weekendsConfig = enabledWeekends.length > 0
+        ? { enabled: true, from: days[enabledWeekends[0]].from, to: days[enabledWeekends[0]].to }
+        : { enabled: false, from: "09:00", to: "17:00" };
+      
+      return {
+        mode: "weekdays_weekends",
+        weekdays: weekdaysConfig,
+        weekends: weekendsConfig,
+        days,
+      };
+    }
+    
+    // Otherwise use individual_days mode
+    return { 
+      mode: "individual_days", 
+      weekdays: { enabled: false, from: "09:00", to: "17:00" },
+      weekends: { enabled: false, from: "09:00", to: "17:00" },
+      days 
+    };
+  };
+
+  // Helper to convert exceptions to holidayClosures format
+  const exceptionsToHolidayClosures = (exceptions: any[]): HolidayItem[] => {
+    if (!exceptions || exceptions.length === 0) {
+      return [];
+    }
+    
+    return exceptions.map(exception => ({
+      name: exception.reason || "Holiday closure",
+      date: exception.startDate,
+      ...(exception.endDate !== exception.startDate && { endDate: exception.endDate }),
+      ...(!exception.closedAllDay && { 
+        openTime: exception.openTime, 
+        closeTime: exception.closeTime 
+      })
+    }));
+  };
+
+  // Helper to normalize legacy format { monday: { isOpen, startTime, endTime } } to new format
+  const normalizeLegacyHours = (legacy: any): OperatingHours | null => {
+    if (!legacy) return null;
+    
+    // If already in new format, return as-is
+    if (legacy.mode && (legacy.mode === 'weekdays_weekends' || legacy.mode === 'individual_days')) {
+      return legacy as OperatingHours;
+    }
+    
+    // Convert legacy format to new format
+    const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const days: any = {};
+    
+    for (const day of dayKeys) {
+      const cfg = legacy[day];
+      if (cfg && typeof cfg === 'object') {
+        const enabled = !!(cfg.isOpen !== undefined ? cfg.isOpen : cfg.enabled);
+        const from = cfg.from ?? cfg.startTime ?? '09:00';
+        const to = cfg.to ?? cfg.endTime ?? '17:00';
+        days[day] = { enabled, from, to };
+      }
+    }
+    
+    if (Object.keys(days).length === 0) return null;
+    
+    // Infer weekdays/weekends from the days
+    const weekdays = days.monday || days.tuesday || days.wednesday || days.thursday || days.friday;
+    const weekends = days.saturday || days.sunday;
+    
+    return {
+      mode: 'weekdays_weekends',
+      weekdays: weekdays || { enabled: false, from: '09:00', to: '17:00' },
+      weekends: weekends || { enabled: false, from: '09:00', to: '17:00' },
+      days,
+    };
+  };
+
+  useEffect(() => {
+    if (locationHoursRules || locationHoursExceptions) {
+      const convertedHours = rulesToOperatingHours(locationHoursRules || []);
+      const convertedClosures = exceptionsToHolidayClosures(locationHoursExceptions || []);
+      
+      if (convertedHours) {
+        console.log('Loading hours from locationHoursRules:', convertedHours);
+        setOperatingHours(convertedHours);
+      }
+      if (convertedClosures && convertedClosures.length > 0) {
+        console.log('Loading closures from locationHoursExceptions:', convertedClosures);
+        setHolidayClosures(convertedClosures);
+      }
+    } else if (location && (location as any).operatingHours) {
+      // Fallback: if no locationHoursRules, try reading from shopifyLocation.operatingHours
+      try {
+        const legacyHours = (location as any).operatingHours;
+        const normalized = normalizeLegacyHours(legacyHours);
+        if (normalized) {
+          console.log('Loading hours from shopifyLocation.operatingHours:', normalized);
+          setOperatingHours(normalized);
+        }
+      } catch (e) {
+        console.error("Error parsing legacy operating hours:", e);
+      }
+    }
+  }, [locationHoursRules, locationHoursExceptions, location]);
 
   useEffect(() => {
     if (updateResult) {
@@ -436,7 +564,7 @@ export default function LocationDetail() {
     return `${holiday.name} (${holiday.date})`;
   };
 
-  if (fetchingHours || fetchingLocation) {
+  if (fetchingRules || fetchingExceptions || fetchingLocation) {
     return (
       <Page title="Location">
         <Card>
@@ -448,13 +576,13 @@ export default function LocationDetail() {
     );
   }
 
-  if (hoursError || locationError) {
+  if (rulesError || exceptionsError || locationError) {
     return (
       <Page title="Location">
         <Card>
           <Banner>
             <Text as="p" variant="bodyMd">
-              Error loading location: {(hoursError || locationError)?.toString()}
+              Error loading location: {(rulesError || exceptionsError || locationError)?.toString()}
             </Text>
           </Banner>
         </Card>

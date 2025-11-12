@@ -428,6 +428,8 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
       variantId: true,
       variant: {
         id: true,
+        title: true,
+        option1: true,  // This often contains the duration like "30 minutes"
         product: {
           id: true,
           title: true,
@@ -516,19 +518,37 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
       
       logger.info(`Looking up staff member by ID for line item ${lineItem.id}`, {
         staffId: bookingData.staffId,
-        shopId: record.shopId
+        shopId: record.shopId,
+        staffIdType: typeof bookingData.staffId
       });
       
-      const staff = await api.staff.findOne(bookingData.staffId);
+      // Look up staff with shopId filter to ensure it belongs to this shop
+      const staff = await api.staff.findOne(bookingData.staffId, {
+        ...(record.shopId && { filter: { shopId: { equals: record.shopId } } }),
+        select: {
+          id: true,
+          name: true,
+          shopId: true,
+          isActive: true
+        }
+      });
       
-      if (!staff || staff.shopId !== record.shopId || !staff.isActive) {
-        logger.error(`Could not find active staff member with ID: ${bookingData.staffId}`, {
+      if (!staff) {
+        logger.error(`Could not find staff member with ID: ${bookingData.staffId} for shop: ${record.shopId}`, {
           lineItemId: lineItem.id,
           staffId: bookingData.staffId,
           shopId: record.shopId,
-          staffFound: !!staff,
-          staffShopId: staff?.shopId,
-          staffIsActive: staff?.isActive
+          staffIdType: typeof bookingData.staffId
+        });
+        continue;
+      }
+      
+      if (!staff.isActive) {
+        logger.error(`Staff member ${bookingData.staffId} is not active`, {
+          lineItemId: lineItem.id,
+          staffId: bookingData.staffId,
+          staffName: staff.name,
+          shopId: record.shopId
         });
         continue;
       }
@@ -573,8 +593,8 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
         locationShopId: location.shopId
       });
 
-      // Get location timezone for proper date handling
-      const locationTimeZone = location.timeZone;
+      // Get location timezone from the location record
+      const locationTimeZone = location.timeZone || 'America/New_York';
       
       logger.info(`Using location timezone for scheduling`, {
         lineItemId: lineItem.id,
@@ -602,6 +622,28 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
         continue;
       }
       
+      // Extract duration from variant
+      let duration = 60; // Default fallback
+
+      if (lineItem.variant) {
+        // Try to extract duration from variant option1 (e.g., "30 minutes")
+        const variantOption = lineItem.variant.option1 || lineItem.variant.title || '';
+        const durationMatch = variantOption.match(/(\d+)\s*min/i);
+        if (durationMatch) {
+          duration = parseInt(durationMatch[1], 10);
+          logger.info(`Extracted duration from variant option: ${duration} minutes`, {
+            variantOption,
+            variantId: lineItem.variantId
+          });
+        } else {
+          logger.warn(`Could not extract duration from variant, using default of 60`, {
+            variantOption,
+            variantId: lineItem.variantId,
+            variantTitle: lineItem.variant.title
+          });
+        }
+      }
+
       logger.info(`Preparing booking creation for line item ${lineItem.id}`, {
         originalDate: bookingData.date,
         originalTime: bookingData.time,
@@ -611,7 +653,7 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
         productId: lineItem.variant?.product?.id,
         staffId: staff.id,
         locationId: location.id,
-        duration: bookingData.duration || 60
+        duration: duration
       });
 
       // Parse price correctly - handle decimal amounts
@@ -638,7 +680,7 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
         variant: { _link: lineItem.variantId },
         totalPrice: totalPrice,
         staff: { _link: staff.id },
-        duration: bookingData.duration || 60, // Default to 60 minutes
+        duration: duration,
         status: 'confirmed', // This is the booking status (confirmed/pending), payment status comes from order
         notes: `Order: ${record.name}\nService: ${lineItem.name}\n${bookingData.notes || ''}`.trim(),
         shop: { _link: record.shopId },

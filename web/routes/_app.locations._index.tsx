@@ -26,6 +26,17 @@ export default function Locations() {
       city: true,
       active: true,
       timeZone: true,
+      operatingHours: true,
+    },
+  });
+
+  // Fallback: legacy JSON-based hours (pre-relational)
+  const [{ data: legacyLocationHours, fetching: legacyFetching, error: legacyError }] = useFindMany(api.locationHours, {
+    select: {
+      id: true,
+      locationId: true,
+      operatingHours: true,
+      holidayClosures: true,
     },
   });
 
@@ -53,34 +64,6 @@ export default function Locations() {
       reason: true,
     },
   });
-  
-  // Combine rules and exceptions into a format similar to the old structure
-  const hoursMap = useMemo(() => {
-    const map = new Map();
-    
-    if (!locations) return map;
-
-    for (const location of locations) {
-      // Get rules for this location
-      const rules = locationHoursRules?.filter(r => r.locationId === location.id) || [];
-      
-      // Get exceptions for this location
-      const exceptions = locationHoursExceptions?.filter(e => e.locationId === location.id) || [];
-
-      // Convert rules to operatingHours format
-      const operatingHours = rulesToOperatingHours(rules);
-      
-      // Convert exceptions to holidayClosures format
-      const holidayClosures = exceptionsToHolidayClosures(exceptions);
-
-      map.set(location.id, {
-        operatingHours,
-        holidayClosures,
-      });
-    }
-
-    return map;
-  }, [locations, locationHoursRules, locationHoursExceptions]);
 
   // Helper to convert rules to operatingHours JSON format
   const rulesToOperatingHours = (rules: any[]) => {
@@ -140,6 +123,89 @@ export default function Locations() {
       return result;
     });
   };
+  
+  // Helper to normalize legacy { monday: { isOpen, startTime, endTime }, ... } into { mode:'individual_days', days:{day:{enabled,from,to}} }
+  const legacyToOperatingHours = (legacy: any) => {
+    if (!legacy) return null;
+    // If already in new shape, return as-is
+    if (legacy.days || legacy.mode) return legacy;
+    const dayKeys = ['monday','tuesday','wednesday','thursday','friday','saturday','sunny','sunday'];
+    const days: any = {};
+    const mapping = {
+      monday: 'monday',
+      tuesday: 'tuesday',
+      wednesday: 'wednesday',
+      thursday: 'thursday',
+      friday: 'friday',
+      saturday: 'saturday',
+      sunday: 'sunday',
+    } as any;
+    Object.keys(mapping).forEach((day: string) => {
+      const cfg = legacy[day];
+      if (cfg && typeof cfg === 'object') {
+        const enabled = !!(cfg.isOpen !== undefined ? cfg.isOpen : cfg.enabled);
+        const from = cfg.from ?? cfg.startTime ?? '09:00';
+        const to = cfg.to ?? cfg.endTime ?? '17:00';
+        days[day] = { enabled, from, to };
+      }
+    });
+    if (Object.keys(days).length === 0) return null;
+    return { mode: 'individual_days', days };
+  };
+  
+  // Combine rules and exceptions into a format similar to the old structure
+  const hoursMap = useMemo(() => {
+    const map = new Map();
+    
+    if (!locations) return map;
+
+    for (const location of locations) {
+      // Get rules for this location
+      const rules = locationHoursRules?.filter(r => r.locationId === location.id) || [];
+      
+      // Get exceptions for this location
+      const exceptions = locationHoursExceptions?.filter(e => e.locationId === location.id) || [];
+
+      // Convert rules to operatingHours format
+      let operatingHours = rulesToOperatingHours(rules);
+      
+      // Convert exceptions to holidayClosures format
+      let holidayClosures = exceptionsToHolidayClosures(exceptions);
+
+      // Fallback: if no relational data found, use legacy JSON record
+      if ((!operatingHours || rules.length === 0) && (!holidayClosures || exceptions.length === 0)) {
+        const legacy = legacyLocationHours?.find((lh: any) => lh.locationId === location.id);
+        if (legacy) {
+          const legacyOH = legacy.operatingHours as any;
+          const normalized = legacyToOperatingHours(legacyOH) || legacyOH;
+          operatingHours = normalized ?? operatingHours;
+          holidayClosures = (legacy.holidayClosures as any) ?? holidayClosures;
+        }
+        // Fallback 2: read operatingHours directly from the ShopifyLocation record (older storage)
+        if (!operatingHours && (location as any)?.operatingHours) {
+          const legacyOH2 = (location as any).operatingHours as any;
+          const normalized2 = legacyToOperatingHours(legacyOH2) || legacyOH2;
+          operatingHours = normalized2;
+        }
+      }
+
+      map.set(location.id, {
+        operatingHours,
+        holidayClosures,
+      });
+    }
+
+    return map;
+  }, [locations, locationHoursRules, locationHoursExceptions, legacyLocationHours]);
+
+  if (locations) {
+    const targetLocation = locations.find(loc => loc.name === 'California 3');
+    if (targetLocation) {
+      const hoursRecord = hoursMap.get(targetLocation.id);
+      console.log('California 3 debug → location record', targetLocation);
+      console.log('California 3 debug → hoursMap entry', hoursRecord);
+    }
+  }
 
   // Helper function to get current time in a specific timezone
   const getCurrentTimeInTimezone = (timezone: string) => {
@@ -369,22 +435,23 @@ export default function Locations() {
       const locationHoursRecord = hoursMap.get(location.id);
       const operatingHours = locationHoursRecord?.operatingHours;
       const locationTimeZone = location.timeZone || 'UTC';
-      
-      if (location.name === 'Downtown') {
-        console.log('Downtown locationHoursRecord:', locationHoursRecord);
-        console.log('Downtown operatingHours:', operatingHours);
+ 
+      if (location.name === 'California 3') {
+        console.log('California 3 raw operatingHours:', operatingHours);
+        console.log('California 3 locationHoursRecord:', locationHoursRecord);
+        console.log('California 3 shopifyLocation.operatingHours:', location.operatingHours);
       }
-      
-      const isOpen = isLocationOpen(operatingHours, locationTimeZone, location.name);
+ 
+      const isOpen = isLocationOpen(operatingHours, locationTimeZone, location.name || '');
       const todaysHours = getTodaysHours(operatingHours, locationTimeZone);
       const address = [location.address1, location.address2, location.city]
         .filter(Boolean)
         .join(", ");
 
       return [
-        <Link key={location.id} to={`/locations/${location.id}`}>
+        <Link key={location.id} to={`/locations/${location.id ?? ''}`}>
           <Button variant="plain" textAlign="left">
-            {location.name}
+            {location.name ?? ''}
           </Button>
         </Link>,
         address || "No address",

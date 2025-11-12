@@ -5,8 +5,7 @@ interface BookingSubmissionBody {
   productId: string;
   staffId: string;
   locationId: string;
-  variantId?: string;
-  duration: number;
+  variantId: string;
   totalPrice: number;
   status: string;
   notes?: string;
@@ -46,11 +45,11 @@ const route: RouteHandler<{ Body: BookingSubmissionBody }> = async ({
     
     // Validate required fields
     if (!body.scheduledAt || !body.productId || !body.staffId || 
-        !body.locationId || !body.duration || body.totalPrice === undefined || 
+        !body.locationId || !body.variantId || body.totalPrice === undefined || 
         !body.status || !body.shop) {
       await reply.status(400).send({
         success: false,
-        error: "Missing required fields: scheduledAt, productId, staffId, locationId, duration, totalPrice, status, shop"
+        error: "Missing required fields: scheduledAt, productId, staffId, locationId, variantId, totalPrice, status, shop"
       });
       return;
     }
@@ -85,10 +84,40 @@ const route: RouteHandler<{ Body: BookingSubmissionBody }> = async ({
       return;
     }
 
+    // Validate and fetch variant to get duration
+    const variant = await api.shopifyProductVariant.findOne(body.variantId, {
+      select: { id: true, title: true, option1: true, productId: true }
+    });
+
+    if (!variant || variant.productId !== body.productId) {
+      await reply.status(404).send({
+        success: false,
+        error: "Product variant not found or does not belong to the specified product"
+      });
+      return;
+    }
+
+    // Extract duration from variant
+    let duration = 60; // Default fallback
+    const variantOption = variant.option1 || variant.title || '';
+    const durationMatch = variantOption.match(/(\d+)\s*min/i);
+    if (durationMatch) {
+      duration = parseInt(durationMatch[1], 10);
+      logger.info(`Extracted duration from variant: ${duration} minutes`, {
+        variantId: variant.id,
+        variantOption
+      });
+    } else {
+      logger.warn(`Could not extract duration from variant, using default of 60`, {
+        variantId: variant.id,
+        variantOption
+      });
+    }
+
     // Validate that the location exists and belongs to this shop
     const location = await api.shopifyLocation.findOne(body.locationId, {
       filter: { shopId: { equals: shopId } },
-      select: { id: true, name: true }
+      select: { id: true, name: true, timeZone: true }
     });
 
     if (!location) {
@@ -140,11 +169,12 @@ const route: RouteHandler<{ Body: BookingSubmissionBody }> = async ({
       product: { _link: body.productId },
       totalPrice: body.totalPrice,
       staff: { _link: body.staffId },
-      duration: body.duration,
+      duration: duration,
       status: body.status,
       notes: body.notes || null,
       shop: { _link: shopId },
-      location: { _link: body.locationId }
+      location: { _link: body.locationId },
+      locationTimeZone: location.timeZone || 'America/New_York' // Store timezone explicitly
     }, {
       select: {
         id: true,
@@ -210,13 +240,12 @@ route.options = {
         staffId: { type: "string" },
         locationId: { type: "string" },
         variantId: { type: "string" },
-        duration: { type: "number", minimum: 1 },
         totalPrice: { type: "number", minimum: 0 },
         status: { type: "string" },
         notes: { type: "string" },
         shop: { type: "string" }
       },
-      required: ["scheduledAt", "productId", "staffId", "locationId", "duration", "totalPrice", "status", "shop"],
+      required: ["scheduledAt", "productId", "staffId", "locationId", "variantId", "totalPrice", "status", "shop"],
       additionalProperties: false
     }
   }

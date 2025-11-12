@@ -155,14 +155,15 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     }
 
     // Fetch other data
-    const [staff, locations, staffAvailability, staffDateAvailability, existingBookings] = await Promise.all([
+    const [staff, locations, staffAvailability, staffDateAvailability, existingBookings, locationHoursRules, locationHoursExceptions] = await Promise.all([
       api.staff.findMany({
         filter: { 
           shopId: { equals: shopId }, 
-          isActive: { notEquals: false } // Include staff unless explicitly marked inactive
+          isActive: { equals: true } // Only include explicitly active staff
         },
         select: {
           id: true, name: true, email: true, phone: true, title: true,
+          isActive: true,
           avatar: { url: true, fileName: true }
         }
       }),
@@ -174,7 +175,8 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         },
         select: {
           id: true, name: true, address1: true, address2: true, city: true,
-          province: true, country: true, zipCode: true, phone: true, offersServices: true
+          province: true, country: true, zipCode: true, phone: true, offersServices: true,
+          operatingHours: true, timeZone: true
         }
       }),
       api.staffAvailability.findMany({
@@ -197,6 +199,20 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
           id: true, scheduledAt: true, duration: true, status: true,
           staffId: true, locationId: true, variantId: true, totalPrice: true,
           customerName: true, customerEmail: true, notes: true, arrived: true
+        }
+      }),
+      api.locationHoursRule.findMany({
+        filter: { shopId: { equals: shopId } },
+        select: {
+          id: true, locationId: true, weekday: true, openTime: true, closeTime: true,
+          validFrom: true, validTo: true
+        }
+      }),
+      api.locationHoursException.findMany({
+        filter: { shopId: { equals: shopId } },
+        select: {
+          id: true, locationId: true, startDate: true, endDate: true,
+          openTime: true, closeTime: true, closedAllDay: true, reason: true
         }
       })
     ]);
@@ -291,6 +307,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         email: staffMember.email,
         phone: staffMember.phone,
         title: staffMember.title,
+        isActive: staffMember.isActive,
         avatar: staffMember.avatar ? {
           url: staffMember.avatar.url,
           fileName: staffMember.avatar.fileName
@@ -306,7 +323,28 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         country: location.country,
         zipCode: location.zipCode,
         phone: location.phone,
-        offersServices: location.offersServices
+        offersServices: location.offersServices,
+        operatingHours: location.operatingHours,
+        timeZone: location.timeZone
+      })),
+      locationHoursRules: locationHoursRules.map(rule => ({
+        id: rule.id,
+        locationId: rule.locationId,
+        weekday: rule.weekday,
+        openTime: rule.openTime,
+        closeTime: rule.closeTime,
+        validFrom: rule.validFrom,
+        validTo: rule.validTo
+      })),
+      locationHoursExceptions: locationHoursExceptions.map(exception => ({
+        id: exception.id,
+        locationId: exception.locationId,
+        startDate: exception.startDate,
+        endDate: exception.endDate,
+        openTime: exception.openTime,
+        closeTime: exception.closeTime,
+        closedAllDay: exception.closedAllDay,
+        reason: exception.reason
       })),
       staffAvailability: staffAvailability.map(availability => ({
         id: availability.id,

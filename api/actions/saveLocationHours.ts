@@ -80,6 +80,46 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
     exceptionsCreated
   });
 
+  const normalizedOperatingHours = operatingHours || {};
+  const normalizedHolidayClosures = Array.isArray(holidayClosures) ? holidayClosures : [];
+
+  try {
+    const existingLocationHours = await api.locationHours.findFirst({
+      filter: { locationId: { equals: params.locationId } },
+      select: { id: true }
+    });
+
+    if (existingLocationHours) {
+      await api.locationHours.update(existingLocationHours.id, {
+        operatingHours: normalizedOperatingHours,
+        holidayClosures: normalizedHolidayClosures,
+        shop: { _link: shopId },
+      });
+    } else {
+      await api.locationHours.create({
+        location: { _link: params.locationId },
+        shop: { _link: shopId },
+        operatingHours: normalizedOperatingHours,
+        holidayClosures: normalizedHolidayClosures,
+      });
+    }
+
+    await api.shopifyLocation.update(params.locationId, {
+      operatingHours: normalizedOperatingHours,
+      holidayClosures: normalizedHolidayClosures,
+      shop: { _link: shopId },
+    });
+
+    logger.info("Synchronized legacy operating hours records", {
+      locationId: params.locationId,
+    });
+  } catch (syncError) {
+    logger.warn("Failed to synchronize legacy operating hours records", {
+      locationId: params.locationId,
+      error: syncError instanceof Error ? syncError.message : String(syncError),
+    });
+  }
+ 
   return {
     success: true,
     locationId: params.locationId,
@@ -99,83 +139,95 @@ async function saveOperatingHours(
   operatingHours: any,
   logger: any
 ): Promise<number> {
-  if (!operatingHours) {
-    return 0;
-  }
-
   let rulesCreated = 0;
 
-  // Handle different operating hours structures
-  if (operatingHours.mode === "individual_days" && operatingHours.days) {
-    // Map day names to weekday numbers (0=Monday, 6=Sunday)
-    const dayToWeekday: Record<string, number> = {
-      monday: 0,
-      tuesday: 1,
-      wednesday: 2,
-      thursday: 3,
-      friday: 4,
-      saturday: 5,
-      sunday: 6,
-    };
+  const dayToWeekday: Record<string, number> = {
+    monday: 0,
+    tuesday: 1,
+    wednesday: 2,
+    thursday: 3,
+    friday: 4,
+    saturday: 5,
+    sunday: 6,
+  };
 
-    for (const [dayName, dayHours] of Object.entries(operatingHours.days)) {
-      const dayData = dayHours as any;
-      const weekday = dayToWeekday[dayName];
-
-      if (weekday !== undefined && dayData.enabled && dayData.from && dayData.to) {
-        try {
-          await api.locationHoursRule.create({
-            location: { _link: locationId },
-            shop: { _link: shopId },
-            weekday,
-            openTime: dayData.from,
-            closeTime: dayData.to,
-            validFrom: "2000-01-01",
-          });
-          rulesCreated++;
-        } catch (error) {
-          logger.error(`Failed to create rule for ${dayName}: ${error}`);
-        }
-      }
-    }
-  } else if (operatingHours.mode === "weekdays_weekends") {
-    // Handle weekdays_weekends mode
-    if (operatingHours.weekdays?.enabled) {
-      // For weekdays (Mon-Fri = 0-4)
-      for (let weekday = 0; weekday <= 4; weekday++) {
-        try {
-          await api.locationHoursRule.create({
-            location: { _link: locationId },
-            shop: { _link: shopId },
-            weekday,
-            openTime: operatingHours.weekdays.from,
-            closeTime: operatingHours.weekdays.to,
-            validFrom: "2000-01-01",
-          });
-          rulesCreated++;
-        } catch (error) {
-          logger.error(`Failed to create weekday rule for ${weekday}: ${error}`);
-        }
-      }
+  const normalizeDayConfig = (): Record<string, any> => {
+    if (!operatingHours) {
+      return {};
     }
 
-    if (operatingHours.weekends?.enabled) {
-      // For weekends (Sat-Sun = 5-6)
-      for (let weekday = 5; weekday <= 6; weekday++) {
-        try {
-          await api.locationHoursRule.create({
-            location: { _link: locationId },
-            shop: { _link: shopId },
-            weekday,
-            openTime: operatingHours.weekends.from,
-            closeTime: operatingHours.weekends.to,
-            validFrom: "2000-01-01",
-          });
-          rulesCreated++;
-        } catch (error) {
-          logger.error(`Failed to create weekend rule for ${weekday}: ${error}`);
-        }
-      }
+    if (operatingHours.mode === "individual_days" && operatingHours.days) {
+      return operatingHours.days;
+    }
+
+    if (operatingHours.mode === "weekdays_weekends") {
+      const normalized: Record<string, any> = {};
+
+      const weekdaysConfig = operatingHours.weekdays || {};
+      const weekendsConfig = operatingHours.weekends || {};
+
+      ["monday", "tuesday", "wednesday", "thursday", "friday"].forEach((day) => {
+        normalized[day] = {
+          enabled: weekdaysConfig.enabled,
+          from: weekdaysConfig.from,
+          to: weekdaysConfig.to,
+        };
+      });
+
+      ["saturday", "sunday"].forEach((day) => {
+        normalized[day] = {
+          enabled: weekendsConfig.enabled,
+          from: weekendsConfig.from,
+          to: weekendsConfig.to,
+        };
+      });
+
+      return normalized;
+    }
+
+    // Fallback: if structure unknown, try days field
+    return operatingHours.days || {};
+  };
+
+  const dayConfigs = normalizeDayConfig();
+  const validFrom = new Date().toISOString();
+
+  for (const [dayName, config] of Object.entries(dayConfigs)) {
+    const dayData = config as any;
+    const weekday = dayToWeekday[dayName];
+
+    const isEnabled = dayData?.enabled ?? dayData?.isOpen;
+    const openTime = dayData?.from ?? dayData?.startTime;
+    const closeTime = dayData?.to ?? dayData?.endTime;
+
+    if (weekday === undefined || !isEnabled || !openTime || !closeTime) {
+      continue;
+    }
+
+    try {
+      logger.info("Creating location hours rule", {
+        locationId,
+        dayName,
+        weekday,
+        openTime,
+        closeTime,
+      });
+      await api.locationHoursRule.create({
+        location: { _link: locationId },
+        shop: { _link: shopId },
+        weekday,
+        openTime,
+        closeTime,
+        validFrom,
+      });
+      rulesCreated++;
+    } catch (error) {
+      logger.error("Failed to create rule", {
+        locationId,
+        dayName,
+        weekday,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -220,6 +272,7 @@ async function saveHolidayClosures(
         continue;
       }
 
+      const validFrom = new Date().toISOString();
       const exceptionData: any = {
         location: { _link: locationId },
         shop: { _link: shopId },
@@ -227,7 +280,7 @@ async function saveHolidayClosures(
         endDate: endDate || startDate,
         closedAllDay: true,
         reason,
-        validFrom: "2000-01-01",
+        validFrom,
       };
 
       await api.locationHoursException.create(exceptionData);

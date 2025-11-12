@@ -1,6 +1,6 @@
 import type { GadgetModel } from "gadget-server";
 
-// This file describes the schema for the "booking" model, go to https://barbershop.gadget.app/edit to view/edit your model in Gadget
+// This file describes the schema for the "booking" model, go to https://simplybook.gadget.app/edit to view/edit your model in Gadget
 // For more information on how to update this file http://docs.gadget.dev
 
 export const schema: GadgetModel = {
@@ -32,6 +32,10 @@ export const schema: GadgetModel = {
       validations: { required: true },
       parent: { model: "shopifyLocation" },
       storageKey: "xo9fHwJgCM3z",
+    },
+    locationTimeZone: {
+      type: "string",
+      storageKey: "locationTimeZone",
     },
     notes: { type: "string", storageKey: "LQmRZvstTbws" },
     order: {
