@@ -17,7 +17,7 @@ Welcome to SimplyBook, the comprehensive booking solution for your Shopify store
 5. [Schedule Management](#schedule-management)
 6. [Settings](#settings)
 7. [Adding the Booking Widget](#adding-the-booking-widget-to-your-store)
-8. [Advanced: Using App Embed Blocks](#advanced-using-app-embed-blocks)
+8. [Advanced: Using App Embeds](#advanced-using-app-embeds)
 9. [Customer Booking Experience](#customer-booking-experience)
 10. [POS Integration](#pos-integration)
 11. [Best Practices](#best-practices)
@@ -262,13 +262,13 @@ _In the theme editor, open the Apps tab and select the Booking Button from Simpl
 
 ---
 
-## Advanced: Using App Embed Blocks
+## Advanced: Using App Embeds
 
-For merchants who want more control over button placement and styling, SimplyBook offers an **App Embed Block** that loads the booking system globally without requiring a visible app block.
+For merchants who want more control over button placement and styling, SimplyBook offers an **App Embed** that loads the booking system globally without requiring a visible app block.
 
-### What is an App Embed Block?
+### What is an App Embed?
 
-An App Embed Block loads SimplyBook's CSS and JavaScript assets on every page of your store, allowing you to add custom booking buttons anywhere in your theme code.
+An App Embed loads SimplyBook's CSS and JavaScript assets on every page of your store, allowing you to add custom booking buttons anywhere in your theme code.
 
 ### Step 1: Enable the App Embed
 
