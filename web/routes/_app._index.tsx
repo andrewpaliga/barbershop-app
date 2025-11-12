@@ -2,11 +2,20 @@ import { useEffect } from "react";
 import { Page, Card, Text, BlockStack, InlineStack, Banner, Button, ProgressBar, Icon, Badge, Layout, Box, FooterHelp, Link } from "@shopify/polaris";
 import { CheckIcon } from "@shopify/polaris-icons";
 import { useFindMany, useFindFirst, useFindOne, useAction } from "@gadgetinc/react";
-import { useNavigate } from "@remix-run/react";
+import { useNavigate, useLoaderData } from "@remix-run/react";
+import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import { api } from "../api";
+
+export const loader = async ({ context }: LoaderFunctionArgs) => {
+  return json({
+    gadgetConfig: context.gadgetConfig,
+  });
+};
 
 export default function Index() {
   const navigate = useNavigate();
+  const loaderData = useLoaderData<typeof loader>();
+  const shopifyApiKey = loaderData?.gadgetConfig?.apiKeys?.shopify || "";
 
   // Get config data and update action
   const [{ data: config, fetching: fetchingConfig, error: configError }, refetchConfig] = useFindFirst(api.config);
@@ -139,12 +148,24 @@ export default function Index() {
           return;
         }
         
+        if (!shopifyApiKey) {
+          console.error('App Block: No Shopify API key found');
+          alert('Unable to open App Block: API key not found. Please try refreshing the page.');
+          return;
+        }
+        
         const store = domain.replace(/\.myshopify\.com$/i, "");
-        const href = `https://admin.shopify.com/store/${store}/themes/current/editor`;
-        console.log('Opening Theme Editor:', href);
+        
+        // Deep link to App Block
+        // Format: https://admin.shopify.com/store/{store}/themes/current/editor?template={template}&addAppBlockId={api_key}/{handle}&sectionId={sectionId}
+        const appBlockHandle = "bookingButton"; // The handle is the filename without .liquid extension
+        const template = "index"; // Homepage template
+        const sectionId = "main"; // Main section for homepage
+        const href = `https://admin.shopify.com/store/${store}/themes/current/editor?template=${template}&addAppBlockId=${shopifyApiKey}/${appBlockHandle}&sectionId=${sectionId}`;
+        console.log('Opening App Block deep link:', href, { store, domain, shopifyApiKey, appBlockHandle, template, sectionId });
         window.open(href, "_blank");
       },
-      buttonText: "Open Theme Editor"
+      buttonText: "Add Booking Button"
     },
     {
       title: "Enable POS extension",
