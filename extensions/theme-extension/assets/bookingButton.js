@@ -429,8 +429,30 @@ function updateCalendar() {
 function updateCalendarHeader() {
   const monthYear = document.getElementById('calendar-month-year');
   if (monthYear && currentWeekStart) {
-    const options = { month: 'long', year: 'numeric' };
-    monthYear.textContent = currentWeekStart.toLocaleDateString('en-US', options);
+    // Check if the week spans two months
+    const weekEnd = new Date(currentWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000);
+    const startMonth = currentWeekStart.getMonth();
+    const startYear = currentWeekStart.getFullYear();
+    const endMonth = weekEnd.getMonth();
+    const endYear = weekEnd.getFullYear();
+    
+    if (startMonth !== endMonth || startYear !== endYear) {
+      // Week spans two months - show both
+      const startMonthName = currentWeekStart.toLocaleDateString('en-US', { month: 'long' });
+      const endMonthName = weekEnd.toLocaleDateString('en-US', { month: 'long' });
+      
+      if (startYear === endYear) {
+        // Same year, different months: "October - November 2025"
+        monthYear.textContent = `${startMonthName} - ${endMonthName} ${startYear}`;
+      } else {
+        // Different years: "December 2025 - January 2026"
+        monthYear.textContent = `${startMonthName} ${startYear} - ${endMonthName} ${endYear}`;
+      }
+    } else {
+      // Week is within a single month
+      const options = { month: 'long', year: 'numeric' };
+      monthYear.textContent = currentWeekStart.toLocaleDateString('en-US', options);
+    }
   }
 }
 
