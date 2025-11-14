@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "2e023118f92ccdf631bf47241f4792b3"
-name = "SimplyBook"
+name = "SimplyBook 2"
 application_url = "https://simplybook.gadget.app/api/shopify/install-or-render"
 embedded = true
 handle = "SimplyBook"
