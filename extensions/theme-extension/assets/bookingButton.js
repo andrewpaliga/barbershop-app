@@ -1409,27 +1409,37 @@ function hasStaffAvailabilityInNext3Months(staffId, locationId) {
   }
   
   const targetLocationId = locationId || currentSelection.locationId;
-  if (!targetLocationId) {
-    return false;
-  }
   
   const today = new Date();
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const threeMonthsFromNow = new Date(todayStart.getTime() + (90 * 24 * 60 * 60 * 1000));
   
+  // Check weekly availability
+  // If targetLocationId is set, match it exactly OR allow availability without locationId (available at all locations)
+  // If targetLocationId is not set, allow any availability
   const hasWeeklyAvailability = Array.isArray(bookingData.staffAvailability) && bookingData.staffAvailability.some(avail =>
     avail.staffId === staffId &&
-    avail.locationId === targetLocationId &&
+    (targetLocationId 
+      ? (avail.locationId === targetLocationId || !avail.locationId)  // Match location or no location specified
+      : true) &&  // If no location selected, allow any availability
     (avail.isAvailable !== false) &&
     avail.dayOfWeek && Array.isArray(avail.dayOfWeek) && avail.dayOfWeek.length > 0
   );
   
   if (hasWeeklyAvailability) {
+    console.log(`[hasStaffAvailabilityInNext3Months] Staff ${staffId} has weekly availability for location ${targetLocationId || 'any'}`);
     return true;
   }
   
+  // Check date-specific availability
   const hasDateAvailability = Array.isArray(bookingData.staffDateAvailability) && bookingData.staffDateAvailability.some(dateAvail => {
-    if (dateAvail.staffId !== staffId || dateAvail.locationId !== targetLocationId || dateAvail.isAvailable === false) {
+    if (dateAvail.staffId !== staffId || dateAvail.isAvailable === false) {
+      return false;
+    }
+    
+    // If targetLocationId is set, match it exactly OR allow availability without locationId
+    // If targetLocationId is not set, allow any availability
+    if (targetLocationId && dateAvail.locationId && dateAvail.locationId !== targetLocationId) {
       return false;
     }
     
@@ -1439,8 +1449,18 @@ function hasStaffAvailabilityInNext3Months(staffId, locationId) {
       availDate.getUTCMonth(),
       availDate.getUTCDate()
     );
-    return availDateLocal >= todayStart && availDateLocal <= threeMonthsFromNow;
+    const isInRange = availDateLocal >= todayStart && availDateLocal <= threeMonthsFromNow;
+    
+    if (isInRange) {
+      console.log(`[hasStaffAvailabilityInNext3Months] Staff ${staffId} has date availability on ${availDateLocal.toISOString().split('T')[0]} for location ${dateAvail.locationId || 'any'}`);
+    }
+    
+    return isInRange;
   });
+  
+  if (!hasDateAvailability) {
+    console.log(`[hasStaffAvailabilityInNext3Months] Staff ${staffId} has NO availability in next 3 months for location ${targetLocationId || 'any'}`);
+  }
   
   return hasDateAvailability;
 }
@@ -1806,9 +1826,26 @@ function populateStaffButtons() {
     return;
   }
   
-  const availableStaff = bookingData.staff.filter(staff => {
-    return staff.isActive === true && hasStaffAvailabilityInNext3Months(staff.id, currentSelection.locationId);
+  console.log('[populateStaffButtons] Checking staff availability', {
+    locationId: currentSelection.locationId,
+    totalStaff: bookingData.staff.length,
+    activeStaff: bookingData.staff.filter(s => s.isActive === true).length,
+    staffAvailability: bookingData.staffAvailability?.length || 0,
+    staffDateAvailability: bookingData.staffDateAvailability?.length || 0,
+    allStaffAvailability: bookingData.staffAvailability,
+    allStaffDateAvailability: bookingData.staffDateAvailability
   });
+  
+  const availableStaff = bookingData.staff.filter(staff => {
+    const isActive = staff.isActive === true;
+    const hasAvailability = hasStaffAvailabilityInNext3Months(staff.id, currentSelection.locationId);
+    
+    console.log(`[populateStaffButtons] Staff ${staff.id} (${staff.name}): isActive=${isActive}, hasAvailability=${hasAvailability}`);
+    
+    return isActive && hasAvailability;
+  });
+  
+  console.log(`[populateStaffButtons] Found ${availableStaff.length} available staff:`, availableStaff.map(s => ({ id: s.id, name: s.name })));
   
   // Quick check: hide professional section if only 1 staff has availability
   if (availableStaff.length === 1) {
@@ -1817,6 +1854,10 @@ function populateStaffButtons() {
   }
   
   if (availableStaff.length === 0) {
+    console.warn('[populateStaffButtons] No available staff found!', {
+      allStaff: bookingData.staff.map(s => ({ id: s.id, name: s.name, isActive: s.isActive })),
+      locationId: currentSelection.locationId
+    });
     container.innerHTML = '<div style="text-align: center; color: #666; padding: 40px;"><p>No professionals are currently available for booking in the next 3 months. Please check back later or contact us directly.</p></div>';
     return;
   }

@@ -22,7 +22,12 @@ export default function Index() {
   const [{ fetching: updatingConfig }, updateConfig] = useAction(api.config.update);
   
   // Get shop data - useFindFirst works, useFindOne with "current" doesn't
-  const [{ data: currentShop, fetching: fetchingShop, error: shopError }] = useFindFirst(api.shopifyShop);
+  const [{ data: currentShop, fetching: fetchingShop, error: shopError }] = useFindFirst(api.shopifyShop, {
+    select: {
+      id: true,
+      myshopifyDomain: true,
+    }
+  });
 
   // Define dates first
   const today = new Date();
