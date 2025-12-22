@@ -155,7 +155,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
     }
 
     // Fetch other data
-    const [staff, locations, staffAvailability, staffDateAvailability, existingBookings, locationHoursRules, locationHoursExceptions] = await Promise.all([
+    const [staff, locations, staffAvailability, staffDateAvailability, bookingsNext90Days, locationHoursRules, locationHoursExceptions] = await Promise.all([
       api.staff.findMany({
         filter: { 
           shopId: { equals: shopId }, 
@@ -193,14 +193,28 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
           startTime: true, endTime: true, isAvailable: true
         }
       }),
-      api.booking.findMany({
-        filter: { shopId: { equals: shopId }, status: { in: ["pending", "paid", "confirmed", "not_paid"] } },
-        select: {
-          id: true, scheduledAt: true, duration: true, status: true,
-          staffId: true, locationId: true, variantId: true, totalPrice: true,
-          customerName: true, customerEmail: true, notes: true, arrived: true
-        }
-      }),
+      // Fetch bookings for next 90 days
+      (async () => {
+        const now = new Date();
+        const ninetyDaysFromNow = new Date(now);
+        ninetyDaysFromNow.setDate(ninetyDaysFromNow.getDate() + 90);
+        return api.booking.findMany({
+          filter: { 
+            shopId: { equals: shopId },
+            scheduledAt: { 
+              greaterThanOrEqual: now.toISOString(),
+              lessThanOrEqual: ninetyDaysFromNow.toISOString()
+            },
+            status: { in: ["pending", "paid", "not_paid", "completed"] }
+          },
+          select: {
+            id: true, scheduledAt: true, duration: true, status: true,
+            staffId: true, locationId: true, shopId: true, variantId: true, totalPrice: true,
+            customerName: true, customerEmail: true, notes: true, arrived: true
+          },
+          sort: { scheduledAt: "Ascending" }
+        });
+      })(),
       api.locationHoursRule.findMany({
         filter: { shopId: { equals: shopId } },
         select: {
@@ -216,35 +230,6 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         }
       })
     ]);
-
-    // Log detailed booking information for debugging
-    logger.info(`=== BOOKING DATA DEBUG INFO ===`);
-    logger.info(`Shop ID used for query: ${shopId}`);
-    logger.info(`Current server time: ${new Date().toISOString()}`);
-    logger.info(`Current server timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
-    logger.info(`Total existing bookings found: ${existingBookings.length}`);
-    
-    if (existingBookings.length > 0) {
-      logger.info(`=== EXISTING BOOKINGS DETAILS ===`);
-      existingBookings.forEach((booking, index) => {
-        logger.info(`Booking ${index + 1}:`);
-        logger.info(`  - ID: ${booking.id}`);
-        logger.info(`  - Staff ID: ${booking.staffId}`);
-        logger.info(`  - Location ID: ${booking.locationId}`);
-        logger.info(`  - Variant ID: ${booking.variantId}`);
-        logger.info(`  - Scheduled At: ${booking.scheduledAt} (${new Date(booking.scheduledAt).toISOString()})`);
-        logger.info(`  - Duration: ${booking.duration} minutes`);
-        logger.info(`  - Status: ${booking.status}`);
-        logger.info(`  - Total Price: ${booking.totalPrice}`);
-        logger.info(`  - Customer: ${booking.customerName} (${booking.customerEmail})`);
-        logger.info(`  - Arrived: ${booking.arrived}`);
-        logger.info(`  - Notes: ${booking.notes || 'None'}`);
-        logger.info(`  ---`);
-      });
-    } else {
-      logger.info(`No existing bookings found for shop ${shopId}`);
-    }
-    logger.info(`=== END BOOKING DEBUG INFO ===`);
 
     // Helper function to parse duration
     const parseDuration = (text: string): number | null => {
@@ -364,7 +349,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections })
         endTime: dateAvailability.endTime,
         isAvailable: dateAvailability.isAvailable
       })),
-      existingBookings: existingBookings.map(booking => ({
+      existingBookings: bookingsNext90Days.map(booking => ({
         id: booking.id,
         scheduledAt: booking.scheduledAt,
         duration: booking.duration,

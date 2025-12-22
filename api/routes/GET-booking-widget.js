@@ -669,7 +669,7 @@ const route: RouteHandler = async ({ request, reply, api, connections }) => {
       modal.innerHTML = \`
         <div class="booking-modal-content">
           <button class="booking-close">&times;</button>
-          <h2>Book Your Appointment</h2>
+          <h2>Book Your Appointmen</h2>
           <div class="booking-error" style="display: none;"></div>
           <div class="booking-success" style="display: none;"></div>
           <div class="booking-form">

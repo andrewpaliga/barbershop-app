@@ -543,11 +543,6 @@ function getLocationHoursForDate(date, locationId) {
       return true;
     });
     
-    console.log(`[getLocationHoursForDate] Checking rules for ${dayOfWeek} (weekday ${weekdayNum}) at location ${locationId}:`, {
-      allRulesForLocation: bookingData.locationHoursRules.filter(r => r.locationId === locationId),
-      matchingRules: matchingRules
-    });
-    
     if (matchingRules.length > 0) {
       // Use the most recent rule (highest validFrom date, or first if no validFrom)
       const rule = matchingRules.sort((a, b) => {
@@ -557,18 +552,8 @@ function getLocationHoursForDate(date, locationId) {
       })[0];
       
       if (rule && rule.openTime && rule.closeTime) {
-        console.log(`[getLocationHoursForDate] Using rule for ${dayOfWeek} at location ${locationId}:`, {
-          openTime: rule.openTime,
-          closeTime: rule.closeTime,
-          weekday: rule.weekday,
-          ruleId: rule.id,
-          validFrom: rule.validFrom,
-          validTo: rule.validTo
-        });
         return { startTime: rule.openTime, endTime: rule.closeTime };
       }
-    } else {
-      console.log(`[getLocationHoursForDate] No matching rules found for ${dayOfWeek} (weekday ${weekdayNum}) at location ${locationId}, falling back to legacy operatingHours`);
     }
   }
   
@@ -612,17 +597,11 @@ function getLocationHoursForDate(date, locationId) {
 
 function generateTimeSlots(date) {
   if (!currentSelection.serviceId || !currentSelection.locationId || !bookingData) {
-    console.log('[generateTimeSlots] Missing required data:', {
-      serviceId: currentSelection.serviceId,
-      locationId: currentSelection.locationId,
-      hasBookingData: !!bookingData
-    });
     return [];
   }
   
   const qualifiedStaff = getQualifiedStaffForService(currentSelection.serviceId);
   if (qualifiedStaff.length === 0) {
-    console.log('[generateTimeSlots] No qualified staff found');
     return [];
   }
   
@@ -633,20 +612,6 @@ function generateTimeSlots(date) {
   const locationHours = getLocationHoursForDate(date, currentSelection.locationId);
   const locationStartTime = locationHours ? parseTime(locationHours.startTime) : null;
   const locationEndTime = locationHours ? parseTime(locationHours.endTime) : null;
-  
-  console.log('[generateTimeSlots] Debug info:', {
-    date: date.toISOString().split('T')[0],
-    dayOfWeek,
-    locationId: currentSelection.locationId,
-    qualifiedStaffCount: qualifiedStaff.length,
-    qualifiedStaffIds: qualifiedStaff,
-    hasLocationHours: !!locationHours,
-    locationHours: locationHours,
-    locationStartTime,
-    locationEndTime,
-    locationStartTimeFormatted: locationStartTime !== null ? formatTime(locationStartTime) : null,
-    locationEndTimeFormatted: locationEndTime !== null ? formatTime(locationEndTime) : null
-  });
   
   // Generate time slots for the given date
   qualifiedStaff.forEach(staffId => {
@@ -680,14 +645,6 @@ function generateTimeSlots(date) {
       (avail.isAvailable !== false)
     );
     
-    console.log(`[generateTimeSlots] Staff ${staffId}:`, {
-      hasDateAvailability: !!dateAvailability,
-      dateAvailability: dateAvailability,
-      hasStaffAvailability: !!staffAvailability,
-      staffAvailability: staffAvailability,
-      allStaffAvailability: bookingData.staffAvailability.filter(a => a.staffId === staffId)
-    });
-    
     // Use specific date availability if available, otherwise fall back to weekly availability
     let availability = dateAvailability || staffAvailability;
     
@@ -695,13 +652,11 @@ function generateTimeSlots(date) {
     const noLocationSelected = !currentSelection.locationId;
 
     if (!availability && locationHours && (noLocationSelected || !hasDefinedAvailability)) {
-      console.log(`[generateTimeSlots] Staff ${staffId}: Using location hours as fallback`);
       availability = { startTime: locationHours.startTime, endTime: locationHours.endTime };
     }
     
     // If we still don't have availability, skip this staff member
     if (!availability) {
-      console.log(`[generateTimeSlots] Staff ${staffId}: No availability found, skipping`);
       return; // Continue to next staff member
     }
     
@@ -710,38 +665,29 @@ function generateTimeSlots(date) {
     
     // Always constrain to location hours if they exist (even if we have staff availability)
     if (locationStartTime !== null && startTime < locationStartTime) {
-      console.log(`[generateTimeSlots] Staff ${staffId}: Constraining startTime from ${formatTime(startTime)} to ${formatTime(locationStartTime)}`);
       startTime = locationStartTime;
     }
     if (locationEndTime !== null && endTime > locationEndTime) {
-      console.log(`[generateTimeSlots] Staff ${staffId}: Constraining endTime from ${formatTime(endTime)} to ${formatTime(locationEndTime)}`);
       endTime = locationEndTime;
     }
     
     // Only generate slots if we have a valid time range
     if (startTime >= endTime) {
-      console.log(`[generateTimeSlots] Staff ${staffId}: Invalid time range (startTime ${formatTime(startTime)} >= endTime ${formatTime(endTime)}), skipping`);
       return; // Skip if invalid time range
     }
     
     const timeSlotInterval = bookingData.timeSlotInterval || 30;
     
-    console.log(`[generateTimeSlots] Staff ${staffId}: Generating slots from ${formatTime(startTime)} to ${formatTime(endTime)}, interval: ${timeSlotInterval} minutes`);
-    
     // Generate time slots that align with the interval
     // Note: The loop condition is < endTime, so we generate slots up to but not including the end time
     // This means if endTime is 4 PM (960 minutes), the last slot will be 3:30 PM (930 minutes) with a 30-minute interval
-    const generatedSlots = [];
     for (let minutes = startTime; minutes < endTime; minutes += timeSlotInterval) {
       const time = formatTime(minutes);
-      generatedSlots.push(time);
       aggregatedSlots.add(time);
     }
-    console.log(`[generateTimeSlots] Staff ${staffId}: Generated ${generatedSlots.length} slots:`, generatedSlots);
   });
   
   const sortedSlots = Array.from(aggregatedSlots).sort();
-  console.log('[generateTimeSlots] Final slots:', sortedSlots);
   return sortedSlots;
 }
 
@@ -789,7 +735,7 @@ function createTimeSlot(time, date) {
   
   const isAvailable = isTimeSlotAvailable(time, date);
   
-  if (!isAvailable) {
+    if (!isAvailable) {
     timeSlotElement.classList.add('unavailable');
     timeSlotElement.disabled = true;
   } else {
@@ -800,28 +746,57 @@ function createTimeSlot(time, date) {
   return timeSlotElement;
 }
 
+/**
+ * Check if a time slot is available for booking.
+ * 
+ * IMPORTANT: A time slot is available if AT LEAST ONE qualified staff member is available.
+ * This means if multiple staff are available for a service, a time slot should only be
+ * grayed out when ALL staff members have conflicts or are unavailable.
+ * 
+ * @param {string} time - Time string in HH:MM format
+ * @param {Date} date - Date object for the appointment
+ * @returns {boolean} True if at least one staff member is available for this time slot
+ */
 function isTimeSlotAvailable(time, date) {
   if (!currentSelection.serviceId || !currentSelection.locationId || !bookingData) {
     return false;
   }
   
+  // Get all staff members qualified for this service
   const qualifiedStaff = getQualifiedStaffForService(currentSelection.serviceId);
   if (qualifiedStaff.length === 0) {
     return false;
   }
   
+  // Check availability for each staff member
+  // A time slot is available if AT LEAST ONE staff member is available
   const availableStaff = qualifiedStaff.filter(staffId => {
     return isTimeSlotAvailableForStaff(time, date, staffId);
   });
   
+  // Time slot is available if at least one staff member can take the booking
   return availableStaff.length > 0;
 }
 
+/**
+ * Check if a specific staff member is available for a time slot.
+ * 
+ * This checks:
+ * 1. If the time slot is in the past (for today's appointments)
+ * 2. If the staff member has availability defined for this date/time
+ * 3. If there are any booking conflicts for this staff member
+ * 
+ * @param {string} time - Time string in HH:MM format
+ * @param {Date} date - Date object for the appointment
+ * @param {string} staffId - Staff member ID to check
+ * @returns {boolean} True if this staff member is available for this time slot
+ */
 function isTimeSlotAvailableForStaff(time, date, staffId) {
   if (!staffId || !currentSelection.locationId || !bookingData) {
     return false;
   }
 
+  // Check if time slot is in the past (for today's appointments only)
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const appointmentDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -832,7 +807,6 @@ function isTimeSlotAvailableForStaff(time, date, staffId) {
     const gracePeriod = 15;
     
     if (currentTime > slotTime + gracePeriod) {
-      console.log(`Time slot ${time} is in the past (current: ${currentTime}, slot: ${slotTime})`);
       return false;
     }
   }
@@ -862,8 +836,6 @@ function isTimeSlotAvailableForStaff(time, date, staffId) {
     );
     
     const isMatch = currentDate.getTime() === availDateLocal.getTime();
-    // Found specific date availability
-    
     return isMatch;
   });
   
@@ -882,7 +854,6 @@ function isTimeSlotAvailableForStaff(time, date, staffId) {
   const noLocationSelected = !currentSelection.locationId;
 
   if (!availability && locationHours && (noLocationSelected || !hasDefinedAvailability)) {
-    console.log(`[generateTimeSlots] Staff ${staffId}: Using location hours as fallback`);
     availability = { startTime: locationHours.startTime, endTime: locationHours.endTime };
   }
   
@@ -890,6 +861,7 @@ function isTimeSlotAvailableForStaff(time, date, staffId) {
     return false;
   }
   
+  // Check if the time slot falls within the staff member's availability window
   const slotTime = parseTime(time);
   const startTime = parseTime(availability.startTime);
   const endTime = parseTime(availability.endTime);
@@ -901,6 +873,7 @@ function isTimeSlotAvailableForStaff(time, date, staffId) {
     return false;
   }
   
+  // Check for booking conflicts with this specific staff member
   const hasConflict = checkBookingConflictsForStaff(date, time, serviceDuration, staffId);
   return !hasConflict;
 }
@@ -957,15 +930,8 @@ function staffHasAvailabilityForLocation(staffId, locationId) {
 
 function getQualifiedStaffForService(serviceId) {
   if (!bookingData || !bookingData.staff || !Array.isArray(bookingData.staff)) {
-    console.log('[getQualifiedStaffForService] No booking data or staff array');
     return [];
   }
-  
-  console.log('[getQualifiedStaffForService] All staff:', bookingData.staff.map(s => ({
-    id: s.id,
-    name: s.name,
-    isActive: s.isActive
-  })));
   
   if (currentSelection.staffId) {
     const selectedStaff = bookingData.staff.find(staff => staff.id === currentSelection.staffId);
@@ -974,10 +940,8 @@ function getQualifiedStaffForService(serviceId) {
       (selectedStaff.isActive === true || selectedStaff.isActive === undefined) &&
       staffHasAvailabilityForLocation(selectedStaff.id, currentSelection.locationId)
     ) {
-      console.log('[getQualifiedStaffForService] Selected staff found:', selectedStaff.id);
       return [selectedStaff.id];
     } else {
-      console.log('[getQualifiedStaffForService] Selected staff not found, inactive, or unavailable at location:', currentSelection.staffId);
       return [];
     }
   }
@@ -988,48 +952,103 @@ function getQualifiedStaffForService(serviceId) {
     return isActive && staffHasAvailabilityForLocation(staff.id, currentSelection.locationId);
   });
   
-  console.log('[getQualifiedStaffForService] Filtered staff count:', filteredStaff.length, filteredStaff.map(s => s.id));
-  
   return filteredStaff.map(staff => staff.id);
 }
 
+/**
+ * Check if a proposed booking time conflicts with existing bookings for a staff member.
+ * 
+ * This function uses UTC timestamps for all comparisons to ensure consistency.
+ * 
+ * @param {Date} date - The proposed booking date (local Date object)
+ * @param {string} time - The proposed booking time in "HH:MM" format (local time)
+ * @param {number} serviceDuration - Duration of the service in minutes
+ * @param {string|number} staffId - The staff member ID to check conflicts for
+ * @returns {boolean} - Returns true if a conflict is found, false otherwise
+ */
 function checkBookingConflictsForStaff(date, time, serviceDuration, staffId) {
-  if (!bookingData.existingBookings || !Array.isArray(bookingData.existingBookings)) {
+  // Early return if no booking data
+  if (!bookingData || !bookingData.existingBookings || !Array.isArray(bookingData.existingBookings)) {
     return false;
   }
   
-  const proposedDate = new Date(date);
+  // Filter out cancelled and no-show bookings first
+  const activeBookings = bookingData.existingBookings.filter(booking => {
+    const status = String(booking.status || '').toLowerCase();
+    return status !== 'cancelled' && status !== 'no_show';
+  });
+  
+  if (activeBookings.length === 0) {
+    return false;
+  }
+  
+  // Convert proposed date/time to UTC timestamp
+  const proposedDateLocal = new Date(date);
   const [hours, minutes] = time.split(':').map(Number);
-  const proposedStart = new Date(
-    proposedDate.getFullYear(),
-    proposedDate.getMonth(),
-    proposedDate.getDate(),
+  
+  // Create local Date object for the proposed start time
+  const proposedStartLocal = new Date(
+    proposedDateLocal.getFullYear(),
+    proposedDateLocal.getMonth(),
+    proposedDateLocal.getDate(),
     hours,
-    minutes
+    minutes,
+    0,
+    0
   );
   
-  const proposedEnd = new Date(proposedStart.getTime() + (serviceDuration * 60 * 1000));
+  // Convert to UTC timestamp (milliseconds since epoch)
+  const proposedStartUTC = proposedStartLocal.getTime();
+  const proposedEndUTC = proposedStartUTC + (serviceDuration * 60 * 1000);
+  
+  // Get UTC date components for the proposed booking (for date filtering)
+  const proposedStartUTCDate = new Date(proposedStartUTC);
+  const proposedYearUTC = proposedStartUTCDate.getUTCFullYear();
+  const proposedMonthUTC = proposedStartUTCDate.getUTCMonth();
+  const proposedDayUTC = proposedStartUTCDate.getUTCDate();
   
   const targetStaffId = String(staffId);
   
-  // Check for booking conflicts
+  // Get bookings for this staff member
+  const staffBookings = activeBookings.filter(booking => String(booking.staffId) === targetStaffId);
   
-  const conflictingBookings = bookingData.existingBookings.filter(booking => {
-    const bookingStaffId = String(booking.staffId);
-    
-    if (bookingStaffId !== targetStaffId) {
-      return false;
+  // Check for conflicts: filter by staff, then by date, then check time overlap
+  const conflictingBookings = [];
+  
+  staffBookings.forEach(booking => {
+    // Filter 2: Same day (compare dates in UTC to ensure consistency)
+    if (!booking.scheduledAt) {
+      return;
     }
     
-    const existingStart = new Date(booking.scheduledAt);
+    // Parse existing booking scheduledAt (UTC ISO string)
+    const existingStartUTC = new Date(booking.scheduledAt);
+    
+    // Get UTC date components for comparison
+    const existingYearUTC = existingStartUTC.getUTCFullYear();
+    const existingMonthUTC = existingStartUTC.getUTCMonth();
+    const existingDayUTC = existingStartUTC.getUTCDate();
+    
+    const isSameDay = existingYearUTC === proposedYearUTC && 
+                      existingMonthUTC === proposedMonthUTC && 
+                      existingDayUTC === proposedDayUTC;
+    
+    if (!isSameDay) {
+      return;
+    }
+    
+    // Filter 3: Time overlap check (all in UTC timestamps - milliseconds since epoch)
     const existingDuration = booking.duration || 60;
-    const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60 * 1000));
+    const existingStartUTCTimestamp = existingStartUTC.getTime();
+    const existingEndUTC = existingStartUTCTimestamp + (existingDuration * 60 * 1000);
     
-    const hasOverlap = (proposedStart < existingEnd) && (proposedEnd > existingStart);
+    // Standard interval overlap formula: two intervals overlap if:
+    // proposedStart < existingEnd AND proposedEnd > existingStart
+    const hasOverlap = (proposedStartUTC < existingEndUTC) && (proposedEndUTC > existingStartUTCTimestamp);
     
-    // Conflict detected
-    
-    return hasOverlap;
+    if (hasOverlap) {
+      conflictingBookings.push(booking);
+    }
   });
   
   return conflictingBookings.length > 0;
@@ -1427,7 +1446,6 @@ function hasStaffAvailabilityInNext3Months(staffId, locationId) {
   );
   
   if (hasWeeklyAvailability) {
-    console.log(`[hasStaffAvailabilityInNext3Months] Staff ${staffId} has weekly availability for location ${targetLocationId || 'any'}`);
     return true;
   }
   
@@ -1452,14 +1470,12 @@ function hasStaffAvailabilityInNext3Months(staffId, locationId) {
     const isInRange = availDateLocal >= todayStart && availDateLocal <= threeMonthsFromNow;
     
     if (isInRange) {
-      console.log(`[hasStaffAvailabilityInNext3Months] Staff ${staffId} has date availability on ${availDateLocal.toISOString().split('T')[0]} for location ${dateAvail.locationId || 'any'}`);
     }
     
     return isInRange;
   });
   
   if (!hasDateAvailability) {
-    console.log(`[hasStaffAvailabilityInNext3Months] Staff ${staffId} has NO availability in next 3 months for location ${targetLocationId || 'any'}`);
   }
   
   return hasDateAvailability;
@@ -1634,54 +1650,11 @@ async function loadBookingData() {
   try {
     const shopDomain = window.Shopify?.shop?.myshopifyDomain || window.location.hostname;
     
-    // Log shop domain detection
-    console.log('SimplyBook: Shop domain detection', {
-      'window.Shopify?.shop?.myshopifyDomain': window.Shopify?.shop?.myshopifyDomain,
-      'window.location.hostname': window.location.hostname,
-      'selected shopDomain': shopDomain
-    });
-    
-    // Log AppConfig availability and values
-    console.log('SimplyBook: AppConfig availability', {
-      'AppConfig exists': !!AppConfig,
-      'AppConfig': AppConfig,
-      'AppConfig.proxy': AppConfig?.proxy
-    });
-    
     // Get app proxy configuration from generated config
     const appProxyPrefix = AppConfig?.proxy?.prefix || "apps";
     const appProxySubpath = AppConfig?.proxy?.subpath || "apps-simplybook";
     
-    // Log proxy configuration with fallbacks
-    console.log('SimplyBook: App proxy configuration', {
-      'AppConfig?.proxy?.prefix': AppConfig?.proxy?.prefix,
-      'fallback prefix used': !AppConfig?.proxy?.prefix,
-      'final appProxyPrefix': appProxyPrefix,
-      'AppConfig?.proxy?.subpath': AppConfig?.proxy?.subpath,
-      'fallback subpath used': !AppConfig?.proxy?.subpath,
-      'final appProxySubpath': appProxySubpath
-    });
-    
     const apiUrl = `https://${shopDomain}/${appProxyPrefix}/${appProxySubpath}/api/booking-data?shop=${encodeURIComponent(shopDomain)}`;
-    
-    // Log the constructed URL
-    console.log('SimplyBook: API URL construction', {
-      'constructed URL': apiUrl,
-      'URL parts': {
-        protocol: 'https://',
-        shopDomain: shopDomain,
-        appProxyPrefix: appProxyPrefix,
-        appProxySubpath: appProxySubpath,
-        endpoint: '/api/booking-data',
-        shopParam: `shop=${encodeURIComponent(shopDomain)}`
-      }
-    });
-
-    if (AppConfig?.isDevelopment) {
-      console.log('SimplyBook: Using development configuration', { appProxyPrefix, appProxySubpath });
-    }
-    
-    console.log('SimplyBook: Making fetch request to:', apiUrl);
     
     const response = await fetch(apiUrl, {
       method: 'GET',
@@ -1689,13 +1662,6 @@ async function loadBookingData() {
         'Content-Type': 'application/json',
       },
       mode: 'cors'
-    });
-    
-    console.log('SimplyBook: Fetch response received', {
-      'response.ok': response.ok,
-      'response.status': response.status,
-      'response.statusText': response.statusText,
-      'response.url': response.url
     });
     
     if (!response.ok) {
@@ -1732,6 +1698,7 @@ async function loadBookingData() {
     }
     
     bookingData = processedData;
+    
     // Prefetch common images to reduce first-render jank
     try {
       if (Array.isArray(bookingData.staff)) {
@@ -1757,9 +1724,6 @@ async function loadBookingData() {
     } catch (_) {}
     
     // Theme customization is now handled by Liquid template
-    
-    // Debug: Log existing bookings
-    // Load existing bookings for conflict checking
     
   } catch (error) {
     console.error('SimplyBook: loadBookingData failed', {
@@ -1826,26 +1790,11 @@ function populateStaffButtons() {
     return;
   }
   
-  console.log('[populateStaffButtons] Checking staff availability', {
-    locationId: currentSelection.locationId,
-    totalStaff: bookingData.staff.length,
-    activeStaff: bookingData.staff.filter(s => s.isActive === true).length,
-    staffAvailability: bookingData.staffAvailability?.length || 0,
-    staffDateAvailability: bookingData.staffDateAvailability?.length || 0,
-    allStaffAvailability: bookingData.staffAvailability,
-    allStaffDateAvailability: bookingData.staffDateAvailability
-  });
-  
   const availableStaff = bookingData.staff.filter(staff => {
     const isActive = staff.isActive === true;
     const hasAvailability = hasStaffAvailabilityInNext3Months(staff.id, currentSelection.locationId);
-    
-    console.log(`[populateStaffButtons] Staff ${staff.id} (${staff.name}): isActive=${isActive}, hasAvailability=${hasAvailability}`);
-    
     return isActive && hasAvailability;
   });
-  
-  console.log(`[populateStaffButtons] Found ${availableStaff.length} available staff:`, availableStaff.map(s => ({ id: s.id, name: s.name })));
   
   // Quick check: hide professional section if only 1 staff has availability
   if (availableStaff.length === 1) {
@@ -1900,7 +1849,6 @@ document.addEventListener('DOMContentLoaded', function() {
       bookingDataPromise = loadBookingData().catch(function(){ bookingDataPromise = null; });
     }
   } catch (_) {}
-  
   
   window.onclick = function(event) {
     const modal = document.getElementById('simplybook-modal');
