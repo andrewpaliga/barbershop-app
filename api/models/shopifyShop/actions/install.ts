@@ -1,4 +1,4 @@
-import { applyParams, save, ActionOptions } from "gadget-server";
+import { applyParams, save, ActionOptions, ActionRun, ActionOnSuccess } from "gadget-server";
 
 export const run: ActionRun = async ({ params, record, logger, api, connections }) => {
   applyParams(params, record);
@@ -44,7 +44,10 @@ export const onSuccess: ActionOnSuccess = async ({ params, record, logger, api, 
         saturday: { enabled: false, start: "09:00", end: "17:00" },
         sunday: { enabled: false, start: "09:00", end: "17:00" }
       },
-      cancellationPolicy: "Cancellations must be made at least 24 hours in advance."
+      cancellationPolicy: "Cancellations must be made at least 24 hours in advance.",
+      enableAppointmentConfirmations: false,
+      enable24HourReminders: false,
+      enable1HourReminders: false,
     });
     
     logger.info(`Successfully created default config for shop ${record.id}`);

@@ -10,24 +10,39 @@ import {
   Badge,
   FooterHelp,
   Link,
+  Checkbox,
 } from "@shopify/polaris";
 import { useFindFirst, useFindOne, useAction } from "@gadgetinc/react";
 import { api } from "../api";
 import { useState } from "react";
+import { useNavigate } from "@remix-run/react";
 
 export default function Settings() {
+  const navigate = useNavigate();
   const [{ data: config, fetching, error }] = useFindFirst(api.config);
   const [, updateConfig] = useAction(api.config.update as any);
   const [selectedInterval, setSelectedInterval] = useState<number>(30);
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [enableConfirmations, setEnableConfirmations] = useState<boolean>(false);
+  const [enable24HourReminders, setEnable24HourReminders] = useState<boolean>(false);
+  const [enable1HourReminders, setEnable1HourReminders] = useState<boolean>(false);
 
-  // Update selectedInterval when config loads
+  // Update selectedInterval and notification settings when config loads
   React.useEffect(() => {
     if (config?.timeSlotInterval) {
       setSelectedInterval(config.timeSlotInterval);
     }
-  }, [config?.timeSlotInterval]);
+    if (config?.enableAppointmentConfirmations !== undefined) {
+      setEnableConfirmations(config.enableAppointmentConfirmations);
+    }
+    if (config?.enable24HourReminders !== undefined) {
+      setEnable24HourReminders(config.enable24HourReminders);
+    }
+    if (config?.enable1HourReminders !== undefined) {
+      setEnable1HourReminders(config.enable1HourReminders);
+    }
+  }, [config]);
 
 
   if (fetching) {
@@ -79,7 +94,10 @@ export default function Settings() {
           setIsSaving(true);
           try {
             await api.config.update(config.id, {
-              timeSlotInterval: selectedInterval
+              timeSlotInterval: selectedInterval,
+              enableAppointmentConfirmations: enableConfirmations,
+              enable24HourReminders: enable24HourReminders,
+              enable1HourReminders: enable1HourReminders,
             });
             setShowSuccess(true);
             // Hide success message after 3 seconds
@@ -178,6 +196,51 @@ export default function Settings() {
               <Text as="p" variant="bodySm" tone="subdued">
                 The onboarding helps you get started with setting up services, staff, and booking features. You can re-enable it anytime.
               </Text>
+            </BlockStack>
+          </BlockStack>
+        </Card>
+        
+        <Card>
+          <BlockStack gap="400">
+            <BlockStack gap="200">
+              <Text as="h2" variant="headingMd">
+                Notifications
+              </Text>
+              <Text as="p" variant="bodyMd" tone="subdued">
+                Configure email notifications sent to customers for appointments
+              </Text>
+            </BlockStack>
+
+            <BlockStack gap="300">
+              <Checkbox
+                label="Appointment Confirmations"
+                checked={enableConfirmations}
+                onChange={(value) => setEnableConfirmations(value)}
+                helpText="Send confirmation emails immediately when a customer books an appointment"
+              />
+              
+              <Checkbox
+                label="24 Hour Reminders"
+                checked={enable24HourReminders}
+                onChange={(value) => setEnable24HourReminders(value)}
+                helpText="Send reminder emails 24 hours before the appointment"
+              />
+              
+              <Checkbox
+                label="1 Hour Reminders"
+                checked={enable1HourReminders}
+                onChange={(value) => setEnable1HourReminders(value)}
+                helpText="Send reminder emails 1 hour before the appointment"
+              />
+
+              <InlineStack gap="200" blockAlign="center">
+                <Button
+                  variant="plain"
+                  onClick={() => navigate("/reminder-history")}
+                >
+                  View Reminder History
+                </Button>
+              </InlineStack>
             </BlockStack>
           </BlockStack>
         </Card>

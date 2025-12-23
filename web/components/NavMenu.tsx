@@ -23,6 +23,9 @@ export function NavMenu() {
       <Link to="/settings">
         Settings
       </Link>
+      <Link to="/reminder-history">
+        Reminder History
+      </Link>
     </AppBridgeNavMenu>
   );
 }
