@@ -55,6 +55,12 @@ export const permissions: GadgetPermissions = {
               "accessControl/filters/shopify/locationHoursRule.gelly",
           },
         },
+        reminderHistory: {
+          read: {
+            filter:
+              "accessControl/filters/shopify/reminderHistory.gelly",
+          },
+        },
         shopifyCustomer: {
           read: {
             filter:
