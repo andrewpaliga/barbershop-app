@@ -958,10 +958,10 @@
     wonka "^6.3.2"
     ws "^8.17.0"
 
-"@gadgetinc/core@0.9.0":
-  version "0.9.0"
-  resolved "https://registry.yarnpkg.com/@gadgetinc/core/-/core-0.9.0.tgz#cb8e934ee36ae14053c1bba59b37290a07698453"
-  integrity sha512-zkwPnuxWKJxicdkbiq/SxB2M3NhHXx7AEMzNNAWwwR0xdjaqTSbiPWLnt5r7nDs2zxq1n7G0BrS9OmXbG1chVQ==
+"@gadgetinc/core@0.15.1":
+  version "0.15.1"
+  resolved "https://registry.yarnpkg.com/@gadgetinc/core/-/core-0.15.1.tgz#7740035306c89e59b0ddf734f3ce3e6c1d87938f"
+  integrity sha512-MFvJ6FfSdcwMPoNhg/1t8O9K41GwIVEmflbbgU1nalTX6KBLcib58q04mFgLv9f/WEnwud9q7aOM9nRH4lNZ1w==
 
 "@gadgetinc/react-shopify-app-bridge@^0.18.4":
   version "0.18.4"

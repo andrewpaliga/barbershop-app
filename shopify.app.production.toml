@@ -4,7 +4,7 @@ client_id = "57c8d60220171b719031887eea6f9934"
 name = "SimplyBook"
 application_url = "https://simplybook.gadget.app/api/shopify/install-or-render"
 embedded = true
-handle = "simplybook_production"
+handle = "simplybook"
 
 [webhooks]
 api_version = "2025-04"
