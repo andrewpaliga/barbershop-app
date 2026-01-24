@@ -9,17 +9,25 @@ interface PlanRequiredGateProps {
   children: React.ReactNode;
 }
 
+// SimplyBook Demo app client_id - skip billing for this app
+const DEMO_APP_CLIENT_ID = 'e3a803ffa42eb9db60f394bf72940036';
+
 /**
  * Component that blocks access to protected routes when:
  * - No plan has been selected
  * - Trial has expired
  * 
  * Allows access to the root page (/) even when trial expires.
+ * Demo app always has access (billing is skipped).
  */
 export function PlanRequiredGate({ children }: PlanRequiredGateProps) {
   // Get environment from loader data if available
   const loaderData = useLoaderData<any>();
   const environment = loaderData?.gadgetConfig?.environment;
+  const shopifyApiKey = loaderData?.gadgetConfig?.apiKeys?.shopify;
+  
+  // Skip billing for demo app even in production environment
+  const isDemoApp = shopifyApiKey === DEMO_APP_CLIENT_ID;
 
   const [{ data: shop, fetching, error: shopError }] = useFindFirst(api.shopifyShop, {
     select: {
@@ -33,6 +41,11 @@ export function PlanRequiredGate({ children }: PlanRequiredGateProps) {
   });
 
   const [isChecking, setIsChecking] = useState(true);
+
+  // Demo app always has access - skip all billing checks
+  if (isDemoApp) {
+    return <>{children}</>;
+  }
 
   // Check access on mount and when shop data changes
   useEffect(() => {

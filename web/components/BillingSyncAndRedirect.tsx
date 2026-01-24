@@ -6,12 +6,19 @@ import { api } from '../api';
 const SYNC_CACHE_KEY = 'billing_sync_session';
 const SYNC_CACHE_DURATION_MS = 60 * 60 * 1000; // 1 hour - cache sync for 1 hour per session
 
+// SimplyBook Demo app client_id - skip billing for this app
+const DEMO_APP_CLIENT_ID = 'e3a803ffa42eb9db60f394bf72940036';
+
 export const BillingSyncAndRedirect = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const loaderData = useLoaderData<any>();
   const environment = loaderData?.gadgetConfig?.environment;
-  const isProduction = environment === 'production';
+  const shopifyApiKey = loaderData?.gadgetConfig?.apiKeys?.shopify;
+  
+  // Skip billing for demo app even in production environment
+  const isDemoApp = shopifyApiKey === DEMO_APP_CLIENT_ID;
+  const isProduction = environment === 'production' && !isDemoApp;
   const hasSyncedRef = useRef(false);
   const syncInProgressRef = useRef(false);
 

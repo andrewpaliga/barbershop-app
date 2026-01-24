@@ -9,14 +9,22 @@ interface TrialBannerProps {
   onSelectPlan: () => void;
 }
 
+// SimplyBook Demo app client_id - skip billing/trial banners for this app
+const DEMO_APP_CLIENT_ID = 'e3a803ffa42eb9db60f394bf72940036';
+
 /**
  * Trial countdown banner component.
  * Shows how many days are left in the trial with a CTA to select a plan.
+ * Hidden for demo app.
  */
 export function TrialBanner({ onSelectPlan }: TrialBannerProps) {
   // Get environment from loader data if available
   const loaderData = useLoaderData<any>();
   const environment = loaderData?.gadgetConfig?.environment;
+  const shopifyApiKey = loaderData?.gadgetConfig?.apiKeys?.shopify;
+  
+  // Skip showing trial banner for demo app
+  const isDemoApp = shopifyApiKey === DEMO_APP_CLIENT_ID;
 
   const [{ data: shop, fetching }] = useFindFirst(api.shopifyShop, {
     select: {
@@ -91,10 +99,11 @@ export function TrialBanner({ onSelectPlan }: TrialBannerProps) {
   }, [shop?.trialEndsAt, shop?.trialDaysRemaining, shop?.isTrialActive, syncStatus, syncing, hasSynced]);
 
   // Don't show banner if:
+  // - Demo app (skip all billing-related UI)
   // - Still loading shop data
   // - Still syncing and we haven't synced before
   // - Billing status is active (paid plan, not in trial)
-  if (fetching || (syncing && !hasSynced) || shop?.billingStatus === "active") {
+  if (isDemoApp || fetching || (syncing && !hasSynced) || shop?.billingStatus === "active") {
     return null;
   }
 
