@@ -205,6 +205,7 @@ export const permissions: GadgetPermissions = {
         cleanupDeletedProducts: true,
         createService: true,
         saveLocationHours: true,
+        syncManagedPricingStatus: true,
       },
     },
     unauthenticated: {

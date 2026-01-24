@@ -1,12 +1,34 @@
 import type { GadgetModel } from "gadget-server";
 
-// This file describes the schema for the "shopifyShop" model, go to https://barbershop.gadget.app/edit to view/edit your model in Gadget
+// This file describes the schema for the "shopifyShop" model, go to https://simplybook.gadget.app/edit to view/edit your model in Gadget
 // For more information on how to update this file http://docs.gadget.dev
 
 export const schema: GadgetModel = {
   type: "gadget/model-schema/v1",
   storageKey: "DataModel-Shopify-Shop",
-  fields: {},
+  fields: {
+    appSubscriptionId: {
+      type: "string",
+      storageKey: "appSubscriptionId",
+    },
+    billingPlan: { type: "string", storageKey: "billingPlan" },
+    billingStatus: { type: "string", storageKey: "billingStatus" },
+    isTrialActive: {
+      type: "boolean",
+      default: false,
+      storageKey: "isTrialActive",
+    },
+    trialDaysRemaining: {
+      type: "number",
+      decimals: 0,
+      storageKey: "trialDaysRemaining",
+    },
+    trialEndsAt: {
+      type: "dateTime",
+      includeTime: true,
+      storageKey: "trialEndsAt",
+    },
+  },
   shopify: {
     fields: [
       "address1",

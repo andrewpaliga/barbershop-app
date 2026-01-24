@@ -1448,6 +1448,11 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.43.0.tgz#42a88207659e404e8ffa655cae763cbad94906ab"
   integrity sha512-SnGhLiE5rlK0ofq8kzuDkM0g7FN1s5VYY+YSMTibP7CqShxCQvqtNxTARS4xX4PFJfHjG0ZQYX9iGzI3FQh5Aw==
 
+"@shopify/app-bridge-core@1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@shopify/app-bridge-core/-/app-bridge-core-1.2.0.tgz#61c2fc42f1094f4e9be21b3ae663614ba4c75363"
+  integrity sha512-gVPoGZWWsYjOmU70v9bZ8oDySBJ3i0nI77LdJq5amhfYq4OzYuWmJL2hb3ZiYrja+cd99dtd3KcRhVyDG+DMmw==
+
 "@shopify/app-bridge-react@^4.1.5":
   version "4.1.10"
   resolved "https://registry.yarnpkg.com/@shopify/app-bridge-react/-/app-bridge-react-4.1.10.tgz#dc5aca8a82155ae912c807e999d85f77f32423f4"
@@ -1464,6 +1469,15 @@
   version "0.0.15"
   resolved "https://registry.yarnpkg.com/@shopify/app-bridge-types/-/app-bridge-types-0.0.15.tgz#f5b7fbb57eb5b9c4497d8c36ac8986ddd2770f4e"
   integrity sha512-7hi/DeLU5/3c7wtc+vij3T9Ga/UXtPG60v7o3hgEm1cysLQuwwHKD37uq5b3HzE6D+0ZHz26RW7LPiGU8VLOww==
+
+"@shopify/app-bridge@^4.0.0-snapshot-20250410203042":
+  version "4.0.0-snapshot-20250410203042"
+  resolved "https://registry.yarnpkg.com/@shopify/app-bridge/-/app-bridge-4.0.0-snapshot-20250410203042.tgz#b8127a168f14adc17ad79d21aaaeaa8194ad158d"
+  integrity sha512-7XpcycZV1Nhqc4ROHWZfH3eMMFJz5HXkVX0/fBWr72fp92kAXbBZr2paFmS0l1wfn1m826m4FXBh3uMNdpHRcA==
+  dependencies:
+    "@shopify/app-bridge-core" "1.2.0"
+    base64url "^3.0.1"
+    web-vitals "^3.0.1"
 
 "@shopify/polaris-icons@^9.3.0", "@shopify/polaris-icons@^9.3.1":
   version "9.3.1"
@@ -2091,6 +2105,11 @@ base64-js@^1.3.1:
   version "1.5.1"
   resolved "https://registry.yarnpkg.com/base64-js/-/base64-js-1.5.1.tgz#1b1b440160a5bf7ad40b650f095963481903930a"
   integrity sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==
+
+base64url@^3.0.1:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/base64url/-/base64url-3.0.1.tgz#6399d572e2bc3f90a9a8b22d5dbb0a32d33f788d"
+  integrity sha512-ir1UPr3dkwexU7FdV8qBBbNDRUhMmIekYMFZfi+C/sLNnRESKPl23nB9b2pltqfOQNnGzsDdId90AEtG5tCx4A==
 
 binary-extensions@^2.0.0:
   version "2.3.0"
@@ -6297,6 +6316,11 @@ web-streams-polyfill@^3.1.1:
   version "3.3.3"
   resolved "https://registry.yarnpkg.com/web-streams-polyfill/-/web-streams-polyfill-3.3.3.tgz#2073b91a2fdb1fbfbd401e7de0ac9f8214cecb4b"
   integrity sha512-d2JWLCivmZYTSIoge9MsgFCZrt571BikcWGYkjC1khllbTeDlGqZ2D8vD8E/lJa8WGWbb7Plm8/XJYV7IJHZZw==
+
+web-vitals@^3.0.1:
+  version "3.5.2"
+  resolved "https://registry.yarnpkg.com/web-vitals/-/web-vitals-3.5.2.tgz#5bb58461bbc173c3f00c2ddff8bfe6e680999ca9"
+  integrity sha512-c0rhqNcHXRkY/ogGDJQxZ9Im9D19hDihbzSQJrsioex+KnFgmMzBiy57Z1EjkhX/+OjyBpclDCzz2ITtjokFmg==
 
 webidl-conversions@^3.0.0:
   version "3.0.1"

@@ -3,6 +3,7 @@ import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import { Page, Card, Text, Box } from "@shopify/polaris";
 import { NavMenu } from "../components/NavMenu";
 import { POSRedirect } from "../components/POSRedirect";
+import { BillingSyncAndRedirect } from "../components/BillingSyncAndRedirect";
 
 export const loader = async ({ context }: LoaderFunctionArgs) => {
   return json({
@@ -16,6 +17,7 @@ export default function() {
   if (gadgetConfig.shopifyInstallState) {
     return (
       <>
+        <BillingSyncAndRedirect />
         <POSRedirect />
         <NavMenu />
         <Outlet />
