@@ -23,6 +23,7 @@
     "@gadgetinc/react-shopify-app-bridge": "^0.18.4",
     "@remix-run/node": "^2.15.3",
     "@remix-run/react": "^2.15.3",
+    "@shopify/app-bridge": "^4.0.0-snapshot-20250410203042",
     "@shopify/app-bridge-react": "^4.1.5",
     "@shopify/polaris": "^13.8.0",
     "@shopify/polaris-icons": "^9.3.0",
@@ -30,11 +31,11 @@
     "@shopify/ui-extensions-react": "2025.7.x",
     "gadget-server": "link:.gadget/server",
     "isbot": "^5.1.0",
+    "logrocket": "^11.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-reconciler": "0.29.0",
-    "shopify-api-node": "^3.14.2",
-    "@shopify/app-bridge": "^4.0.0-snapshot-20250410203042"
+    "shopify-api-node": "^3.14.2"
   },
   "devDependencies": {
     "@iarna/toml": "^3.0.0",

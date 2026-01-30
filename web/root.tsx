@@ -9,11 +9,12 @@ import {
 import { Provider as GadgetReactProvider } from "@gadgetinc/react";
 import "./app.css";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { Client, api } from "./api";
 import { AdaptorLink } from "./components/AdaptorLink";
 import { FullPageSpinner } from "./components/FullPageSpinner";
 import { Component, ErrorInfo, ReactNode } from "react";
+import { initLogRocket } from "./utils/logrocket";
 
 export const links = () => [
   {
@@ -83,6 +84,16 @@ export default function App() {
   const { gadgetConfig } = loaderData || {};
   const location = useLocation();
 
+  // Initialize LogRocket for production session recording
+  useEffect(() => {
+    if (gadgetConfig) {
+      initLogRocket({
+        environment: (gadgetConfig as any).environment,
+        shopifyApiKey: gadgetConfig.apiKeys?.shopify,
+      });
+    }
+  }, [gadgetConfig]);
+
   // Show loading spinner if gadgetConfig is not available yet
   if (!gadgetConfig) {
     return <FullPageSpinner />;
@@ -99,7 +110,7 @@ export default function App() {
       type={AppType.Embedded}
       shopifyApiKey={shopifyApiKey ?? ""}
       location={location}
-      shopifyInstallState={gadgetConfig?.shopifyInstallState}
+      shopifyInstallState={(gadgetConfig as any)?.shopifyInstallState}
       api={api}
     >
       <GadgetReactProvider api={api}>

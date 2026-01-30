@@ -3882,6 +3882,11 @@ log-symbols@^4.1.0:
     chalk "^4.1.0"
     is-unicode-supported "^0.1.0"
 
+logrocket@^11.0.0:
+  version "11.0.0"
+  resolved "https://registry.yarnpkg.com/logrocket/-/logrocket-11.0.0.tgz#e15b9e1892563b94514046ae87f2c7146ab349f7"
+  integrity sha512-/WBl2VJ/WVRsveU0PhWcO++XZpKUifRQZwAFqjUyPSwxdy+OFEgKk+W69WSQFM9pejizarXRwmb3Wo7msD75+g==
+
 longest-streak@^3.0.0:
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/longest-streak/-/longest-streak-3.1.0.tgz#62fa67cd958742a1574af9f39866364102d90cd4"

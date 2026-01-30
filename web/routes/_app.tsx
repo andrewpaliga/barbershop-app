@@ -4,6 +4,7 @@ import { Page, Card, Text, Box } from "@shopify/polaris";
 import { NavMenu } from "../components/NavMenu";
 import { POSRedirect } from "../components/POSRedirect";
 import { BillingSyncAndRedirect } from "../components/BillingSyncAndRedirect";
+import { LogRocketIdentify } from "../components/LogRocketIdentify";
 
 export const loader = async ({ context }: LoaderFunctionArgs) => {
   return json({
@@ -17,6 +18,7 @@ export default function() {
   if (gadgetConfig.shopifyInstallState) {
     return (
       <>
+        <LogRocketIdentify />
         <BillingSyncAndRedirect />
         <POSRedirect />
         <NavMenu />
