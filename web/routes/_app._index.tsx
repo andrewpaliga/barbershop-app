@@ -44,9 +44,6 @@ export default function Index() {
       name: true
     }
   });
-  const [{ data: staffAvailabilityData }] = useFindMany(api.staffAvailability, {
-    filter: { isAvailable: { equals: true } }
-  });
   const [{ data: servicesData }] = useFindMany(api.shopifyProduct, {
     filter: {
       productType: {
@@ -110,24 +107,6 @@ export default function Index() {
       completed: (servicesData?.length || 0) > 0,
       action: () => navigate("/services"),
       buttonText: "Add Service"
-    },
-    {
-      title: "Add a staff member with availability",
-      description: "Add team members who can provide services and set their availability",
-      completed: (staffData?.length || 0) > 0 && (staffAvailabilityData?.length || 0) > 0,
-      action: () => {
-        if ((staffData?.length || 0) === 0) {
-          navigate("/staff/new");
-          return;
-        }
-        const firstStaffId = staffData?.[0]?.id;
-        if (firstStaffId) {
-          navigate(`/staff/${firstStaffId}#availability`);
-        } else {
-          navigate("/staff");
-        }
-      },
-      buttonText: (staffData?.length || 0) === 0 ? "Add Staff" : "Add Availability"
     },
     {
       title: "Add Booking Button",

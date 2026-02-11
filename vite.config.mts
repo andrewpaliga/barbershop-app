@@ -6,4 +6,12 @@ import { vitePlugin as remix } from "@remix-run/dev";
 // Force rebuild to clear corrupted Vite cache
 export default defineConfig({
   plugins: [gadget(), remix(remixViteOptions)],
+  optimizeDeps: {
+    force: true, // Force re-optimization to clear corrupted cache
+  },
+  server: {
+    fs: {
+      strict: false,
+    },
+  },
 });
