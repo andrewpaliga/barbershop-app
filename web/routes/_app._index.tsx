@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { Page, Card, Text, BlockStack, InlineStack, Banner, Button, ProgressBar, Icon, Badge, Layout, Box, FooterHelp, Link } from "@shopify/polaris";
+import { useEffect, useState } from "react";
+import { Page, Card, Text, BlockStack, InlineStack, Banner, Button, ProgressBar, Icon, Badge, Layout, Box, FooterHelp, Link, Modal, Select } from "@shopify/polaris";
 import { CheckIcon } from "@shopify/polaris-icons";
 import { useFindMany, useFindFirst, useFindOne, useAction } from "@gadgetinc/react";
 import { useNavigate, useLoaderData } from "@remix-run/react";
@@ -16,6 +16,11 @@ export default function Index() {
   const navigate = useNavigate();
   const loaderData = useLoaderData<typeof loader>();
   const shopifyApiKey = loaderData?.gadgetConfig?.apiKeys?.shopify || "";
+
+  // State for autogenerate services
+  const [isAddingEssentials, setIsAddingEssentials] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState("barbershop");
 
   // Get config data and update action
   const [{ data: config, fetching: fetchingConfig, error: configError }, refetchConfig] = useFindFirst(api.config);
@@ -44,13 +49,250 @@ export default function Index() {
       name: true
     }
   });
-  const [{ data: servicesData }] = useFindMany(api.shopifyProduct, {
+  const [{ data: servicesData }, refetchServices] = useFindMany(api.shopifyProduct, {
     filter: {
       productType: {
         in: ["service", "Service", "SERVICE"]
       }
     }
   });
+
+  // Function to get services based on theme
+  const getServicesByTheme = (theme: string, timeSlotInterval: number) => {
+    const serviceSets: Record<string, Array<{
+      name: string;
+      description: string;
+      price?: number;
+      duration?: number;
+      durations?: number[];
+      durationPrices?: Record<number, number>;
+      mode: "single" | "multi";
+    }>> = {
+      "barbershop": [
+        {
+          name: "Haircut",
+          description: "Professional haircut service",
+          durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+          durationPrices: {
+            [timeSlotInterval * 1]: 23,
+            [timeSlotInterval * 2]: 45
+          },
+          mode: "multi"
+        },
+        {
+          name: "Beard Trim", 
+          description: "Precise beard trimming and shaping",
+          price: 25,
+          duration: timeSlotInterval * 1,
+          mode: "single"
+        },
+        {
+          name: "Haircut + Beard",
+          description: "Complete grooming package", 
+          price: 60,
+          duration: timeSlotInterval * 3,
+          mode: "single"
+        },
+        {
+          name: "Hair Wash & Style",
+          description: "Wash, cut, and style service",
+          durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+          durationPrices: {
+            [timeSlotInterval * 1]: 23,
+            [timeSlotInterval * 2]: 46
+          },
+          mode: "multi"
+        }
+      ],
+      "hair salon": [
+        {
+          name: "Haircut",
+          description: "Professional haircut service",
+          durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+          durationPrices: {
+            [timeSlotInterval * 1]: 35,
+            [timeSlotInterval * 2]: 65
+          },
+          mode: "multi"
+        },
+        {
+          name: "Hair Color", 
+          description: "Professional hair coloring service",
+          price: 85,
+          duration: timeSlotInterval * 3,
+          mode: "single"
+        },
+        {
+          name: "Cut & Color",
+          description: "Complete hair transformation", 
+          price: 120,
+          duration: timeSlotInterval * 4,
+          mode: "single"
+        },
+        {
+          name: "Blowout & Style",
+          description: "Professional styling service",
+          durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+          durationPrices: {
+            [timeSlotInterval * 1]: 45,
+            [timeSlotInterval * 2]: 80
+          },
+          mode: "multi"
+        }
+      ],
+      "personal trainer": [
+        {
+          name: "Personal Training",
+          description: "One-on-one fitness training session",
+          durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+          durationPrices: {
+            [timeSlotInterval * 1]: 75,
+            [timeSlotInterval * 2]: 140
+          },
+          mode: "multi"
+        },
+        {
+          name: "Fitness Assessment", 
+          description: "Comprehensive fitness evaluation",
+          price: 60,
+          duration: timeSlotInterval * 1,
+          mode: "single"
+        },
+        {
+          name: "Training Package",
+          description: "Extended training session", 
+          price: 180,
+          duration: timeSlotInterval * 3,
+          mode: "single"
+        },
+        {
+          name: "Nutrition Consultation",
+          description: "Personalized nutrition planning",
+          durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+          durationPrices: {
+            [timeSlotInterval * 1]: 50,
+            [timeSlotInterval * 2]: 90
+          },
+          mode: "multi"
+        }
+      ],
+      "massage clinic": [
+        {
+          name: "Swedish Massage",
+          description: "Relaxing full-body massage",
+          durations: [timeSlotInterval * 2, timeSlotInterval * 3],
+          durationPrices: {
+            [timeSlotInterval * 2]: 80,
+            [timeSlotInterval * 3]: 115
+          },
+          mode: "multi"
+        },
+        {
+          name: "Deep Tissue", 
+          description: "Therapeutic deep tissue massage",
+          price: 95,
+          duration: timeSlotInterval * 2,
+          mode: "single"
+        },
+        {
+          name: "Hot Stone Massage",
+          description: "Relaxing hot stone therapy", 
+          price: 125,
+          duration: timeSlotInterval * 3,
+          mode: "single"
+        },
+        {
+          name: "Sports Massage",
+          description: "Targeted sports recovery massage",
+          durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+          durationPrices: {
+            [timeSlotInterval * 1]: 60,
+            [timeSlotInterval * 2]: 110
+          },
+          mode: "multi"
+        }
+      ],
+      "funny": [
+        {
+          name: "Awkward Small Talk Session",
+          description: "Professional-grade uncomfortable silence and weather discussions",
+          price: 15,
+          duration: timeSlotInterval * 1,
+          mode: "single"
+        },
+        {
+          name: "Professional Nap Supervision",
+          description: "We watch you nap and judge your sleeping posture",
+          price: 75,
+          duration: timeSlotInterval * 2,
+          mode: "single"
+        },
+        {
+          name: "Dad Joke Consultation",
+          description: "Learn the ancient art of embarrassing your children",
+          durations: [timeSlotInterval * 1, timeSlotInterval * 2],
+          durationPrices: {
+            [timeSlotInterval * 1]: 20,
+            [timeSlotInterval * 2]: 35
+          },
+          mode: "multi"
+        },
+        {
+          name: "Passive Aggressive Gift Wrapping",
+          description: "We'll wrap it beautifully while silently judging your gift choice",
+          price: 40,
+          duration: timeSlotInterval * 1,
+          mode: "single"
+        },
+        {
+          name: "Professional Procrastination Coaching",
+          description: "Learn to put things off like a true expert (starts next week)",
+          price: 60,
+          duration: timeSlotInterval * 1,
+          mode: "single"
+        }
+      ]
+    };
+
+    return { services: serviceSets[theme] || serviceSets["barbershop"], actualTheme: theme };
+  };
+
+  // Function to add example services
+  const addExampleServices = async () => {
+    setIsAddingEssentials(true);
+    setShowThemeModal(false);
+    const timeSlotInterval = config?.timeSlotInterval || 30;
+    
+    const { services: essentials, actualTheme } = getServicesByTheme(selectedTheme, timeSlotInterval);
+
+    try {
+      for (const service of essentials) {
+        if (service.mode === "multi") {
+          await api.createService({
+            name: service.name,
+            description: service.description,
+            durations: service.durations,
+            durationPrices: service.durationPrices
+          });
+        } else {
+          await api.createService({
+            name: service.name,
+            description: service.description,
+            price: service.price,
+            duration: service.duration
+          });
+        }
+      }
+      
+      await refetchServices();
+      alert(`${actualTheme.charAt(0).toUpperCase() + actualTheme.slice(1)} services added successfully!`);
+    } catch (error) {
+      console.error("Failed to add example services:", error);
+      alert("Failed to add example services. Please try again.");
+    } finally {
+      setIsAddingEssentials(false);
+    }
+  };
   const [{ data: bookingsData }] = useFindMany(api.booking, {
     filter: {
       scheduledAt: {
@@ -105,8 +347,11 @@ export default function Index() {
       title: "Add a service",
       description: "Add a bookable service to your store",
       completed: (servicesData?.length || 0) > 0,
-      action: () => navigate("/services"),
-      buttonText: "Add Service"
+      action: () => setShowThemeModal(true),
+      buttonText: isAddingEssentials ? "Adding Services..." : "Autogenerate Services",
+      secondaryAction: () => navigate("/services"),
+      secondaryButtonText: "Add Service",
+      isAddingEssentials
     },
     {
       title: "Add Booking Button",
@@ -308,7 +553,19 @@ export default function Index() {
                                 View Instructions
                               </Button>
                             )}
-                            <Button onClick={step.action} variant="primary">
+                            {(step as any).secondaryAction && (
+                              <Button 
+                                variant="secondary" 
+                                onClick={(step as any).secondaryAction}
+                              >
+                                {(step as any).secondaryButtonText}
+                              </Button>
+                            )}
+                            <Button 
+                              onClick={step.action} 
+                              variant="primary"
+                              disabled={(step as any).isAddingEssentials}
+                            >
                               {step.buttonText}
                             </Button>
                           </InlineStack>
@@ -477,6 +734,44 @@ export default function Index() {
           </FooterHelp>
         </Layout.Section>
       </Layout>
+
+      {/* Theme Selection Modal for Autogenerate Services */}
+      <Modal
+        open={showThemeModal}
+        onClose={() => setShowThemeModal(false)}
+        title="Choose Your Business Type"
+        primaryAction={{
+          content: 'Add Services',
+          onAction: addExampleServices,
+        }}
+        secondaryActions={[
+          {
+            content: 'Cancel',
+            onAction: () => setShowThemeModal(false),
+          },
+        ]}
+      >
+        <Modal.Section>
+          <BlockStack gap="400">
+            <Text as="p" variant="bodyMd">
+              Select a business theme to auto-generate example services. You can customize or remove them anytime.
+            </Text>
+            
+            <Select
+              label="Business Type"
+              options={[
+                { label: 'Barbershop', value: 'barbershop' },
+                { label: 'Hair Salon', value: 'hair salon' },
+                { label: 'Personal Trainer', value: 'personal trainer' },
+                { label: 'Massage Clinic', value: 'massage clinic' },
+                { label: 'Funny', value: 'funny' },
+              ]}
+              value={selectedTheme}
+              onChange={(value) => setSelectedTheme(value)}
+            />
+          </BlockStack>
+        </Modal.Section>
+      </Modal>
     </Page>
   );
 }
