@@ -1,4 +1,5 @@
 import { applyParams, save, ActionOptions, ActionRun, ActionOnSuccess } from "gadget-server";
+import { sendMerchantWelcomeEmail } from "../../../helpers/sendgrid";
 
 export const run: ActionRun = async ({ params, record, logger, api, connections }) => {
   applyParams(params, record);
@@ -128,6 +129,32 @@ export const onSuccess: ActionOnSuccess = async ({ params, record, logger, api, 
   } catch (error) {
     // Don't throw - example staff creation failure shouldn't break installation
     logger.error(`Failed to create example staff for shop ${record.id}:`, error);
+  }
+
+  try {
+    const shopEmail = record.email?.trim();
+    if (shopEmail) {
+      const result = await sendMerchantWelcomeEmail(shopEmail, {
+        ownerName: record.shopOwner ?? "",
+        shopName: record.name ?? "",
+        shopDomain: record.myshopifyDomain ?? record.domain ?? "",
+      });
+      if (!result.success) {
+        logger.warn(
+          { shopId: record.id, error: result.error },
+          "Merchant welcome email was not sent"
+        );
+      } else {
+        logger.info({ shopId: record.id }, "Sent merchant welcome email");
+      }
+    } else {
+      logger.warn(
+        { shopId: record.id },
+        "Skipping merchant welcome email: shop has no contact email"
+      );
+    }
+  } catch (error) {
+    logger.error(`Failed to send merchant welcome email for shop ${record.id}:`, error);
   }
 };
 
